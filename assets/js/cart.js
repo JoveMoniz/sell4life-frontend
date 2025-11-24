@@ -270,4 +270,9 @@ if (e.target.classList.contains("cancel-clear")) {
 })();
 
 
+document.addEventListener("click", e => {
+  if (e.target.classList.contains("btn-buy")) {
+    window.location.href = "/cart/checkout.html";
+  }
+});
 
