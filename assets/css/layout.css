@@ -190,22 +190,30 @@ footer p {
     
 }
 
+/* SEARCH BAR - main container */
 .header-search {
+  position: relative;
   display: flex;
   align-items: center;
-  border-radius: 4px;
-  overflow: hidden;
+  border-radius: 5px;
+  overflow: visible;   /* ← Let the dropdown breathe */
+  z-index: 9999;       /* ← Make sure it sits above other layout */
 }
 
+
+/* INPUT */
 .header-search input {
   border: none;
   outline: none;
   width: 700px;
-  height: 33px;
+  height: 36px;
   border-radius: 5px 0 0 5px;
+  padding: 0 10px;
+  font-size: 15px;
+  color: #094949;
 }
 
-
+/* SEARCH BUTTON */
 .header-search button {
   background: #f18c28;
   border: none;
@@ -214,29 +222,62 @@ footer p {
   align-items: center;
   justify-content: center;
   border-radius: 0 5px 5px 0;
-  height: 36px; /* same height as input */
+  height: 36px;    /* matches input */
+  width: 40px;     /* keeps size consistent */
 }
 
-
-
 .header-search button img {
-  width: 30px;
-  height: 30px;
+  width: 22px;
+  height: 22px;
   object-fit: contain;
 }
 
-.header-icons {
-    width: 150px;
-    display: flex;
-    align-items: center;
-  gap: 20px;        /* spacing between sign in and basket */
+/* AUTOCOMPLETE DROPDOWN */
+.search-autocomplete {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: #fff;
+    border: 1px solid #ccc;
+    z-index: 9999;
 }
+
+.search-autocomplete.show {
+    display: block;
+}
+
+
+.search-autocomplete div {
+  color: #094949;
+  padding: 10px;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f3f3;
+}
+
+.search-autocomplete div:hover {
+  background: #f7f7f7;
+}
+
+
+/* SIGN IN + ICONS */
+.header-icons {
+  width: 150px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
 .header-icons a {
   color: #fdf4e7;
   text-decoration: none;
   font-weight: 500;
 }
 
+/* SIGN-IN LINK */
 .sign-in-link {
   color: #fdf4e7;
   text-decoration: none;
@@ -248,8 +289,9 @@ footer p {
 }
 
 .sign-in-link:hover {
-  border-color: #f18c28; /* orange border on hover */
+  border-color: #f18c28;
 }
+
 
 /* -------------------------------------------------------
    MINI CART

@@ -1,10 +1,10 @@
-.ty-container {
+.thankyou-container {
   max-width: 650px;
   margin: 50px auto;
   padding: 0 16px;
 }
 
-.ty-box {
+.thankyou-card {
   background: #fff;
   padding: 40px;
   border-radius: 16px;
@@ -18,23 +18,19 @@
   margin-bottom: 20px;
 }
 
-.ty-summary {
+.ty-details {
   text-align: left;
-  margin-top: 25px;
+  margin-top: 20px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.ty-items {
+  margin-top: 20px;
   padding: 20px;
-  border-radius: 12px;
   background: #f6fdfa;
+  border-radius: 12px;
   border: 1px solid #cde7e3;
-}
-
-.ty-summary h2 {
-  margin-bottom: 10px;
-  font-size: 20px;
-  font-weight: 700;
-}
-
-#ty-items {
-  margin-bottom: 10px;
 }
 
 .ty-item {
@@ -44,29 +40,17 @@
   font-size: 15px;
 }
 
-.ty-total-line {
-  margin-top: 15px;
-  display: flex;
-  justify-content: space-between;
-  font-size: 17px;
-  font-weight: 700;
-}
-
 .ty-btn {
   display: block;
-  margin: 20px auto 0;
+  margin: 30px auto 0;
   width: 100%;
-  padding: 12px 0;
+  padding: 14px 0;
   background: #f18c28;
   color: #fff;
   text-decoration: none;
   border-radius: 10px;
   font-size: 16px;
   font-weight: 700;
-}
-
-.ty-btn.sec {
-  background: #094949;
 }
 
 .ty-btn:hover {

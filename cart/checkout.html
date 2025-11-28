@@ -5,11 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Checkout | Sell4Life</title>
 
+  <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png">
   <link rel="stylesheet" href="/assets/css/layout.css">
   <link rel="stylesheet" href="/assets/css/checkout.css">
 </head>
 
 <body>
+
 <div id="header"></div>
 
 <div class="checkout-container">
@@ -92,27 +94,10 @@
 
 </div>
 
-<script src="/assets/js/layout.js"></script>
-<script src="/assets/js/cart.js"></script>
-<script src="/assets/js/checkout.js"></script>
-
 <div id="footer"></div>
 
-<script>
-async function loadPart(id, path) {
-  const res = await fetch(path, { cache: "no-store" });
-  const html = await res.text();
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.innerHTML = html;
-  document.dispatchEvent(new Event(id + "Loaded"));
-}
-
-(async () => {
-  await loadPart("header", "../includes/header.html");
-  await loadPart("footer", "../includes/footer.html");
-})();
-</script>
+<script src="/assets/js/layout.js"></script>
+<script src="/assets/js/checkout.js"></script>
 
 </body>
 </html>
