@@ -473,13 +473,13 @@ footer p {
 
 
 /* Default: Desktop ON, Mobile OFF */
-.mobile-header { display: none; }
-.desktop-header { display: flex; }
+.s4l-header-mobile { display: none; }
+.s4l-header { display: flex; }
 
 /* Below 1024px: Mobile ON, Desktop OFF */
 @media (max-width: 1280px) {
-  .desktop-header { display: none; }
-  .mobile-header { display: flex; }
+  .s4l-header { display: none; }
+  .s4l-header-mobile { display: flex; }
 
 
 /* =========================================================
