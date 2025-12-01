@@ -13,6 +13,18 @@
         console.error("Failed to load header:", err);
     }
 
+
+    // 1B. LOAD MOBILE / TABLET HEADER
+try {
+    const mobRes = await fetch("/includes/header-mobile.html", { cache: "no-store" });
+    const mobHTML = await mobRes.text();
+    document.body.insertAdjacentHTML("afterbegin", mobHTML);
+} catch (err) {
+    console.error("Failed to load mobile header:", err);
+}
+
+
+
     // 2. LOAD FOOTER
     try {
         const footerRes = await fetch("/includes/footer.html", { cache: "no-store" });

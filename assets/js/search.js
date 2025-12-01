@@ -2,7 +2,7 @@ console.log("search.js loaded");
 
 (async function bindSearch() {
 
-    // Wait until BOTH input + autocomplete box exist
+    // Wait for header to exist
     while (
         !document.querySelector("#header-search-form") ||
         !document.querySelector("#header-search-input") ||
@@ -17,16 +17,11 @@ console.log("search.js loaded");
     const input = document.querySelector("#header-search-input");
     const box  = document.querySelector(".search-autocomplete");
 
-    // CLEAN display control
-    function hideBox() {
-        box.classList.remove("show");
-    }
+    // SHOW / HIDE
+    function hideBox() { box.classList.remove("show"); }
+    function showBox() { box.classList.add("show"); }
 
-    function showBox() {
-        box.classList.add("show");
-    }
-
-    // Load products for autocomplete
+    // LOAD PRODUCTS ONCE
     let products = [];
     try {
         const res = await fetch("/data/products.json", { cache: "no-store" });
@@ -38,45 +33,48 @@ console.log("search.js loaded");
     // AUTOCOMPLETE
     input.addEventListener("input", () => {
         const q = input.value.trim().toLowerCase();
-
         if (!q) return hideBox();
 
-        const matches = products
-            .filter(p => p.name.toLowerCase().includes(q))
-            .slice(0, 6);
+        let matches = products.filter(p =>
+            p.name.toLowerCase().includes(q) ||
+            p.category.toLowerCase().includes(q) ||
+            p.subcategory.toLowerCase().includes(q)
+        ).slice(0, 8);
 
-        if (matches.length === 0) return hideBox();
+        if (!matches.length) return hideBox();
 
         box.innerHTML = matches.map(m => `
-            <div class="ac-item" data-name="${m.name}">
-                ${m.name}
+            <div class="ac-item" data-id="${m.id}">
+                <img src="/assets/images/products/${m.images[0]}" class="ac-thumb" />
+                <div class="ac-details">
+                    <span class="ac-name">${m.name}</span>
+                    <span class="ac-cat">${m.category} → ${m.subcategory}</span>
+                </div>
             </div>
         `).join("");
 
         showBox();
     });
 
-    // CLICK → fill + submit
-    document.addEventListener("click", e => {
-        if (e.target.classList.contains("ac-item")) {
-            input.value = e.target.dataset.name;
-            form.dispatchEvent(new Event("submit"));
-        } else {
-            hideBox(); // Clicked outside
-        }
+    // CLICK ITEM → OPEN PRODUCT
+    box.addEventListener("click", e => {
+        const item = e.target.closest(".ac-item");
+        if (!item) return;
+        window.location.href = `/product/product.html?id=${item.dataset.id}`;
     });
 
-    // SEARCH SUBMIT
+    // CLICK OUTSIDE → CLOSE BOX
+    document.addEventListener("click", e => {
+        if (!e.target.closest(".header-search")) hideBox();
+    });
+
+    // ENTER → GO TO SHOP SEARCH PAGE
     form.addEventListener("submit", e => {
         e.preventDefault();
-
         const term = input.value.trim();
         if (!term) return;
-
         window.location.href = `/shop/?q=${encodeURIComponent(term)}`;
     });
 
     console.log("Search ready.");
-
-    document.dispatchEvent(new Event("searchReady"));
 })();

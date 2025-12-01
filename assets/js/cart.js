@@ -85,17 +85,19 @@
 
       const li = document.createElement("li");
       li.innerHTML = `
-        <div class="mini-cart-item">
-          <div class="mini-cart-left">
-            <div class="mini-cart-name">${item.name}</div>
-            <div class="mini-cart-details">£${price.toFixed(2)} × ${qty}</div>
-          </div>
-          <div class="mini-cart-right">
-            <div class="mini-cart-qty">Qty: ${qty}</div>
-            <div class="mini-cart-sub">£${sub.toFixed(2)}</div>
-          </div>
-        </div>
-      `;
+  <div class="mini-cart-item">
+    <img src="${item.image || ''}" alt="${item.name}" class="mini-cart-thumb" />
+
+    <div class="mini-cart-info">
+      <div class="mini-cart-name">${item.name}</div>
+      <div class="mini-cart-meta">£${price.toFixed(2)} × ${qty}</div>
+    </div>
+
+    <div class="mini-cart-sub">£${sub.toFixed(2)}</div>
+  </div>
+`;
+
+
       miniCartList.appendChild(li);
     });
 

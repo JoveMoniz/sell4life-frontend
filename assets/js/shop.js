@@ -4,8 +4,6 @@
   console.log("shop.js loaded");
 
   const container = document.getElementById("product-list");
-
-  // Always use clean absolute paths in frontend
   const IMAGE_BASE = "/assets/images/products/";
 
   // ---------------------------------------------------------
@@ -22,42 +20,54 @@
   }
 
   // ---------------------------------------------------------
-  // 2. Read ALL query parameters once
+  // 2. Read URL parameters
   // ---------------------------------------------------------
   const params = new URLSearchParams(window.location.search);
 
-  const searchTerm = params.get("q")?.toLowerCase() || "";
-  const selectedCategory = params.get("category");
-  const selectedSub = params.get("subcategory");
+  const searchTerm = (params.get("q") || "").trim().toLowerCase();
+  const selectedCategory = (params.get("category") || "").trim().toLowerCase();
+  const selectedSub = (params.get("subcategory") || "").trim().toLowerCase();
 
   console.log("Search term:", searchTerm);
   console.log("Category:", selectedCategory);
   console.log("Subcategory:", selectedSub);
 
   // ---------------------------------------------------------
-  // 3. FILTER the products
+  // 3. BASE FILTER
   // ---------------------------------------------------------
   let filtered = products;
 
-  // Filter by category
+  // CATEGORY (case-insensitive)
   if (selectedCategory) {
-    filtered = filtered.filter(p => p.category === selectedCategory);
-  }
-
-  // Filter by subcategory
-  if (selectedSub) {
-    filtered = filtered.filter(p => p.subcategory === selectedSub);
-  }
-
-  // Filter by SEARCH TEXT
-  if (searchTerm) {
     filtered = filtered.filter(p =>
-      p.name.toLowerCase().includes(searchTerm)
+      p.category.toLowerCase() === selectedCategory
     );
   }
 
+  // SUBCATEGORY
+  if (selectedSub) {
+    filtered = filtered.filter(p =>
+      p.subcategory.toLowerCase() === selectedSub
+    );
+  }
+
+  // SEARCH FILTER
+  if (searchTerm) {
+    filtered = filtered.filter(p => {
+      const name = p.name.toLowerCase();
+      const cat  = p.category.toLowerCase();
+      const sub  = p.subcategory.toLowerCase();
+
+      return (
+        name.includes(searchTerm) ||
+        cat.includes(searchTerm) ||
+        sub.includes(searchTerm)
+      );
+    });
+  }
+
   // ---------------------------------------------------------
-  // 4. HANDLE NO RESULTS
+  // 4. HANDLE EMPTY RESULTS
   // ---------------------------------------------------------
   if (filtered.length === 0) {
     container.innerHTML = `<p>No products found.</p>`;
@@ -77,7 +87,4 @@
     </div>
   `).join("");
 
-  document.dispatchEvent(new Event("searchReady"));
-
 })();
-

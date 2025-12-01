@@ -43,11 +43,18 @@ document.addEventListener("DOMContentLoaded", () => {
             subtotal += line;
 
             return `
-                <div class="checkout-item">
-                    <span>${item.name} (x${qty})</span>
-                    <span>£${line.toFixed(2)}</span>
-                </div>
-            `;
+    <div class="checkout-item">
+        <img class="checkout-thumb" src="${item.image}" alt="${item.name}">
+        
+        <div class="checkout-details">
+            <span class="checkout-title">${item.name}</span>
+            <span class="checkout-qty">Quantity: ${qty}</span>
+        </div>
+
+        <span class="checkout-price">£${line.toFixed(2)}</span>
+    </div>
+`;
+
         }).join("");
 
         subtotalEl.textContent = "£" + subtotal.toFixed(2);

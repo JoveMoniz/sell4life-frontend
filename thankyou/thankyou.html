@@ -13,7 +13,14 @@
 <body>
 
 <!-- REQUIRED HEADER PLACEHOLDER -->
-<div id="header"></div>
+<div class="desktop-header-wrapper">
+    <div id="header"></div>
+</div>
+
+<div class="mobile-header-wrapper">
+    <div id="header-mobile"></div>
+</div>
+
 
 <div class="thankyou-container">
 
@@ -33,8 +40,16 @@
       <span id="order-date">--</span>
     </div>
 
+    <!-- ITEMS LIST -->
     <div id="order-items" class="ty-items"></div>
 
+    <!-- TOTAL (this was missing) -->
+    <div class="ty-details">
+      <strong>Total:</strong>
+      <span id="order-total">£0.00</span>
+    </div>
+
+    <!-- BUTTON -->
     <a href="/" class="ty-btn">Back to Home</a>
   </div>
 
