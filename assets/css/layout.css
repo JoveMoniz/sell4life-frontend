@@ -192,7 +192,7 @@ footer p {
   overflow: visible;
 }
 
-.header-search input {
+#header-search-input {
   border: none;
   outline: none;
   width: 700px;
@@ -474,18 +474,22 @@ footer p {
 
 /* Default: Desktop ON, Mobile OFF */
 .s4l-header-mobile { display: none; }
-.s4l-header { display: flex; }
+.s4l-header-desktop { display: flex; }
 
-/* Below 1024px: Mobile ON, Desktop OFF */
-@media (max-width: 1280px) {
-  .s4l-header { display: none; }
-  .s4l-header-mobile { display: flex; }
 
 
 /* =========================================================
    MOBILE + TABLET HEADER
-   (Triggers below 1024px)
+   (Triggers below 1280px)
 ========================================================= */
+
+
+
+@media (max-width: 1280px) {
+  .s4l-header-desktop { display: none; }
+  .s4l-header-mobile { display: flex; }
+
+
 
 
 
@@ -559,62 +563,9 @@ footer p {
     gap: 16px;
   }
 
-  /* Basket icon */
-  .basket-shell {
-  position: relative;
-  width: 28px;
-  height: 17px;
-  border: 1px solid #fff !important;
-  border-radius: 0 0 7px 7px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0;
-  cursor: pointer;
-  }
 
-  #basket-mobile .basket-handle {
-  position: absolute;
-  top: -13px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 15px;
-  height: 18px;
-  border: 1px solid #fff !important;
-  border-radius: 12px 12px 0 0;
-  border-bottom: none !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  }
 
-  #basket-mobile .basket-qty {
-  position: absolute;
-  top: 2px;
-  right: -6px;
-  min-width: 10px;
-  height: 10px;
-  padding: 0 3px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font: 600 12px/1 system-ui, sans-serif;
-  background: #ff7a00;
-  color: white;
-  border-radius: 999px;
-  pointer-events: none;
-  }
 
-  .basket-qty.hide {
-  display: none;
-}
-  /* Sign in */
-  .mobile-signin {
-    color: #FFFFFF;
-    text-decoration: none;
-    font-weight: 500;
-  }
 
   /* ----------------------------------------------
      ROW 2: NAV MENU
@@ -634,53 +585,19 @@ footer p {
     font-weight: 600;
   }
 
-  .mobile-nav a:hover {
-    text-decoration: underline 1px #F28C28;
-  }
+  
 
   /* ----------------------------------------------
      SEARCH BAR
   ---------------------------------------------- */
-  .mobile-search {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    position: relative;
-  }
 
-  .mobile-search input {
-    width: 100%;
-    height: 38px;
-    border: none;
-    outline: none;
-    border-radius: 6px 0 0 6px;
-    padding: 0 10px;
-    font-size: 15px;
-    color: #094949;
-  }
 
-  .mobile-search button {
-    width: 42px;
-    height: 38px;
-    background: #F28C28;
-    border: none;
-    border-radius: 0 6px 6px 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
 
-  .mobile-search button img {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
-  }
 
-  .mobile-search .search-autocomplete {
-    top: 100%;
-    left: 0;
-    width: 100%;
-  }
+
+
+
+  
 }
 
 
