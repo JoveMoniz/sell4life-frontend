@@ -218,6 +218,40 @@
     }
   });
 
+
+// -----------------------------------
+// CLEAR CART LOGIC
+// -----------------------------------
+document.addEventListener("click", e => {
+
+  // OPEN CLEAR MODAL
+  if (e.target.id === "clear-cart") {
+    const modal = document.querySelector(".clear-cart-modal");
+    if (modal) modal.classList.add("show");
+    return;
+  }
+
+  // CONFIRM CLEAR
+  if (e.target.classList.contains("confirm-clear")) {
+    cart = [];
+    localStorage.setItem("cart", JSON.stringify(cart));
+    refreshAll();
+
+    const modal = document.querySelector(".clear-cart-modal");
+    if (modal) modal.classList.remove("show");
+    return;
+  }
+
+  // CANCEL CLEAR
+  if (e.target.classList.contains("cancel-clear")) {
+    const modal = document.querySelector(".clear-cart-modal");
+    if (modal) modal.classList.remove("show");
+    return;
+  }
+});
+
+
+
   // -----------------------------------
   // INITIAL RENDER
   // -----------------------------------
