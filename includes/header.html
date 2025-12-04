@@ -1,11 +1,11 @@
 <!-- Global Font -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
 
-<!-- Favicon + Header Styles -->
+<!-- Favicon -->
 <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png">
-<link rel="stylesheet" href="/assets/css/cart.css">
 
 
 <!-- =======================================================
@@ -31,19 +31,21 @@
         <a href="#">About</a>
       </nav>
 
-      <!-- Search -->
-      <form id="header-search-form" class="header-search" role="search">
-        <input id="header-search-input" type="text" placeholder="Search products..." autocomplete="off" />
-        <button type="submit">
-          <img src="/assets/images/hero/search.png" alt="Search">
-        </button>
-        <div class="search-autocomplete"></div>
-      </form>
+      <!-- Search Bar -->
+      <form id="desktop-search-form" class="header-search" role="search">
+  <input id="desktop-search-input" type="text" placeholder="Search products..." autocomplete="off">
+  <button type="submit">
+    <img src="/assets/images/hero/search.png">
+  </button>
+  <div class="search-autocomplete desktop-ac"></div>
+</form>
 
-      <!-- Basket + Mini Cart (THE ONLY ONE) -->
+
+
+      <!-- Basket + Mini Cart -->
       <div class="basket-wrapper">
 
-        <div id="basket-shape" class="basket-shell" aria-label="Basket">
+        <div class="basket-shell" aria-label="Basket">
           <div class="basket-handle"></div>
           <span class="basket-qty hide">0</span>
         </div>
@@ -93,9 +95,9 @@
 
         <div class="mobile-right-icons">
 
-          <!-- Basket-shell ONLY — NO MINICART HERE -->
-          <div class="basket-wrapper">
-            <div id="basket-shape" class="basket-shell">
+          <!-- Basket (NO minicart here) -->
+          <div class="basket-wrapper mobile-basket">
+            <div class="basket-shell">
               <div class="basket-handle"></div>
               <span class="basket-qty hide">0</span>
             </div>
@@ -103,6 +105,7 @@
 
           <a href="#" class="sign-in-link">Sign in</a>
         </div>
+
       </div>
 
       <!-- ROW 2: Menu + Search -->
@@ -114,13 +117,16 @@
           <a href="#">About</a>
         </nav>
 
-        <form id="header-search-form" class="header-search" role="search">
-        <input id="header-search-input" type="text" placeholder="Search products..." autocomplete="off" />
-        <button type="submit">
-          <img src="/assets/images/hero/search.png" alt="Search">
-        </button>
-        <div class="search-autocomplete"></div>
-      </form>
+        <!-- SAME structure as desktop, DIFFERENT styling -->
+        <form id="mobile-search-form" class="mobile-search" role="search">
+  <input id="mobile-search-input" type="text" placeholder="Search products..." autocomplete="off">
+  <button type="submit">
+    <img src="/assets/images/hero/search.png">
+  </button>
+  <div class="search-autocomplete mobile-ac"></div>
+</form>
+
+
 
       </div>
 

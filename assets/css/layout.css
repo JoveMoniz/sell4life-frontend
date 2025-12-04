@@ -122,7 +122,7 @@ footer p {
    HEADER BASE
 ========================================================= */
 
-.s4l-header {
+.s4l-header-desktop {
   width: 100%;
   display: flex;
   justify-content: center;
@@ -192,7 +192,7 @@ footer p {
   overflow: visible;
 }
 
-#header-search-input {
+#desktop-search-input {
   border: none;
   outline: none;
   width: 700px;
@@ -222,64 +222,69 @@ footer p {
 }
 
 
-/* =========================================================
-   AUTOCOMPLETE
-========================================================= */
+/* Base autocomplete styling (shared by desktop + mobile) */
+.search-autocomplete,
+.desktop-ac,
+.mobile-ac {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-height: 260px;
+    background: #ffffff;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    overflow-y: auto;
+    z-index: 50000;
 
-.search-autocomplete {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 100%;
-  max-height: 300px;
-  overflow-y: auto;
-  background: #fff;
-  border: 1px solid #ccc;
-  border-top: none;
-  z-index: 999999;
-  display: none;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    display: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease;
 }
 
-.search-autocomplete.show {
-  display: block;
+.search-autocomplete.show,
+.desktop-ac.show,
+.mobile-ac.show {
+    display: block;
+    opacity: 1;
+    visibility: visible;
 }
 
+/* Autocomplete item */
 .ac-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  cursor: pointer;
-  border-bottom: 1px solid #f3f3f3;
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    cursor: pointer;
 }
 
 .ac-item:hover {
-  background: #f7f7f7;
+    background: #f5f5f5;
 }
 
 .ac-thumb {
-  width: 40px;
-  height: 40px;
-  object-fit: cover;
-  border-radius: 4px;
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    margin-right: 10px;
+    object-fit: cover;
 }
 
 .ac-details {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
+    display: flex;
+    flex-direction: column;
 }
 
 .ac-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #094949;
+    font-weight: 600;
+    color: #222;
 }
 
 .ac-cat {
-  font-size: 12px;
-  color: #777;
+    font-size: 13px;
+    color: #777;
 }
 
 
@@ -309,16 +314,104 @@ footer p {
 }
 
 
+/* === Basket Base === */
+.basket-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 15px;
+  border: none;
+}
+
+.basket-shell {
+  position: relative;
+  width: 28px;
+  height: 17px;
+  border: 1px solid #fff !important;
+  border-radius: 0 0 7px 7px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0;
+  cursor: pointer;
+}
+
+.basket-handle {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 15px;
+  height: 18px;
+  border: 1px solid #fff !important;
+  border-radius: 12px 12px 0 0;
+  border-bottom: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* === Quantity Badge === */
+.basket-qty {
+  position: absolute;
+  top: 2px;
+  right: -6px;
+  min-width: 10px;
+  height: 10px;
+  padding: 0 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 600 12px/1 system-ui, sans-serif;
+  background: #ff7a00;
+  color: white;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.basket-qty.hide {
+  display: none;
+}
+
+.basket-qty.bump {
+  animation: s4l-bump 220ms ease;
+}
+
+@keyframes s4l-bump {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+
+
+.basket-wrapper::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: 35px; /* invisible hover bridge*/
+  background: transparent;
+}
+
+
+
+
+
 /* =========================================================
    MINI CART
 ========================================================= */
 
-.basket-wrapper:hover .mini-cart,
+/* Only open mini-cart when hovering the BASKET SHELL or the mini-cart itself */
+.basket-shell:hover + .mini-cart,
 .mini-cart:hover {
-  display: block;
-  opacity: 1;
-  visibility: visible;
+    display: block;
+    opacity: 1;
+    visibility: visible;
 }
+
 
 .mini-cart {
     position: absolute;
@@ -491,105 +584,225 @@ footer p {
 
 
 
-
-
-  /* Overall wrapper */
+/* Base container */
 .s4l-header-mobile {
-  width: 100%;
-  background: #0B6B6A;
-  padding: 10px 0 15px;
-  display: flex;
-  justify-content: center;
-  color: #fff;
-  position: relative;
-  overflow: visible;
-  z-index: 5000;
+    width: 100%;
+    background:#0B6B6A;
+    padding: 10px 0 14px 0;
+    position: relative;
+    z-index: 9999;
 }
 
 .mobile-header-container {
-  width: 100%;
-  max-width: 900px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 0 14px;
+    width: 100%;
+    padding: 0 12px;
 }
-
 
 .mobile-header {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;   /* ← centers the menu section */
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
-.mobile-menu-col {
-  width: 100%;           /* ← full width */
-  max-width: 600px;      /* ← keeps it neat */
-  display: flex;
-  flex-direction: column;
-  align-items: center;   /* ← centers inside container */
-  gap: 10px;
-  margin: 0 auto;        /* ← centers the whole column */
-}
+/* =========================================================
+   ROW 1 — LOGO LEFT | BASKET + SIGN-IN RIGHT
+========================================================= */
 
-
-  /* ----------------------------------------------
-     ROW 1: Logo LEFT  |  Basket + Sign in RIGHT
-  ---------------------------------------------- */
-  .mobile-top-row {
+.mobile-top-row {
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
-  }
+}
 
-  /* Logo */
-  .mobile-logo {
+/* Logo */
+.mobile-logo {
+    display: flex;
+    align-items: center;
+    font-size: 28px;
+    font-weight: bold;
+    text-decoration: none;
+    letter-spacing: 2px;
+}
+
+/* Right-side icons */
+.mobile-right-icons {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+/* Basket */
+.mobile-basket .basket-shell {
+      position: relative;
+  width: 28px;
+  height: 17px;
+  border: 1px solid #fff !important;
+  border-radius: 0 0 7px 7px;
   display: flex;
-  align-items: left;
-  font-size: 28px;
-  font-weight: bold;
-  letter-spacing: 3px;
-  text-decoration: none;
-  padding-left: 20px;
-  }
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0;
+  cursor: pointer;
+}
 
-  /* Right side: basket + sign in */
-  .mobile-right-icons {
-    display: flex;
-    align-items: left;
-    margin-right: 20px;
-    gap: 16px;
-  }
+.mobile-basket .basket-handle {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 15px;
+  height: 18px;
+  border: 1px solid #fff !important;
+  border-radius: 12px 12px 0 0;
+  border-bottom: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
+.mobile-basket .basket-qty {
+    position: absolute;
+    bottom: -4px;
+    right: -6px;
+    background: #F28C28;
+    color: white;
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
 
-
-
-
-  /* ----------------------------------------------
-     ROW 2: NAV MENU
-  ---------------------------------------------- */
-
-
-  .mobile-nav {
-    display: flex;
-    justify-content: center;
-    gap: 28px;
-  }
-
-  .mobile-nav a {
+/* Sign in */
+.mobile-right-icons .sign-in-link {
+    font-size: 14px;
     color: #FDF4E7;
     text-decoration: none;
+}
+
+/* =========================================================
+   ROW 2 — MENU + SEARCH
+========================================================= */
+
+.mobile-menu-col {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 14px;
+}
+
+/* NAV MENU */
+.mobile-nav {
+    display: flex;
+    justify-content: center;
+    gap: 26px;
+}
+
+.mobile-nav a {
     font-size: 16px;
+    color: #FDF4E7;
+    text-decoration: none;
     font-weight: 600;
-  }
+}
 
-  
+/* =========================================================
+   MOBILE SEARCH BAR
+========================================================= */
 
-  /* ----------------------------------------------
-     SEARCH BAR
-  ---------------------------------------------- */
+.mobile-search {
+    position: relative;
+    width: 100%;
+    display: flex;
+    background: white;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.mobile-search input {
+    width: 100%;
+    border: none;
+    outline: none;
+    padding: 10px;
+    font-size: 15px;
+    color: #094949;
+}
+
+.mobile-search button {
+    width: 40px;
+    background: #F18C28;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mobile-search button img {
+    width: 22px;
+    height: 22px;
+}
+
+/* =========================================================
+   AUTOCOMPLETE (mobile box)
+========================================================= */
+
+.mobile-ac {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-height: 240px;
+    background: #ffffff;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    overflow-y: auto;
+    z-index: 20001;
+    display: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease;
+}
+
+.mobile-ac.show {
+    display: block;
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Items */
+.mobile-ac .ac-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    cursor: pointer;
+}
+
+.mobile-ac .ac-item:hover {
+    background: #f5f5f5;
+}
+
+.mobile-ac .ac-thumb {
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    margin-right: 10px;
+    object-fit: cover;
+}
+
+.mobile-ac .ac-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.mobile-ac .ac-name {
+    font-weight: 600;
+    color: #222;
+}
+
+.mobile-ac .ac-cat {
+    color: #777;
+    font-size: 13px;
+}
 
 
 
