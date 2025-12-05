@@ -46,7 +46,7 @@ footer p {
   grid-template-columns: repeat(4, 1fr);
   gap: 2rem;
   width: 100%;
-  height: 350px;
+  height: auto;
   margin: 3rem auto;
   text-align: left;
   padding-left: 20px;
@@ -118,6 +118,29 @@ footer p {
 .logo-blue   { color: #00bfff; }
 
 
+
+@media (max-width: 1024px) {
+  .footer-columns {
+    grid-template-columns: repeat(2, 1fr);
+    height: auto; /* free the height so wrapping works */
+    padding-left: 20px;
+  }
+}
+
+
+
+
+@media (max-width: 600px) {
+  .footer-columns {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    padding-left: 20px;
+  }
+
+  
+}
+
+
 /* =========================================================
    HEADER BASE
 ========================================================= */
@@ -164,8 +187,14 @@ footer p {
   font-weight: bold;
   letter-spacing: 3px;
   text-decoration: none;
+  margin: 6px 0;
   padding-left: 20px;
 }
+
+.header-nav {
+  margin: 10px 0;
+}
+
 
 .header-nav a {
   margin: 0 15px;
@@ -303,7 +332,7 @@ footer p {
   color: #fdf4e7;
   text-decoration: none;
   font-weight: 500;
-  padding: 6px 10px;
+  padding: 10px 10px;
   border: 1px solid transparent;
   border-radius: 4px;
   transition: border-color 0.3s;
@@ -693,6 +722,12 @@ footer p {
 }
 
 /* Basket */
+
+.mobile-basket {
+  margin-top: 25px;
+}
+
+
 .mobile-basket .basket-shell {
       position: relative;
   width: 28px;
@@ -858,6 +893,7 @@ footer p {
 }
 
 .mobile-ac .ac-name {
+  font-size: 18px;
     font-weight: 600;
     color: #222;
 }
