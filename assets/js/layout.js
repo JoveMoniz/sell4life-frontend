@@ -1,6 +1,5 @@
 // =====================================================
 // 0. GLOBAL CACHE-BUSTER
-// Forces browsers to always load the newest CSS + JS
 // =====================================================
 (function forceFreshAssets() {
     const stamp = Date.now();
@@ -11,7 +10,7 @@
         link.href = clean + "?v=" + stamp;
     });
 
-    // Refresh static JS (not dynamically injected ones)
+    // Refresh static JS (only /assets/js/)
     document.querySelectorAll('script[src]').forEach(script => {
         const src = script.getAttribute('src');
         if (src.startsWith("/assets/js/")) {
@@ -22,25 +21,22 @@
 })();
     
 
-
 // =====================================================
 // 1. LOAD HEADER + FOOTER
 // =====================================================
 (async function loadLayout() {
 
-    // LOAD HEADER
+    // HEADER
     try {
         const res = await fetch("/includes/header.html", { cache: "no-store" });
         const html = await res.text();
         document.body.insertAdjacentHTML("afterbegin", html);
-
-        // Tell the world header exists
         document.dispatchEvent(new Event("headerLoaded"));
     } catch (err) {
         console.error("Failed to load header:", err);
     }
 
-    // LOAD FOOTER
+    // FOOTER
     try {
         const res = await fetch("/includes/footer.html", { cache: "no-store" });
         const html = await res.text();
@@ -52,9 +48,8 @@
 })();
     
 
-
 // =====================================================
-// 2. LOAD CART.JS only AFTER header exists
+// 2. LOAD CART.JS AFTER HEADER
 // =====================================================
 document.addEventListener("headerLoaded", () => {
     if (window.__cartScriptLoaded) return;
@@ -68,7 +63,7 @@ document.addEventListener("headerLoaded", () => {
 
 
 // =====================================================
-// 3. LOAD SEARCH.JS only AFTER header exists
+// 3. LOAD SEARCH.JS AFTER HEADER
 // =====================================================
 document.addEventListener("headerLoaded", () => {
     if (window.__searchLoaded) return;
@@ -83,16 +78,25 @@ document.addEventListener("headerLoaded", () => {
 
 
 // =====================================================
-// 4. DESKTOP MINI-CART HOVER DELAY (Smooth)
+// 4. DESKTOP MINI-CART HOVER — *ONLY if basket has items*
 // =====================================================
 let miniCartTimeout;
 
 document.addEventListener("mouseover", e => {
     const wrapper = document.querySelector(".basket-wrapper");
     const miniCart = document.querySelector(".mini-cart");
+
     if (!wrapper || !miniCart) return;
 
-    // Hovering basket or mini-cart → keep open
+    // If wrapper does NOT have items → NO HOVER ALLOWED
+    if (!wrapper.classList.contains("has-items")) {
+        miniCart.style.display = "none";
+        miniCart.style.opacity = "0";
+        miniCart.style.visibility = "hidden";
+        return;
+    }
+
+    // Hovering basket or mini-cart → show
     if (wrapper.contains(e.target) || miniCart.contains(e.target)) {
         clearTimeout(miniCartTimeout);
         miniCart.style.display = "block";
@@ -101,10 +105,11 @@ document.addEventListener("mouseover", e => {
         return;
     }
 
-    // Leaving → fade away after delay
+    // Leaving → hide after delay
     miniCartTimeout = setTimeout(() => {
         miniCart.style.display = "none";
         miniCart.style.opacity = "0";
         miniCart.style.visibility = "hidden";
     }, 200);
 });
+

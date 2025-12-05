@@ -1,5 +1,5 @@
 // ======================================================================
-// SELL4LIFE CART.JS — Final Stable Version
+// SELL4LIFE CART.JS — Final Stable Version (with empty-cart hover fix)
 // ======================================================================
 
 (async function () {
@@ -112,7 +112,7 @@
     // 5. RENDER CART PAGE
     // ---------------------------------------------------------
     function renderCartPage() {
-        if (!colProduct) return; // Not on cart page
+        if (!colProduct) return;
 
         colProduct.innerHTML  = "";
         colQty.innerHTML      = "";
@@ -172,10 +172,7 @@
         renderCartPage();
     }
 
-    // Initial render
     refreshAll();
-
-    // ALSO update when product.js fires custom event
     document.addEventListener("cartUpdated", refreshAll);
 
     // ---------------------------------------------------------
@@ -227,7 +224,7 @@
     });
 
     // ---------------------------------------------------------
-    // 9. MOBILE MINICART (tap to open/close)
+    // 9. MOBILE MINI CART
     // ---------------------------------------------------------
     document.addEventListener("click", e => {
         const mobileBasket = document.querySelector(".s4l-header-mobile .basket-shell");
@@ -250,7 +247,7 @@
     });
 
     // ---------------------------------------------------------
-    // 10. DESKTOP HOVER LOGIC (desktop only)
+    // 10. DESKTOP HOVER LOGIC (only if cart has items)
     // ---------------------------------------------------------
     let miniCartTimeout;
     const isTouch = matchMedia("(hover: none)").matches;
@@ -262,7 +259,11 @@
 
             if (!wrap || !mini) return;
 
+            // 🟧 SHOW ONLY IF CART HAS ITEMS
             if (wrap.contains(e.target) || mini.contains(e.target)) {
+                const cartNow = readCart();
+                if (!cartNow.length) return;
+
                 clearTimeout(miniCartTimeout);
                 mini.style.display = "block";
                 mini.style.opacity = "1";
@@ -282,11 +283,9 @@
 
 
 // ======================================================================
-// 11. CHECKOUT BUTTON — The FINAL WORKING VERSION
+// 11. CHECKOUT BUTTON
 // ======================================================================
 document.addEventListener("click", e => {
     const btn = e.target.closest("#btn-buy");
-    if (btn) {
-        window.location.href = "/cart/checkout.html";
-    }
+    if (btn) window.location.href = "/cart/checkout.html";
 });

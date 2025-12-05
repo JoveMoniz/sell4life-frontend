@@ -316,11 +316,17 @@ footer p {
 
 /* === Basket Base === */
 .basket-wrapper {
-  display: flex;
   align-items: center;
   justify-content: center;
   margin-top: 15px;
   border: none;
+    position: relative;
+    display: inline-flex;
+    width: auto !important;
+    height: auto !important;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
 }
 
 .basket-shell {
@@ -405,18 +411,27 @@ footer p {
 ========================================================= */
 
 /* Only open mini-cart when hovering the BASKET SHELL or the mini-cart itself */
-.basket-shell:hover + .mini-cart,
-.mini-cart:hover {
-    display: block;
-    opacity: 1;
-    visibility: visible;
+/* Hide by default */
+.basket-wrapper .mini-cart {
+  display: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .2s ease, visibility .2s ease;
 }
+
+/* Only show minicart if basket has items */
+.basket-wrapper.has-items:hover .mini-cart,
+.basket-wrapper.has-items .mini-cart:hover {
+  display: block;
+  opacity: 1;
+  visibility: visible;
+}
+
 
 
 .mini-cart {
     position: absolute;
     top: 50px;
-    right: 10px;
     width: 380px;
     background: #fff;
     border: 1px solid #ccc;
@@ -715,7 +730,7 @@ footer p {
     display: flex;
     background: white;
     border-radius: 6px;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .mobile-search input {
@@ -734,6 +749,7 @@ footer p {
     display: flex;
     align-items: center;
     justify-content: center;
+    
 }
 
 .mobile-search button img {
