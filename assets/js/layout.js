@@ -5,7 +5,8 @@
     const stamp = Date.now();
 
     // Refresh CSS
-    document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+    document.querySelectorAll('link[data-bust="true"]')
+.forEach(link => {
         const clean = link.href.split('?')[0];
         link.href = clean + "?v=" + stamp;
     });
@@ -28,7 +29,7 @@
 
     // HEADER
     try {
-        const res = await fetch("/includes/header.html", { cache: "no-store" });
+const res = await fetch("/includes/header.html?v=1", { cache: "force-cache" });
         const html = await res.text();
         document.body.insertAdjacentHTML("afterbegin", html);
         document.dispatchEvent(new Event("headerLoaded"));
@@ -78,38 +79,53 @@ document.addEventListener("headerLoaded", () => {
 
 
 // =====================================================
-// 4. DESKTOP MINI-CART HOVER — *ONLY if basket has items*
+// 4. DESKTOP MINI-CART HOVER + MOBILE TAP REDIRECT
 // =====================================================
+
 let miniCartTimeout;
 
-document.addEventListener("mouseover", e => {
-    const wrapper = document.querySelector(".basket-wrapper");
-    const miniCart = document.querySelector(".mini-cart");
+document.addEventListener("headerLoaded", () => {
 
-    if (!wrapper || !miniCart) return;
+    // DESKTOP TARGETS ONLY
+    const wrapper  = document.querySelector(".s4l-header-desktop .basket-wrapper");
+    const miniCart = document.querySelector(".s4l-header-desktop .mini-cart");
 
-    // If wrapper does NOT have items → NO HOVER ALLOWED
-    if (!wrapper.classList.contains("has-items")) {
-        miniCart.style.display = "none";
-        miniCart.style.opacity = "0";
-        miniCart.style.visibility = "hidden";
-        return;
+    // DESKTOP MINICART HOVER
+    if (wrapper && miniCart) {
+
+        document.addEventListener("mouseover", e => {
+
+            if (!wrapper.classList.contains("has-items")) {
+                miniCart.style.display = "none";
+                miniCart.style.opacity = "0";
+                miniCart.style.visibility = "hidden";
+                return;
+            }
+
+            if (wrapper.contains(e.target) || miniCart.contains(e.target)) {
+                clearTimeout(miniCartTimeout);
+                miniCart.style.display = "block";
+                miniCart.style.opacity = "1";
+                miniCart.style.visibility = "visible";
+                return;
+            }
+
+            miniCartTimeout = setTimeout(() => {
+                miniCart.style.opacity = "0";
+                miniCart.style.visibility = "hidden";
+                miniCart.style.display = "none";
+            }, 200);
+        });
     }
 
-    // Hovering basket or mini-cart → show
-    if (wrapper.contains(e.target) || miniCart.contains(e.target)) {
-        clearTimeout(miniCartTimeout);
-        miniCart.style.display = "block";
-        miniCart.style.opacity = "1";
-        miniCart.style.visibility = "visible";
-        return;
+    // MOBILE TAP → CART PAGE
+    const mobileBasket = document.querySelector(".s4l-header-mobile .mobile-basket");
+
+    if (mobileBasket) {
+        mobileBasket.addEventListener("click", () => {
+            window.location.href = "/cart/cart.html";
+        });
     }
 
-    // Leaving → hide after delay
-    miniCartTimeout = setTimeout(() => {
-        miniCart.style.display = "none";
-        miniCart.style.opacity = "0";
-        miniCart.style.visibility = "hidden";
-    }, 200);
 });
 

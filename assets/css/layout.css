@@ -428,6 +428,13 @@ footer p {
 }
 
 
+.basket-wrapper.open .mini-cart {
+    display: block;
+    opacity: 1;
+    visibility: visible;
+}
+
+
 
 .mini-cart {
     position: absolute;
@@ -440,6 +447,13 @@ footer p {
     padding: 16px;
     display: none;
     opacity: 0;
+     /* Start closed */
+    opacity: 0;
+    transform: translateY(-10px);
+    transition:
+    opacity 0.25s ease,
+    transform 0.25s ease,
+    visibility 0.25s ease;
     visibility: hidden;
     transition: opacity .25s ease, visibility .25s ease;
     z-index: 99999;
@@ -740,6 +754,7 @@ footer p {
     padding: 10px;
     font-size: 15px;
     color: #094949;
+    border-radius: 5px 0 0 5px;
 }
 
 .mobile-search button {
@@ -749,6 +764,7 @@ footer p {
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: 0 5px 5px 0;
     
 }
 
