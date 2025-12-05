@@ -63,6 +63,20 @@
         });
     }
 
+
+        // ---------------------------------------------------------
+    // UNIVERSAL BASKET STATE (desktop + mobile dim when empty)
+    // ---------------------------------------------------------
+    function updateBasketState() {
+        const qtyTotal = cart.reduce((s, i) => s + (i.quantity || 0), 0);
+
+        document.querySelectorAll(".basket-wrapper").forEach(wrapper => {
+            wrapper.classList.toggle("empty", qtyTotal === 0);
+        });
+    }
+
+
+
     // ---------------------------------------------------------
     // 4. RENDER MINICART
     // ---------------------------------------------------------
@@ -165,12 +179,14 @@
     // ---------------------------------------------------------
     // 6. FULL REFRESH
     // ---------------------------------------------------------
-    function refreshAll() {
-        cart = readCart();
-        renderMiniCart();
-        updateBadge();
-        renderCartPage();
-    }
+   function refreshAll() {
+    cart = readCart();
+    renderMiniCart();
+    updateBadge();
+    updateBasketState();  // <<< added
+    renderCartPage();
+}
+
 
     refreshAll();
     document.addEventListener("cartUpdated", refreshAll);

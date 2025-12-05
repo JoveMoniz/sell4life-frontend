@@ -119,13 +119,23 @@ document.addEventListener("headerLoaded", () => {
     }
 
     // MOBILE TAP → CART PAGE
-    const mobileBasket = document.querySelector(".s4l-header-mobile .mobile-basket");
+// MOBILE TAP → CART PAGE (Only if qty > 0)
+const mobileBasket = document.querySelector(".s4l-header-mobile .mobile-basket");
 
-    if (mobileBasket) {
-        mobileBasket.addEventListener("click", () => {
-            window.location.href = "/cart/cart.html";
-        });
-    }
+if (mobileBasket) {
+    mobileBasket.addEventListener("click", () => {
+
+        const qtyEl = mobileBasket.querySelector(".basket-qty");
+        const qty = parseInt(qtyEl?.textContent || "0", 10);
+
+        if (qty <= 0) {
+            return; // Block tap when empty
+        }
+
+        window.location.href = "/cart/cart.html";
+    });
+}
+
 
 });
 

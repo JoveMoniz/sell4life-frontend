@@ -216,8 +216,8 @@ footer p {
 }
 
 .header-search button img {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
 }
 
@@ -401,6 +401,37 @@ footer p {
   height: 35px; /* invisible hover bridge*/
   background: transparent;
 }
+
+
+/* =============================================
+   PERFECTLY MATCHED FADE FOR BOTH BASKET PARTS
+   (Shell & Handle fade equally)
+============================================= */
+
+/* First: no full opacity fade */
+.basket-wrapper.empty .basket-shell,
+.basket-wrapper.empty .basket-handle {
+    opacity: 1; /* full opacity, don't fade the element itself */
+}
+
+/* Fade the border colour instead */
+.basket-wrapper.empty .basket-shell,
+.basket-wrapper.empty .basket-handle {
+    border-color: rgba(255,255,255,0.45) !important;
+    transition: border-color 0.25s ease;
+}
+
+/* Badge fades slightly */
+.basket-wrapper.empty .basket-qty {
+    opacity: 0.65;
+}
+
+/* When items exist, restore strong borders */
+.basket-wrapper:not(.empty) .basket-shell,
+.basket-wrapper:not(.empty) .basket-handle {
+    border-color: rgba(255,255,255,1) !important;
+}
+
 
 
 
@@ -835,8 +866,6 @@ footer p {
     color: #777;
     font-size: 13px;
 }
-
-
 
 
 
