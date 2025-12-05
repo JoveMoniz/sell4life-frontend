@@ -7,7 +7,7 @@ display: flex;
   background: #fafafa;
   color: #222;
   font-family: 'Roboto', sans-serif;
-
+  gap: 40px;
   /* --- Stretch gallery fully to the left --- */
   padding-left: 0;
 }
@@ -22,34 +22,38 @@ display: flex;
 }
 
 .product-info {
-  flex: 1 1 400px;
-  max-width: 500px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  flex: 1 1 45%;
+  max-width: 600px;           /* makes the text block larger */
+  padding: 40px 40px 40px 60px; /* pushes content inward nicely */
 }
 
+
 .product-title {
-  font-size: 2rem;
+  font-size: 2.4rem;
   font-weight: 700;
-  margin-bottom: 8px;
+  color: #0b6b6a;
 }
+
+.product-price {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 10px 0 20px;
+  color: #0b6b6a;
+}
+
 
 .product-category {
   color: #666;
   font-size: 0.95rem;
 }
 
-.product-price {
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: #0b6b6a;
-}
 
 .product-desc {
-  font-size: 1rem;
-  line-height: 1.6;
+  max-width: 90%;
+  font-size: 1.05rem;
+  line-height: 1.7;
 }
+
 
 .product-actions {
   display: flex;
@@ -63,7 +67,7 @@ display: flex;
 .product-actions button {
   width: 100%;
   padding: 10px 0;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.3s ease;
@@ -116,7 +120,7 @@ body {
 }
 
 /* Responsive layout */
-@media (max-width: 900px) {
+@media (max-width: 1280px) {
   .product-page {
     flex-direction: column;
     align-items: center;
