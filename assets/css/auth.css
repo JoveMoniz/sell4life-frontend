@@ -1,0 +1,36 @@
+.page-auth {
+    background: #0b6b6a;
+    color: #fff;
+    font-family: Arial;
+    padding: 40px;
+    min-height: 100vh;
+}
+
+.page-auth form {
+    background: rgba(255,255,255,0.1);
+    padding: 20px;
+    border-radius: 10px;
+    width: 300px;
+}
+
+.page-auth input {
+    width: 100%;
+    margin-bottom: 12px;
+    padding: 8px;
+    border-radius: 6px;
+    border: none;
+}
+
+.page-auth button {
+    width: 100%;
+    padding: 10px;
+    background: #f28c28;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+}
+
+.page-auth button:hover {
+    background: #d87620;
+}

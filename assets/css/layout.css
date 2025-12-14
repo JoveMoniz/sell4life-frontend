@@ -19,6 +19,7 @@ html, body {
 }
 
 
+
 /* =========================================================
    FOOTER
 ========================================================= */
@@ -130,7 +131,7 @@ footer p {
 
 
 
-@media (max-width: 600px) {
+@media (max-width: 480px) {
   .footer-columns {
     grid-template-columns: 1fr;
     gap: 1.5rem;
@@ -492,6 +493,11 @@ footer p {
     display: block;
     opacity: 1;
     visibility: visible;
+}
+
+
+.basket-wrapper.empty {
+  cursor: default;
 }
 
 
@@ -903,12 +909,139 @@ footer p {
     font-size: 13px;
 }
 
+/* ============================
+   MOBILE ATTRACTIVE QTY DRAWER
+============================ */
 
+.qty-wrapper {
+    width: 100%;
+    border: 1px solid #dfecec;
+    border-radius: 10px;
+    padding: 10px 14px;
+    background: #eef7f7;
+    margin-top: 6px;
+    cursor: pointer;
+}
 
+.qty-collapsed {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+    color: #0b6b6a;
+    font-size: 17px;
+}
 
+.qty-collapsed .arrow {
+    font-size: 18px;
+    opacity: 0.7;
+}
+
+/* Hidden by default */
+.qty-expanded {
+    display: none;
+    margin-top: 12px;
+    gap: 18px;
+    align-items: center;
+    justify-content: center;
+}
+
+/* When opened */
+.qty-wrapper.opened .qty-expanded {
+    display: flex;
+}
+
+.qty-wrapper.opened .qty-collapsed {
+    display: none;
+}
+
+/* Buttons inside expanded drawer */
+.qty-expanded button {
+    width: 55px;
+    height: 40px;
+    border-radius: 10px;
+    font-size: 22px;
+}
+
+.qty-expanded .remove-item {
+    background: #ffe1e1;
+    border: 1px solid #ff9a9a;
+}
 
   
 }
 
 
+
+/* ===== REMOVE ALL BLUE TOUCH FLASHES (CHROME / ANDROID / TABLET / HYBRID LAPTOPS) ===== */
+
+* {
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+*:focus,
+*:focus-visible,
+*:focus-within {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+button,
+button:focus,
+button:active {
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+a,
+a:focus,
+a:active {
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+img {
+    -webkit-tap-highlight-color: transparent !important;
+    user-select: none;
+}
+
+#s4l-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(40px);
+    background: #0b6b6a;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 999999; /* override EVERYTHING */
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+#s4l-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* FINAL OVERRIDE FOR TOAST */
+#s4l-toast {
+    border: 1px solid #ffffff !important;
+    box-shadow: 0 0 15px rgba(0,0,0,0.35) !important;
+}
+
+/* Mobile portrait only — real phones */
+@media (max-width: 480px) {
+  .mobile-nav {
+    pointer-events: none;
+  }
+
+  .mobile-nav a {
+    opacity: 0;
+  }
+}
 

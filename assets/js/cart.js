@@ -1,5 +1,6 @@
 // ======================================================================
-// SELL4LIFE CART.JS — Final Stable Version (with empty-cart hover fix)
+// SELL4LIFE CART.JS — CLEAN MERGED VERSION (hybrid-safe)
+// SINGLE TOAST SYSTEM
 // ======================================================================
 
 (async function () {
@@ -21,7 +22,7 @@
     }
 
     // ---------------------------------------------------------
-    // 1. LocalStorage SAFE read
+    // 1. LocalStorage SAFE read & write
     // ---------------------------------------------------------
     function readCart() {
         try {
@@ -39,18 +40,29 @@
     let cart = readCart();
 
     // ---------------------------------------------------------
+    // 1B. SINGLE TOAST SYSTEM
+    // ---------------------------------------------------------
+    let s4lToast = document.getElementById("s4l-toast");
+    if (!s4lToast) {
+        s4lToast = document.createElement("div");
+        s4lToast.id = "s4l-toast";
+        s4lToast.textContent = "Added to cart";
+        document.body.appendChild(s4lToast);
+    }
+
+    function s4lShowToast(text = "Added to cart") {
+        s4lToast.textContent = text;
+        s4lToast.classList.add("show");
+        setTimeout(() => s4lToast.classList.remove("show"), 1200);
+    }
+
+    // ---------------------------------------------------------
     // 2. DOM references
     // ---------------------------------------------------------
     const miniCartList  = document.querySelector(".mini-cart-items");
     const miniCartTotal = document.querySelector(".mini-cart-total");
-
-    // Optional (cart page only)
-    const colProduct  = document.getElementById("col-product");
-    const colQty      = document.getElementById("col-qty");
-    const colPrice    = document.getElementById("col-price");
-    const colSubtotal = document.getElementById("col-subtotal");
-    const colRemove   = document.getElementById("col-remove");
-    const totalSpan   = document.getElementById("cart-total");
+    const totalSpan     = document.getElementById("cart-total");
+    const cartRows      = document.getElementById("cart-rows");
 
     // ---------------------------------------------------------
     // 3. BADGE UPDATER
@@ -63,22 +75,26 @@
         });
     }
 
-
-        // ---------------------------------------------------------
-    // UNIVERSAL BASKET STATE (desktop + mobile dim when empty)
+    // ---------------------------------------------------------
+    // 4. UNIVERSAL BASKET STATE
     // ---------------------------------------------------------
     function updateBasketState() {
-        const qtyTotal = cart.reduce((s, i) => s + (i.quantity || 0), 0);
+    const totalQty = cart.reduce((s, i) => s + (i.quantity || 0), 0);
 
-        document.querySelectorAll(".basket-wrapper").forEach(wrapper => {
-            wrapper.classList.toggle("empty", qtyTotal === 0);
-        });
-    }
+    document.querySelectorAll(".basket-wrapper").forEach(w => {
+        const empty = totalQty === 0;
 
+        w.classList.toggle("empty", empty);
+        w.classList.toggle("has-items", !empty);
+
+        // 🔒 Disable interaction when empty
+        w.style.pointerEvents = empty ? "none" : "auto";
+    });
+}
 
 
     // ---------------------------------------------------------
-    // 4. RENDER MINICART
+    // 5. RENDER MINI CART
     // ---------------------------------------------------------
     function renderMiniCart() {
         if (!miniCartList || !miniCartTotal) return;
@@ -123,19 +139,14 @@
     }
 
     // ---------------------------------------------------------
-    // 5. RENDER CART PAGE
+    // 6. RENDER FULL CART PAGE
     // ---------------------------------------------------------
     function renderCartPage() {
-        if (!colProduct) return;
+        if (!cartRows) return;
 
-        colProduct.innerHTML  = "";
-        colQty.innerHTML      = "";
-        colPrice.innerHTML    = "";
-        colSubtotal.innerHTML = "";
-        colRemove.innerHTML   = "";
-
+        cartRows.innerHTML = "";
         if (!cart.length) {
-            totalSpan.textContent = "0.00";
+            totalSpan.textContent = "£0.00";
             return;
         }
 
@@ -147,81 +158,224 @@
             const sub   = price * qty;
             total += sub;
 
-            colProduct.innerHTML += `
-                <div class="cart-product-info">
-                    <a href="/${item.category}/${item.subcategory}/?id=${item.id}" class="cart-product-link">
-                        <img src="${item.image}" class="cart-thumb">
-                        <span>${item.name}</span>
+            const row = document.createElement("div");
+            row.classList.add("cart-row");
+
+            row.innerHTML = `
+                <div class="col-product cart-product-info">
+                    <img class="cart-thumb" src="${item.image}">
+                    <a class="cart-product-link"
+                       href="/${item.category}/${item.subcategory}/?id=${item.id}">
+                       ${item.name}
                     </a>
                 </div>
-            `;
 
-            colQty.innerHTML += `
-                <div class="qty-control">
+                <div class="col-qty qty-control">
                     <button class="qty-minus" data-index="${i}">−</button>
-                    <span class="qty-value">${qty}</span>
+                    <span>${qty}</span>
                     <button class="qty-plus" data-index="${i}">+</button>
-                </div>
-            `;
-
-            colPrice.innerHTML    += `<div>£${price.toFixed(2)}</div>`;
-            colSubtotal.innerHTML += `<div>£${sub.toFixed(2)}</div>`;
-            colRemove.innerHTML   += `
-                <div class="remove-wrap">
                     <button class="remove-item" data-index="${i}">×</button>
                 </div>
+
+                <div class="col-price">£${price.toFixed(2)}</div>
+                <div class="col-subtotal">£${sub.toFixed(2)}</div>
+
+                <div class="m-price-line">
+                    £${price.toFixed(2)} × ${qty} =
+                    <span class="m-subtotal">£${sub.toFixed(2)}</span>
+                </div>
             `;
+
+            cartRows.appendChild(row);
         });
 
-        totalSpan.textContent = total.toFixed(2);
+        totalSpan.textContent = `£${total.toFixed(2)}`;
     }
 
     // ---------------------------------------------------------
-    // 6. FULL REFRESH
+    // 7. MOBILE PRICE LINE
     // ---------------------------------------------------------
-   function refreshAll() {
-    cart = readCart();
-    renderMiniCart();
-    updateBadge();
-    updateBasketState();  // <<< added
-    renderCartPage();
-}
+    function isRealTouchDevice() {
+        return (
+            ("ontouchstart" in window) ||
+            (navigator.maxTouchPoints && navigator.maxTouchPoints > 0)
+        );
+    }
 
+    function updateMPriceLine() {
+        const width = window.innerWidth;
+        const portrait = window.matchMedia("(orientation: portrait)").matches;
+        const touch = isRealTouchDevice();
+
+        const show = width <= 480 && portrait && touch;
+
+        document.querySelectorAll(".m-price-line").forEach(el => {
+            el.style.display = show ? "flex" : "none";
+        });
+    }
+
+    // ---------------------------------------------------------
+    // 8. FULL REFRESH
+    // ---------------------------------------------------------
+    function refreshAll() {
+        cart = readCart();
+        renderMiniCart();
+        updateBadge();
+        updateBasketState();
+        renderCartPage();
+        updateMPriceLine();
+    }
 
     refreshAll();
     document.addEventListener("cartUpdated", refreshAll);
 
-    // ---------------------------------------------------------
-    // 7. QTY / REMOVE BUTTONS
-    // ---------------------------------------------------------
-    document.addEventListener("click", e => {
-        if (e.target.classList.contains("qty-plus")) {
-            const i = +e.target.dataset.index;
-            cart[i].quantity++;
-            saveCart();
-            refreshAll();
-        }
+    // =====================================================================
+    // 9. TAP SYSTEM FOR BUTTONS
+    // =====================================================================
 
-        if (e.target.classList.contains("qty-minus")) {
-            const i = +e.target.dataset.index;
-            cart[i].quantity > 1 ?
-                cart[i].quantity-- :
-                cart.splice(i, 1);
-            saveCart();
-            refreshAll();
-        }
+    let tapStartX = 0;
+    let tapStartY = 0;
+    const TAP_THRESHOLD = 12;
 
-        if (e.target.classList.contains("remove-item")) {
-            const i = +e.target.dataset.index;
-            cart.splice(i, 1);
-            saveCart();
-            refreshAll();
+    document.addEventListener("pointerdown", e => {
+        const btn = e.target.closest(".qty-plus, .qty-minus, .remove-item, .btn-add");
+        if (!btn) return;
+
+        tapStartX = e.clientX;
+        tapStartY = e.clientY;
+
+        btn.classList.add("tapped");
+    });
+
+    document.addEventListener("pointermove", e => {
+        const btn = e.target.closest(".qty-plus, .qty-minus, .remove-item, .btn-add");
+        if (!btn) return;
+
+        const dx = Math.abs(e.clientX - tapStartX);
+        const dy = Math.abs(e.clientY - tapStartY);
+
+        if (dx > TAP_THRESHOLD || dy > TAP_THRESHOLD) {
+            btn.classList.remove("tapped");
         }
     });
 
-    // ---------------------------------------------------------
-    // 8. CLEAR CART
-    // ---------------------------------------------------------
+    document.addEventListener("pointerup", e => {
+        const btn = e.target.closest(".qty-plus, .qty-minus, .remove-item, .btn-add");
+        if (!btn) return;
+
+        const dx = Math.abs(e.clientX - tapStartX);
+        const dy = Math.abs(e.clientY - tapStartY);
+
+        setTimeout(() => btn.classList.remove("tapped"), 100);
+
+        if (dx > TAP_THRESHOLD || dy > TAP_THRESHOLD) return;
+
+        if (navigator.vibrate) navigator.vibrate(30);
+
+        if (btn.classList.contains("qty-plus")) {
+            const i = +btn.dataset.index;
+            cart[i].quantity++;
+            saveCart();
+            refreshAll();
+            return;
+        }
+
+        if (btn.classList.contains("qty-minus")) {
+    const i = +btn.dataset.index;
+
+    // Normal decrement
+    if (cart[i].quantity > 1) {
+        cart[i].quantity--;
+        saveCart();
+        refreshAll();
+        return;
+    }
+
+    // Quantity will reach zero → attempt animation
+    const row = btn.closest(".cart-row");
+
+    // If row not found (mobile / layout edge cases)
+    if (!row) {
+        cart.splice(i, 1);
+        saveCart();
+        refreshAll();
+        return;
+    }
+
+    // Lock height before collapse
+    row.style.height = row.offsetHeight + "px";
+
+    requestAnimationFrame(() => {
+        row.classList.add("removing");
+    });
+
+    setTimeout(() => {
+        cart.splice(i, 1);
+        saveCart();
+        refreshAll();
+    }, 350);
+
+    return;
+}
+
+
+        if (btn.classList.contains("remove-item")) {
+    const i = +btn.dataset.index;
+    const row = btn.closest(".cart-row");
+    if (!row) return;
+
+    // Lock height so it can animate
+    row.style.height = row.offsetHeight + "px";
+
+    // Trigger collapse
+    requestAnimationFrame(() => {
+        row.classList.add("removing");
+    });
+
+    // Remove AFTER animation
+    setTimeout(() => {
+        cart.splice(i, 1);
+        saveCart();
+        refreshAll();
+    }, 350);
+
+    return;
+}
+
+
+        if (btn.classList.contains("btn-add")) {
+            const productId = btn.dataset.id;
+            const productName = btn.dataset.name;
+            const productPrice = btn.dataset.price;
+            const productImage = btn.dataset.image;
+            const category = btn.dataset.category;
+            const subcategory = btn.dataset.subcategory;
+
+            let item = cart.find(p => p.id == productId);
+
+            if (item) {
+                item.quantity++;
+            } else {
+                cart.push({
+                    id: productId,
+                    name: productName,
+                    price: productPrice,
+                    image: productImage,
+                    category,
+                    subcategory,
+                    quantity: 1
+                });
+            }
+
+            saveCart();
+            refreshAll();
+            s4lShowToast("Added to cart");
+        }
+    });
+
+    // =====================================================================
+    // 10. MOBILE CLEAR CART MODAL
+    // =====================================================================
     document.addEventListener("click", e => {
         if (e.target.id === "clear-cart") {
             document.querySelector(".clear-cart-modal")?.classList.add("show");
@@ -239,67 +393,83 @@
         }
     });
 
-    // ---------------------------------------------------------
-    // 9. MOBILE MINI CART
-    // ---------------------------------------------------------
+    // =====================================================================
+    // 11. MOBILE BASKET CLICK
+    // =====================================================================
     document.addEventListener("click", e => {
         const mobileBasket = document.querySelector(".s4l-header-mobile .basket-shell");
-        const miniCart     = document.querySelector(".mini-cart");
-
-        if (!mobileBasket || !miniCart) return;
-
-        if (mobileBasket.contains(e.target)) {
-            miniCart.style.display = "block";
-            miniCart.style.opacity = "1";
-            miniCart.style.visibility = "visible";
-            return;
-        }
-
-        if (!miniCart.contains(e.target)) {
-            miniCart.style.display = "none";
-            miniCart.style.opacity = "0";
-            miniCart.style.visibility = "hidden";
+        if (mobileBasket && mobileBasket.contains(e.target)) {
+            window.location.href = "/cart/cart.html";
         }
     });
 
-    // ---------------------------------------------------------
-    // 10. DESKTOP HOVER LOGIC (only if cart has items)
-    // ---------------------------------------------------------
-    let miniCartTimeout;
-    const isTouch = matchMedia("(hover: none)").matches;
+    // =====================================================================
+    // 12. HYBRID DESKTOP: HOVER + TAP MINICART
+    // =====================================================================
 
-    if (!isTouch) {
-        document.addEventListener("mouseover", e => {
-            const wrap = document.querySelector(".basket-wrapper");
-            const mini = document.querySelector(".mini-cart");
+    const desktopWrapper = document.querySelector(".s4l-header-desktop .basket-wrapper");
+    const desktopMini    = document.querySelector(".s4l-header-desktop .mini-cart");
 
-            if (!wrap || !mini) return;
+    if (desktopWrapper && desktopMini) {
 
-            // 🟧 SHOW ONLY IF CART HAS ITEMS
-            if (wrap.contains(e.target) || mini.contains(e.target)) {
-                const cartNow = readCart();
-                if (!cartNow.length) return;
+        // Hover (real mouse only)
+        window.matchMedia("(hover: hover) and (pointer: fine)").addEventListener("change", () => {});
+        
+        if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+            desktopWrapper.addEventListener("mouseenter", () => {
+                if (!cart.length) return;
+                desktopMini.style.display = "block";
+                desktopMini.style.opacity = "1";
+                desktopMini.style.visibility = "visible";
+            });
 
-                clearTimeout(miniCartTimeout);
-                mini.style.display = "block";
-                mini.style.opacity = "1";
-                mini.style.visibility = "visible";
-                return;
-            }
+            desktopWrapper.addEventListener("mouseleave", () => {
+                desktopMini.style.display = "none";
+                desktopMini.style.opacity = "0";
+                desktopMini.style.visibility = "hidden";
+            });
+        }
 
-            miniCartTimeout = setTimeout(() => {
-                mini.style.display = "none";
-                mini.style.opacity = "0";
-                mini.style.visibility = "hidden";
-            }, 200);
-        });
+        // Touch tap toggle (hybrid laptops)
+desktopWrapper.addEventListener("touchstart", e => {
+
+    // Only react if the touch happened EXACTLY on the desktop basket icon
+    const icon = e.target.closest(".basket-shell, .basket-handle");
+    if (!icon) return; // Do NOT block other touches anywhere else
+
+    if (!cart.length) return;
+
+    const open = desktopMini.style.display === "block";
+
+    if (open) {
+        desktopMini.style.display = "none";
+        desktopMini.style.opacity = "0";
+        desktopMini.style.visibility = "hidden";
+    } else {
+        desktopMini.style.display = "block";
+        desktopMini.style.opacity = "1";
+        desktopMini.style.visibility = "visible";
     }
 
-})();
+    e.preventDefault(); // Prevent scroll ONLY for the basket icon
+}, { passive: false });
+
+
+    }
+
+    // =====================================================================
+    // 13. SCREEN & ORIENTATION
+    // =====================================================================
+    window.addEventListener("resize", updateMPriceLine);
+    window.matchMedia("(orientation: portrait)").addEventListener("change", updateMPriceLine);
+    window.matchMedia("(orientation: landscape)").addEventListener("change", updateMPriceLine);
+
+})(); // END wrapper
+
 
 
 // ======================================================================
-// 11. CHECKOUT BUTTON
+// 14. CHECKOUT BUTTON
 // ======================================================================
 document.addEventListener("click", e => {
     const btn = e.target.closest("#btn-buy");
