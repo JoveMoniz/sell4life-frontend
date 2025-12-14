@@ -26,13 +26,16 @@
     
 
 // =====================================================
-// 1. LOAD HEADER + FOOTER
+// 1. LOAD HEADER + FOOTER (FIXED)
 // =====================================================
 (async function loadLayout() {
 
-    // HEADER
+    // HEADER (NO CACHE, ALWAYS FRESH)
     try {
-const res = await fetch("/includes/header.html?v=1", { cache: "force-cache" });
+        const res = await fetch("/includes/header.html?v=" + Date.now(), {
+            cache: "no-store"
+        });
+
         const html = await res.text();
         document.body.insertAdjacentHTML("afterbegin", html);
         document.dispatchEvent(new Event("headerLoaded"));
@@ -40,9 +43,12 @@ const res = await fetch("/includes/header.html?v=1", { cache: "force-cache" });
         console.error("Failed to load header:", err);
     }
 
-    // FOOTER
+    // FOOTER (NO CACHE)
     try {
-        const res = await fetch("/includes/footer.html", { cache: "no-store" });
+        const res = await fetch("/includes/footer.html?v=" + Date.now(), {
+            cache: "no-store"
+        });
+
         const html = await res.text();
         document.body.insertAdjacentHTML("beforeend", html);
     } catch (err) {
@@ -50,6 +56,7 @@ const res = await fetch("/includes/header.html?v=1", { cache: "force-cache" });
     }
 
 })();
+
     
 
 // =====================================================
