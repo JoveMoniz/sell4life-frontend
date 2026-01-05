@@ -1,3 +1,11 @@
+if (localStorage.getItem("s4l_token")) {
+  window.location.href = "/account/orders.html";
+}
+
+
+
+console.log("signin.js loaded");
+
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("signinForm");
   const msg = document.getElementById("msg");
@@ -24,16 +32,20 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       const data = await res.json();
+      console.log("LOGIN RESPONSE FROM BACKEND:", data);
 
-      if (!res.ok) {
-        msg.textContent = data.error || "Login failed";
-        msg.style.color = "red";
-        return;
-      }
+     if (!data.ok) {
+  msg.textContent = data.msg || "Login failed";
+  msg.style.color = "red";
+  return;
+}
 
-      // store user + token
-      localStorage.setItem("s4l_user", JSON.stringify(data.user));
+
+      // ✅ ONLY store token AFTER success
+      console.log("TOKEN TO STORE:", data.token);
+
       localStorage.setItem("s4l_token", data.token);
+      localStorage.setItem("s4l_user", JSON.stringify(data.user));
 
       msg.textContent = "Login successful";
       msg.style.color = "lightgreen";
@@ -43,6 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 800);
 
     } catch (err) {
+      console.error(err);
       msg.textContent = "Server error";
       msg.style.color = "red";
     }

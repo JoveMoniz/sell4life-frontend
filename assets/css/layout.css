@@ -325,23 +325,66 @@ footer p {
 .header-icons {
   width: 150px;
   display: flex;
+  margin-right: 20px;
   align-items: center;
   gap: 20px;
 }
 
-.sign-in-link {
-  color: #fdf4e7;
-  text-decoration: none;
-  font-weight: 500;
-  padding: 10px 10px;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  transition: border-color 0.3s;
+.account-menu {
+  position: relative;
+  margin-bottom:10px ;
+  
 }
 
-.sign-in-link:hover {
-  border-color: #f18c28;
+
+#accountBtn {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
 }
+
+
+.account-dropdown .auth{
+  text-decoration: none;
+} 
+
+
+.account-dropdown {
+  position: absolute;
+  right: 0;
+  top: 110%;
+  background: #167c7c;
+  border-radius: 8px;
+  min-width: 160px;
+  padding: 6px 0;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+  display: none;
+}
+
+.account-dropdown a,
+.account-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 8px 14px;
+  background: none;
+  border: none;
+  color: #fff;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.account-dropdown a:hover,
+.account-dropdown button:hover {
+  background: rgba(255,255,255,0.12);
+}
+
+
 
 
 /* === Basket Base === */
@@ -500,11 +543,10 @@ footer p {
   cursor: default;
 }
 
-
-
 .mini-cart {
     position: absolute;
     top: 50px;
+    right: -100px;
     width: 380px;
     background: #fff;
     border: 1px solid #ccc;

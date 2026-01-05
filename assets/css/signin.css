@@ -1,3 +1,17 @@
+input,
+button,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+
+
+
+
+
+
 /* Page wrapper: place the sign-in content intentionally */
 .page-auth {
   min-height: 70vh;              /* enough vertical space without fighting header/footer */
@@ -7,6 +21,9 @@
   gap: 24px;
   padding: 48px 16px;             /* local breathing room; doesn't touch header/footer */
   background: #0b6b6a;            /* your teal */
+font-family: system-ui, -apple-system, BlinkMacSystemFont,
+               "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+
 }
 
 /* Card */
@@ -39,13 +56,23 @@
 .signin-card input[type="email"],
 .signin-card input[type="password"] {
   width: 100%;
-  padding: 10px 12px;
+  box-sizing: border-box;
+
+  height: 42px;
+  line-height: 42px;
+
+  padding: 0 12px;
   border: 1px solid rgba(255,255,255,0.25);
   border-radius: 8px;
   background: rgba(255,255,255,0.06);
   color: #fff;
+
+  font-family: inherit;
+  font-size: 14px;
   outline: none;
 }
+
+
 
 .signin-card input:focus {
   border-color: #9ee7e0;
@@ -75,3 +102,20 @@
   font-size: 14px;
 }
 
+/* Switch link under the card */
+.auth-switch {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #d8f5f3;
+}
+
+.auth-switch a {
+  color: #9ee7e0;
+  text-decoration: none;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.auth-switch a:hover {
+  text-decoration: underline;
+}

@@ -1,3 +1,9 @@
+if (localStorage.getItem("s4l_token")) {
+  window.location.href = "/account/orders.html";
+}
+
+
+
 document.getElementById("registerForm").addEventListener("submit", async (e) => {
     e.preventDefault();
 

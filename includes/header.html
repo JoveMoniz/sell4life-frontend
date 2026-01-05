@@ -43,6 +43,9 @@
 
 
       <!-- Basket + Mini Cart -->
+
+    <div class="header-icons">
+
       <div class="basket-wrapper">
 
         <div class="basket-shell" aria-label="Basket">
@@ -63,9 +66,21 @@
 
       </div>
 
-      <!-- Sign In -->
-      <div class="header-icons">
-        <a href="/account/signin.html" class="sign-in-link">Sign in</a>
+      <!-- account -->
+<div class="account-menu">
+  <button id="accountBtn">Account ▾</button>
+
+  <div class="account-dropdown" id="accountDropdown">
+    <a href="/account/signin.html" class="auth" id="dd-login">Sign in</a>
+    <a href="/account/register.html" class="auth" id="dd-register">Register</a>
+
+    <a href="/account/orders.html" class="auth" id="dd-orders">My Orders</a>
+    <button id="dd-logout">Logout</button>
+  </div>
+</div>
+
+    </div>
+
       </div>
 
     </div>
@@ -103,7 +118,20 @@
             </div>
           </div>
 
-          <a href="/account/signin.html" class="sign-in-link">Sign in</a>
+         <div class="account-menu">
+  <button id="accountBtn">Account ▾</button>
+
+  <div class="account-dropdown" id="accountDropdown">
+    <a href="/account/signin.html" id="dd-login">Sign in</a>
+    <a href="/account/register.html" id="dd-register">Register</a>
+
+    <a href="/account/orders.html" id="dd-orders">My Orders</a>
+    <button id="dd-logout">Logout</button>
+  </div>
+</div>
+
+
+
         </div>
 
       </div>
