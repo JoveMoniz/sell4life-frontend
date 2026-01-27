@@ -1,61 +1,90 @@
-if (localStorage.getItem("s4l_token")) {
-  window.location.href = "/account/orders.html";
-}
+// =====================================================
+// SIGN IN (intent-based redirect)
+// =====================================================
 
-
+import { API_BASE } from "./config.js";
 
 console.log("signin.js loaded");
 
+// =====================================================
+// AUTO-REDIRECT IF ALREADY LOGGED IN
+// =====================================================
+const existingToken = localStorage.getItem("s4l_token");
+
+if (existingToken) {
+  const redirect =
+    localStorage.getItem("postLoginRedirect") || "/";
+
+  localStorage.removeItem("postLoginRedirect");
+  window.location.href = redirect;
+}
+
+// =====================================================
+// DOM READY
+// =====================================================
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("signinForm");
-  const msg = document.getElementById("msg");
+  const msg  = document.getElementById("msg");
 
-  if (!form) {
-    console.error("signinForm not found");
+  if (!form || !msg) {
+    console.error("Signin DOM elements missing");
     return;
   }
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const email = document.getElementById("email").value.trim();
+    const email    = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
 
-    msg.textContent = "Checking...";
+    msg.textContent = "Checking credentials...";
     msg.style.color = "white";
 
     try {
-      const res = await fetch("http://localhost:3000/api/auth/login", {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
       });
 
-      const data = await res.json();
-      console.log("LOGIN RESPONSE FROM BACKEND:", data);
+      const text = await res.text();
+      console.log("LOGIN STATUS:", res.status);
+      console.log("LOGIN RAW RESPONSE:", text);
 
-     if (!data.ok) {
-  msg.textContent = data.msg || "Login failed";
-  msg.style.color = "red";
-  return;
-}
+      let data = {};
+      try {
+        data = JSON.parse(text);
+      } catch {
+        msg.textContent = "Invalid server response";
+        msg.style.color = "red";
+        return;
+      }
 
+      if (!res.ok || !data.token) {
+        msg.textContent = data.msg || "Login failed";
+        msg.style.color = "red";
+        return;
+      }
 
-      // ✅ ONLY store token AFTER success
-      console.log("TOKEN TO STORE:", data.token);
-
+      // ✅ Store auth
       localStorage.setItem("s4l_token", data.token);
       localStorage.setItem("s4l_user", JSON.stringify(data.user));
 
       msg.textContent = "Login successful";
       msg.style.color = "lightgreen";
 
+      // ✅ Obey stored intent
+      const redirect =
+        localStorage.getItem("postLoginRedirect") || "/";
+
+      localStorage.removeItem("postLoginRedirect");
+
       setTimeout(() => {
-        window.location.href = "/account/orders.html";
-      }, 800);
+        window.location.href = redirect;
+      }, 300);
 
     } catch (err) {
-      console.error(err);
+      console.error("LOGIN ERROR:", err);
       msg.textContent = "Server error";
       msg.style.color = "red";
     }
