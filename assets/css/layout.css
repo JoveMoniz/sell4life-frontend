@@ -148,6 +148,20 @@ footer p {
    HEADER BASE
 ========================================================= */
 
+.site-notice {
+  background: #fdf4e7;
+  color: #2f2f2f;
+  font-size: 14px;        /* up from 13px */
+  font-weight: 500;      /* key change */
+  text-align: center;
+  letter-spacing: 0.3px;
+  padding: 8px 12px;     /* a bit more air */
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+
+
+
 .s4l-header-desktop {
   width: 100%;
   display: flex;
