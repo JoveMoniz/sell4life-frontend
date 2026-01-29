@@ -6,10 +6,11 @@ import { API_BASE } from "./config.js";
 const token = localStorage.getItem("s4l_token");
 const user  = JSON.parse(localStorage.getItem("s4l_user"));
 
-if (!token || user?.role !== "admin") {
+if (!token) {
   window.location.href = "/";
-  throw new Error("Admin access only");
+  throw new Error("Not logged in");
 }
+
 
 /* ================================
    STATE
