@@ -1,0 +1,21 @@
+.order-box {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+#statusSelect {
+  padding: 6px;
+  margin-right: 10px;
+}
+
+#updateStatus {
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+#statusHistory li {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
