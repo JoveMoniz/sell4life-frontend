@@ -4,10 +4,12 @@ import { API_BASE } from "./config.js";
    AUTH CHECK
 ================================ */
 const token = localStorage.getItem("s4l_token");
+
 if (!token) {
-  window.location.href = "/";
-  throw new Error("Not logged in");
+  window.location.href = "/account/admin/signin.html";
+  return;
 }
+
 
 /* ================================
    STATE

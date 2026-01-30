@@ -1,5 +1,5 @@
 // =====================================================
-// SIGN IN (intent-based redirect)
+// SIGN IN (intent-based + role-aware redirect)
 // =====================================================
 
 import { API_BASE } from "./config.js";
@@ -60,24 +60,35 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      if (!res.ok || !data.token) {
+      if (!res.ok || !data.token || !data.user) {
         msg.textContent = data.msg || "Login failed";
         msg.style.color = "red";
         return;
       }
 
-      // ✅ Store auth
+      // =====================================================
+      // STORE AUTH (ONLY PLACE TOKEN IS CREATED)
+      // =====================================================
       localStorage.setItem("s4l_token", data.token);
       localStorage.setItem("s4l_user", JSON.stringify(data.user));
 
       msg.textContent = "Login successful";
       msg.style.color = "lightgreen";
 
-      // ✅ Obey stored intent
-      const redirect =
-        localStorage.getItem("postLoginRedirect") || "/";
+      // =====================================================
+      // REDIRECT LOGIC (INTENT > ROLE > DEFAULT)
+      // =====================================================
+      let redirect = localStorage.getItem("postLoginRedirect");
 
       localStorage.removeItem("postLoginRedirect");
+
+      if (!redirect) {
+        if (data.user.role === "admin") {
+          redirect = "/account/admin/orders.html";
+        } else {
+          redirect = "/account/orders.html";
+        }
+      }
 
       setTimeout(() => {
         window.location.href = redirect;

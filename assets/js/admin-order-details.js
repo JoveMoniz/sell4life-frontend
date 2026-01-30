@@ -7,7 +7,7 @@ import { API_BASE } from "./config.js";
 const token = localStorage.getItem("s4l_token");
 
 if (!token) {
-  window.location.href = "/account/signin.html";
+  window.location.href = "/account/admin/signin.html";
   throw new Error("Not authenticated");
 }
 
