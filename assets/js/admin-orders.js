@@ -5,17 +5,9 @@ import { API_BASE } from "./config.js";
 ================================ */
 const token = localStorage.getItem("s4l_token");
 
-function init() {
-  if (!token) {
-    window.location.href = "/account/admin/signin.html";
-    return;
-  }
-  loadOrders(currentPage);
+if (!token) {
+  window.location.href = "/account/admin/signin.html";
 }
-
-init();
-
-
 
 /* ================================
    STATE
@@ -99,6 +91,6 @@ function renderPagination(current, total) {
 }
 
 /* ================================
-   INIT
+   INIT (ONE. SINGLE. CALL.)
 ================================ */
 loadOrders(currentPage);
