@@ -1,28 +1,29 @@
 import { API_BASE } from "./config.js";
 
 // ===============================
-// Auth check (page-level only)
+// Token (do NOT redirect here)
 // ===============================
 const token = localStorage.getItem("s4l_token");
 
-if (!token) {
-  window.location.href = "/account/admin/signin.html";
-  throw new Error("Not authenticated");
-}
-
 // ===============================
-// Load users
+// Load users (backend-protected)
 // ===============================
 async function loadUsers() {
+  if (!token) {
+    // No token → send to admin entry point
+    window.location.href = "/account/admin/orders.html";
+    return;
+  }
+
   const res = await fetch(`${API_BASE}/api/admin/users`, {
     headers: {
       Authorization: `Bearer ${token}`
     }
   });
 
-  // Page-level auth failure only
+  // Backend decides if we are allowed
   if (res.status === 401 || res.status === 403) {
-    window.location.href = "/";
+    window.location.href = "/account/admin/orders.html";
     return;
   }
 
@@ -33,26 +34,25 @@ async function loadUsers() {
   data.users.forEach(user => {
     const tr = document.createElement("tr");
 
-tr.innerHTML = `
-  <td>${user.email}</td>
-  <td>
-    <select class="role-select" data-user-id="${user._id}">
-      <option value="user" ${user.role === "user" ? "selected" : ""}>user</option>
-      <option value="admin" ${user.role === "admin" ? "selected" : ""}>admin</option>
-    </select>
-  </td>
-  <td>
-    <button class="save-btn">Save</button>
-  </td>
-`;
-
+    tr.innerHTML = `
+      <td>${user.email}</td>
+      <td>
+        <select class="role-select" data-user-id="${user._id}">
+          <option value="user" ${user.role === "user" ? "selected" : ""}>user</option>
+          <option value="admin" ${user.role === "admin" ? "selected" : ""}>admin</option>
+        </select>
+      </td>
+      <td>
+        <button class="save-btn">Save</button>
+      </td>
+    `;
 
     tbody.appendChild(tr);
   });
 }
 
 // ===============================
-// Delegated click handler (robust)
+// Delegated save handler
 // ===============================
 document.addEventListener("click", async (e) => {
   if (!e.target.classList.contains("save-btn")) return;
@@ -60,20 +60,12 @@ document.addEventListener("click", async (e) => {
   e.preventDefault();
 
   const row = e.target.closest("tr");
-  if (!row) {
-    console.error("Row not found");
-    return;
-  }
+  if (!row) return;
 
   const select = row.querySelector(".role-select");
-  if (!select) {
-    console.error("Role select not found");
-    return;
-  }
+  if (!select) return;
 
-const userId = select.getAttribute("data-user-id");
-console.log("USER ID:", userId);
-
+  const userId = select.getAttribute("data-user-id");
   const role = select.value;
 
   if (!userId) {
@@ -82,7 +74,7 @@ console.log("USER ID:", userId);
   }
 
   try {
-    const updateRes = await fetch(
+    const res = await fetch(
       `${API_BASE}/api/admin/users/${userId}/role`,
       {
         method: "PATCH",
@@ -94,13 +86,13 @@ console.log("USER ID:", userId);
       }
     );
 
-    // IMPORTANT: do NOT redirect here
-    if (!updateRes.ok) {
+    // Do NOT redirect on action failure
+    if (!res.ok) {
       console.error("Failed to update role");
       return;
     }
 
-    // Reload users after successful update
+    // Reload table after success
     await loadUsers();
 
   } catch (err) {
