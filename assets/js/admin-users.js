@@ -33,18 +33,19 @@ async function loadUsers() {
   data.users.forEach(user => {
     const tr = document.createElement("tr");
 
-    tr.innerHTML = `
-      <td>${user.email}</td>
-      <td>
-        <select class="role-select" data-user-id="${user._id}">
-          <option value="user" ${user.role === "user" ? "selected" : ""}>user</option>
-          <option value="admin" ${user.role === "admin" ? "selected" : ""}>admin</option>
-        </select>
-      </td>
-      <td>
-        <button class="save-btn">Save</button>
-      </td>
-    `;
+tr.innerHTML = `
+  <td>${user.email}</td>
+  <td>
+    <select class="role-select" data-user-id="${user._id}">
+      <option value="user" ${user.role === "user" ? "selected" : ""}>user</option>
+      <option value="admin" ${user.role === "admin" ? "selected" : ""}>admin</option>
+    </select>
+  </td>
+  <td>
+    <button class="save-btn">Save</button>
+  </td>
+`;
+
 
     tbody.appendChild(tr);
   });
