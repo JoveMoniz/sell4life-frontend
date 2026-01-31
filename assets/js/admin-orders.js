@@ -91,10 +91,20 @@ function renderPagination(current, total) {
   }
 }
 
-document.getElementById("logoutBtn")?.addEventListener("click", () => {
-  localStorage.removeItem("s4l_token");
-  window.location.href = "/account/admin/signin.html";
+
+/*====================================
+    LOGOUT LOGIC
+    ===================================*/
+document.addEventListener("DOMContentLoaded", () => {
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (!logoutBtn) return;
+
+  logoutBtn.addEventListener("click", () => {
+    localStorage.removeItem("s4l_token");
+    window.location.href = "/account/admin/signin.html";
+  });
 });
+
 
 
 /* ================================
