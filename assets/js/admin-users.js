@@ -70,7 +70,9 @@ document.addEventListener("click", async (e) => {
     return;
   }
 
-  const userId = select.dataset.userId;
+const userId = select.getAttribute("data-user-id");
+console.log("USER ID:", userId);
+
   const role = select.value;
 
   if (!userId) {
