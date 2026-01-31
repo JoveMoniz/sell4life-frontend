@@ -4,6 +4,7 @@ const token = localStorage.getItem("s4l_token");
 
 if (!token) {
   window.location.href = "/account/admin/signin.html";
+  throw new Error("Not authenticated");
 }
 
 async function loadUsers() {
@@ -28,33 +29,61 @@ async function loadUsers() {
     tr.innerHTML = `
       <td>${user.email}</td>
       <td>
-        <select data-id="${user._id}">
+        <select class="role-select" data-user-id="${user._id}">
           <option value="user" ${user.role === "user" ? "selected" : ""}>user</option>
           <option value="admin" ${user.role === "admin" ? "selected" : ""}>admin</option>
         </select>
       </td>
       <td>
-        <button data-id="${user._id}">Save</button>
+        <button class="save-btn" data-user-id="${user._id}">
+          Save
+        </button>
       </td>
     `;
 
     tbody.appendChild(tr);
   });
 
-  document.querySelectorAll("button").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const id = btn.dataset.id;
-      const role = document.querySelector(`select[data-id="${id}"]`).value;
+  // 🔒 Attach handlers AFTER render
+  document.querySelectorAll(".save-btn").forEach(button => {
+    button.addEventListener("click", async (e) => {
+      e.preventDefault();
 
-      await fetch(`${API_BASE}/api/admin/users/${id}/role`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ role })
-      });
+      const userId = button.dataset.userId;
+      if (!userId) {
+        console.error("Missing userId on button");
+        return;
+      }
 
+      const select = document.querySelector(
+        `.role-select[data-user-id="${userId}"]`
+      );
+
+      if (!select) {
+        console.error("Role select not found for user:", userId);
+        return;
+      }
+
+      const role = select.value;
+
+      const updateRes = await fetch(
+        `${API_BASE}/api/admin/users/${userId}/role`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ role })
+        }
+      );
+
+      if (!updateRes.ok) {
+        console.error("Failed to update role");
+        return;
+      }
+
+      // reload list after save
       loadUsers();
     });
   });
