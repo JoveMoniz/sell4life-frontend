@@ -5,7 +5,6 @@ const error = document.getElementById("error");
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
-
   error.textContent = "";
 
   const email = document.getElementById("email").value.trim();
@@ -27,21 +26,20 @@ form.addEventListener("submit", async (e) => {
       return;
     }
 
-    // 🔐 TOKEN IS CREATED HERE
+    // 🔐 Persist auth state
     localStorage.setItem("s4l_token", data.token);
-
-    // optional, for UI only
+    localStorage.setItem("s4l_role", data.user.role);
     localStorage.setItem("s4l_user", JSON.stringify(data.user));
 
-    // 🚦 REDIRECT AFTER LOGIN
+    // 🚦 Single source of truth for redirect
     if (data.user.role === "admin") {
-      window.location.href = "/account/admin/orders.html";
+      window.location.href = "/account/admin/index.html";
     } else {
       window.location.href = "/account/orders.html";
     }
 
   } catch (err) {
-    console.error(err);
+    console.error("LOGIN ERROR:", err);
     error.textContent = "Server error";
   }
 });

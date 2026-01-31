@@ -1,11 +1,12 @@
 import { API_BASE } from "./config.js";
 
 /* ================================
-   AUTH CHECK
+   AUTH GUARD (ADMIN ONLY)
 ================================ */
 const token = localStorage.getItem("s4l_token");
+const role  = localStorage.getItem("s4l_role");
 
-if (!token) {
+if (!token || role !== "admin") {
   window.location.href = "/account/admin/signin.html";
 }
 
@@ -25,8 +26,8 @@ async function loadOrders(page = 1) {
   });
 
   if (res.status === 401 || res.status === 403) {
-    window.location.href = "/";
-    throw new Error("Admin only");
+    window.location.href = "/account/admin/signin.html";
+    return;
   }
 
   const data = await res.json();
@@ -45,7 +46,6 @@ async function loadOrders(page = 1) {
 
     tr.innerHTML = `
       <td>S4L-${order.id.slice(0, 8).toUpperCase()}</td>
-
       <td>${order.user?.email || "-"}</td>
       <td>£${order.total.toFixed(2)}</td>
       <td>
@@ -91,23 +91,7 @@ function renderPagination(current, total) {
   }
 }
 
-
-/*====================================
-    LOGOUT LOGIC
-    ===================================*/
-document.addEventListener("DOMContentLoaded", () => {
-  const logoutBtn = document.getElementById("logoutBtn");
-  if (!logoutBtn) return;
-
-  logoutBtn.addEventListener("click", () => {
-    localStorage.removeItem("s4l_token");
-    window.location.href = "/account/admin/signin.html";
-  });
-});
-
-
-
 /* ================================
-   INIT (ONE. SINGLE. CALL.)
+   INIT (ONE CALL)
 ================================ */
 loadOrders(currentPage);
