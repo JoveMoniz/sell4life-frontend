@@ -1,17 +1,16 @@
 import { API_BASE } from "./config.js";
 
 /* ================================
-   AUTH GUARD (ADMIN ONLY)
+   AUTH GUARD (TOKEN ONLY)
 ================================ */
 const token = localStorage.getItem("s4l_token");
-const role  = localStorage.getItem("s4l_role");
 
-if (!token || role !== "admin") {
+if (!token) {
   window.location.href = "/account/admin/signin.html";
 }
 
 /* ================================
-   LOAD USERS
+   LOAD USERS (ADMIN ENFORCED BY API)
 ================================ */
 async function loadUsers() {
   const res = await fetch(`${API_BASE}/api/admin/users`, {
@@ -20,6 +19,7 @@ async function loadUsers() {
     }
   });
 
+  // Backend decides admin access
   if (res.status === 401 || res.status === 403) {
     window.location.href = "/account/admin/signin.html";
     return;
@@ -84,7 +84,16 @@ document.addEventListener("click", async (e) => {
       return;
     }
 
-    alert("Role updated. User must log in again.");
+    // If current user changed their own role → force logout
+    const currentUser = JSON.parse(localStorage.getItem("s4l_user") || "null");
+    if (currentUser?.id === userId) {
+      alert("Your role changed. Please sign in again.");
+      localStorage.clear();
+      window.location.href = "/account/admin/signin.html";
+      return;
+    }
+
+    alert("Role updated. User must sign out and sign in again.");
     await loadUsers();
 
   } catch (err) {
