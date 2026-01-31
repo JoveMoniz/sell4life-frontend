@@ -91,6 +91,12 @@ function renderPagination(current, total) {
   }
 }
 
+document.getElementById("logoutBtn")?.addEventListener("click", () => {
+  localStorage.removeItem("s4l_token");
+  window.location.href = "/account/admin/signin.html";
+});
+
+
 /* ================================
    INIT (ONE. SINGLE. CALL.)
 ================================ */
