@@ -1,5 +1,8 @@
 import { API_BASE } from "./config.js";
 
+// ===============================
+// Auth check (page-level only)
+// ===============================
 const token = localStorage.getItem("s4l_token");
 
 if (!token) {
@@ -7,6 +10,9 @@ if (!token) {
   throw new Error("Not authenticated");
 }
 
+// ===============================
+// Load users
+// ===============================
 async function loadUsers() {
   const res = await fetch(`${API_BASE}/api/admin/users`, {
     headers: {
@@ -14,6 +20,7 @@ async function loadUsers() {
     }
   });
 
+  // Page-level auth failure only
   if (res.status === 401 || res.status === 403) {
     window.location.href = "/";
     return;
@@ -35,58 +42,70 @@ async function loadUsers() {
         </select>
       </td>
       <td>
-        <button class="save-btn" data-user-id="${user._id}">
-          Save
-        </button>
+        <button class="save-btn">Save</button>
       </td>
     `;
 
     tbody.appendChild(tr);
   });
-
-  // 🔒 Attach handlers AFTER render
-  document.querySelectorAll(".save-btn").forEach(button => {
-    button.addEventListener("click", async (e) => {
-      e.preventDefault();
-
-      const userId = button.dataset.userId;
-      if (!userId) {
-        console.error("Missing userId on button");
-        return;
-      }
-
-      const select = document.querySelector(
-        `.role-select[data-user-id="${userId}"]`
-      );
-
-      if (!select) {
-        console.error("Role select not found for user:", userId);
-        return;
-      }
-
-      const role = select.value;
-
-      const updateRes = await fetch(
-        `${API_BASE}/api/admin/users/${userId}/role`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ role })
-        }
-      );
-
-      if (!updateRes.ok) {
-        console.error("Failed to update role");
-        return;
-      }
-
-      // reload list after save
-      loadUsers();
-    });
-  });
 }
 
+// ===============================
+// Delegated click handler (robust)
+// ===============================
+document.addEventListener("click", async (e) => {
+  if (!e.target.classList.contains("save-btn")) return;
+
+  e.preventDefault();
+
+  const row = e.target.closest("tr");
+  if (!row) {
+    console.error("Row not found");
+    return;
+  }
+
+  const select = row.querySelector(".role-select");
+  if (!select) {
+    console.error("Role select not found");
+    return;
+  }
+
+  const userId = select.dataset.userId;
+  const role = select.value;
+
+  if (!userId) {
+    console.error("Missing userId");
+    return;
+  }
+
+  try {
+    const updateRes = await fetch(
+      `${API_BASE}/api/admin/users/${userId}/role`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ role })
+      }
+    );
+
+    // IMPORTANT: do NOT redirect here
+    if (!updateRes.ok) {
+      console.error("Failed to update role");
+      return;
+    }
+
+    // Reload users after successful update
+    await loadUsers();
+
+  } catch (err) {
+    console.error("Update error:", err);
+  }
+});
+
+// ===============================
+// Initial load
+// ===============================
 loadUsers();
