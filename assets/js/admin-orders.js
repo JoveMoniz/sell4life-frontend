@@ -44,7 +44,8 @@ async function loadOrders(page = 1) {
     });
 
     tr.innerHTML = `
-      <td>${order._id}</td>
+      <td>S4L-${order.id.slice(0, 8).toUpperCase()}</td>
+
       <td>${order.user?.email || "-"}</td>
       <td>£${order.total.toFixed(2)}</td>
       <td>
