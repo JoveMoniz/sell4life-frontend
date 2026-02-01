@@ -377,13 +377,11 @@ button {
    ADMIN SIGN IN (CENTERED)
    ===================================================== */
 
-.admin-signin {
+   .admin-signin {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: #f5f6f8;
 }
+
 
 .admin-signin .signin-wrapper {
   width: 100%;
