@@ -119,22 +119,21 @@ button {
   background: #ffffff;
   padding: 20px;
   border-radius: 8px;
-  margin-bottom: 24px;
   border: 1px solid #e5e7eb;
+  margin-bottom: 24px;
   font-size: 14px;
 }
 
-.admin-order-details h3 {
-  margin-top: 24px;
-  margin-bottom: 8px;
-  font-size: 16px;
+.admin-order-details .status-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .admin-order-details select {
   padding: 8px 10px;
   border-radius: 6px;
   border: 1px solid #d1d5db;
-  margin-right: 10px;
 }
 
 .admin-order-details #updateStatus {
@@ -152,7 +151,7 @@ button {
 }
 
 .admin-order-details #statusHistory {
-  margin-top: 12px;
+  margin-top: 10px;
   padding-left: 18px;
 }
 
