@@ -6,6 +6,10 @@
   box-sizing: border-box;
 }
 
+.admin-top{
+    flex-direction: row;
+}
+
 body {
   font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   background: #f5f6f8;
@@ -41,12 +45,40 @@ button {
 /* =====================================================
    ADMIN LOGO
    ===================================================== */
-.admin-logo {
- height: 40px; 
- width: 90px;  
-  background-color: #374151;  
 
+.admin-header {
+  position: fixed;
+  top: 16px;
+  left: 20px;
+  z-index: 1000;
 }
+
+.admin-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #111827; /* deep neutral dark */
+  font-size: 18px;
+  font-weight: 700;
+  text-decoration: none;
+  line-height: 1;
+}
+
+/* Individual colors */
+.admin-logo .logo-dollar {
+  color: #F28C28;
+}
+
+.admin-logo .logo-text {
+  color: #FDF4E7;
+}
+
+.admin-logo .logo-four {
+  color: #00BFFF;
+}
+
 
 
 /* =====================================================
