@@ -255,6 +255,23 @@ button {
   font-size: 14px;
 }
 
+/* =====================================================
+   ADMIN ORDER DETAILS – MOBILE
+   ===================================================== */
+
+@media (max-width: 768px) {
+  .admin-order-details .status-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-order-details select,
+  .admin-order-details #updateStatus {
+    width: 100%;
+  }
+}
+
+
 
 /* =====================================================
    ADMIN USERS
@@ -328,21 +345,30 @@ button {
    ADMIN SIGN IN – MOBILE & TABLET
    ===================================================== */
 
-@media (max-width: 1024px) {
+@media (max-width: 768px) {
+  .admin-signin {
+    padding: 0;
+  }
+
   .admin-signin .signin-wrapper {
-    max-width: 100%;
+    min-height: 100vh;
+    max-width: none;
     padding: 24px;
     border-radius: 0;
     box-shadow: none;
-  }
-
-  .admin-signin h1 {
-    font-size: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 
   .admin-signin input,
   .admin-signin button {
-    font-size: 16px;
+    font-size: 18px;
+    padding: 16px;
+  }
+
+  .admin-signin h1 {
+    font-size: 22px;
   }
 }
 
