@@ -292,7 +292,7 @@ button {
    ADMIN SIGN IN – MOBILE & TABLET
    ===================================================== */
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .admin-signin .signin-wrapper {
     max-width: 100%;
     padding: 24px;
