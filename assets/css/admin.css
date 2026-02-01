@@ -171,14 +171,15 @@ button {
 }
 
 /* =====================================================
-   ADMIN SIGN IN
+   ADMIN SIGN IN (CENTERED)
    ===================================================== */
 
 .admin-signin {
   min-height: 100vh;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  background: #f5f6f8;
 }
 
 .admin-signin .signin-wrapper {
@@ -188,41 +189,34 @@ button {
   padding: 32px;
   border-radius: 10px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  text-align: center;
 }
 
 .admin-signin h1 {
-  text-align: center;
   margin-bottom: 24px;
 }
 
-.admin-signin .signin-form label {
-  display: block;
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 14px;
+.admin-signin form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .admin-signin input {
-  width: 100%;
-  margin-top: 6px;
-  padding: 10px 12px;
+  padding: 12px;
   border-radius: 6px;
   border: 1px solid #d1d5db;
   font-size: 14px;
 }
 
-.admin-signin input:focus {
-  outline: none;
-  border-color: #6b7280;
-}
-
 .admin-signin button {
-  width: 100%;
-  margin-top: 12px;
   padding: 12px;
+  border-radius: 6px;
+  border: none;
+  font-weight: 600;
   background: #374151;
   color: #ffffff;
-  font-size: 15px;
+  cursor: pointer;
 }
 
 .admin-signin button:hover {
@@ -233,6 +227,6 @@ button {
   margin-top: 14px;
   color: #dc2626;
   font-size: 14px;
-  text-align: center;
 }
+
 
