@@ -62,6 +62,7 @@ button {
   margin: 0;
   text-align: center;
   font-size: 20px;
+  line-height: 1.2;
 }
 
 /* Keep logout tidy */
@@ -71,17 +72,26 @@ button {
 }
 
 
+@media (max-width: 768px) {
+  .admin-top #logoutBtn {
+    width: auto;          /* override global */
+    padding: 8px 14px;
+    font-size: 14px;
+  }
+}
+
+
 
 /* =====================================================
    ADMIN LOGO
    ===================================================== */
 
 .admin-header {
-  position: fixed;
-  top: 16px;
-  left: 20px;
-  z-index: 1000;
+  position: static; /* let grid handle it */
+  display: flex;
+  align-items: center;
 }
+
 
 .admin-logo {
   display: inline-flex;
