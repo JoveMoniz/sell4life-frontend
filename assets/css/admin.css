@@ -80,6 +80,14 @@ button {
   }
 }
 
+/* =====================================================
+   ADMIN TOP BAR – LOGO ONLY ADJUSTMENT
+   ===================================================== */
+
+.admin-top:has(.admin-header):not(:has(h1)):not(:has(#logoutBtn)) {
+  grid-template-columns: auto;
+  justify-content: flex-start;
+}
 
 
 /* =====================================================
