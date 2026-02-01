@@ -43,29 +43,51 @@ button {
    ADMIN DASHBOARD
    ===================================================== */
 
-.admin-dashboard .admin-nav {
-  list-style: none;
-  padding: 0;
-  max-width: 360px;
+.admin-dashboard {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.admin-dashboard .admin-nav li + li {
+.admin-dashboard .dashboard-wrapper {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  padding: 32px;
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.admin-dashboard h1 {
+  margin-bottom: 24px;
+}
+
+.admin-dashboard .dashboard-nav {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 24px;
+}
+
+.admin-dashboard .dashboard-nav li + li {
   margin-top: 12px;
 }
 
-.admin-dashboard .admin-nav a {
+.admin-dashboard .dashboard-nav a {
   display: block;
-  padding: 14px 16px;
+  padding: 14px;
   border-radius: 6px;
+  background: #f1f5f9;
+  color: #1f2933;
   text-decoration: none;
-  background: #e6f4f1;
-  color: #0f766e;
   font-weight: 600;
 }
 
-.admin-dashboard .admin-nav a:hover {
-  background: #cdeae4;
+.admin-dashboard .dashboard-nav a:hover {
+  background: #e5e7eb;
 }
+
 
 
 

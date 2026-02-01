@@ -2,26 +2,27 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-
-          
-
-
   <title>Admin Dashboard</title>
-  
+
   <link rel="stylesheet" href="/assets/css/admin.css?v=20260125">
-  
 </head>
-<body>
 
-<h1>Admin Dashboard</h1>
+<body class="admin admin-dashboard">
 
-<ul>
-  <li><a href="/account/admin/orders.html">Orders</a></li>
-  <li><a href="/account/admin/users.html">Users</a></li>
-</ul>
+<div class="dashboard-wrapper">
 
-<button id="logoutBtn">Log out</button>
+  <h1>Admin Dashboard</h1>
+
+  <ul class="dashboard-nav">
+    <li><a href="/account/admin/orders.html">Orders</a></li>
+    <li><a href="/account/admin/users.html">Users</a></li>
+  </ul>
+
+  <button id="logoutBtn">Log out</button>
+
+</div>
 
 <script type="module" src="/assets/js/admin-dashboard.js"></script>
+<script type="module" src="/assets/js/admin-logout.js"></script>
 </body>
 </html>
