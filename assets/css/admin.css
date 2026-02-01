@@ -89,6 +89,43 @@ button {
 }
 
 
+/* =====================================================
+   ADMIN DASHBOARD – MOBILE & TABLET
+   ===================================================== */
+
+@media (max-width: 768px) {
+  .admin-dashboard .dashboard-wrapper {
+    max-width: 100%;
+    padding: 24px;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .admin-dashboard .dashboard-nav a {
+    padding: 16px;
+    font-size: 16px;
+  }
+
+  #logoutBtn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-dashboard {
+    padding: 20px;
+  }
+
+  .admin-dashboard h1 {
+    font-size: 20px;
+  }
+
+  .admin-dashboard .dashboard-nav a {
+    font-size: 15px;
+  }
+}
+
+
 
 
 /* =====================================================
@@ -251,4 +288,39 @@ button {
   font-size: 14px;
 }
 
+/* =====================================================
+   ADMIN SIGN IN – MOBILE & TABLET
+   ===================================================== */
+
+@media (max-width: 768px) {
+  .admin-signin .signin-wrapper {
+    max-width: 100%;
+    padding: 24px;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .admin-signin h1 {
+    font-size: 20px;
+  }
+
+  .admin-signin input,
+  .admin-signin button {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-signin {
+    padding: 20px;
+  }
+
+  .admin-signin .signin-wrapper {
+    padding: 20px;
+  }
+
+  .admin-signin h1 {
+    margin-bottom: 20px;
+  }
+}
 
