@@ -161,7 +161,6 @@ button {
 }
 
 
-
 /* =====================================================
    ADMIN USERS
    ===================================================== */
@@ -175,32 +174,65 @@ button {
    ADMIN SIGN IN
    ===================================================== */
 
-.admin-signin form {
-  max-width: 360px;
-  background: #fff;
-  padding: 24px;
-  border-radius: 8px;
+.admin-signin {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.admin-signin .signin-wrapper {
+  width: 100%;
+  max-width: 380px;
+  background: #ffffff;
+  padding: 32px;
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+
+.admin-signin h1 {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.admin-signin .signin-form label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 14px;
 }
 
 .admin-signin input {
   width: 100%;
-  padding: 10px;
-  margin-bottom: 12px;
+  margin-top: 6px;
+  padding: 10px 12px;
   border-radius: 6px;
   border: 1px solid #d1d5db;
+  font-size: 14px;
+}
+
+.admin-signin input:focus {
+  outline: none;
+  border-color: #6b7280;
 }
 
 .admin-signin button {
   width: 100%;
-  background: #0f766e;
-  color: #fff;
+  margin-top: 12px;
+  padding: 12px;
+  background: #374151;
+  color: #ffffff;
+  font-size: 15px;
 }
 
 .admin-signin button:hover {
-  background: #0d5f59;
+  background: #1f2937;
 }
 
-#error {
+.admin-signin #error {
+  margin-top: 14px;
   color: #dc2626;
-  margin-top: 10px;
+  font-size: 14px;
+  text-align: center;
 }
+
