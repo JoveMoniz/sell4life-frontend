@@ -6,9 +6,6 @@
   box-sizing: border-box;
 }
 
-.admin-top{
-    flex-direction: row;
-}
 
 body {
   font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
