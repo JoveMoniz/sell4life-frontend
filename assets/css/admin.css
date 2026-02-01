@@ -42,7 +42,10 @@ button {
    ADMIN LOGO
    ===================================================== */
 .admin-logo {
+ height: 40px; 
+ width: 90px;  
   background-color: #374151;  
+
 }
 
 
