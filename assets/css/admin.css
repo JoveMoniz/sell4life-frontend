@@ -39,6 +39,21 @@ button {
 
 
 /* =====================================================
+   ADMIN LOGO
+   ===================================================== */
+.admin-logo {
+  display: flex;
+  align-items: left;
+  font-size: 28px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  text-decoration: none;
+  margin: 6px 0;
+  padding-left: 20px;
+}
+
+
+/* =====================================================
    GLOBAL MOBILE BASE (ALL ADMIN PAGES)
    ===================================================== */
 
