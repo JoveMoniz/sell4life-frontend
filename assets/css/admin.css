@@ -38,6 +38,35 @@ button {
 }
 
 
+/* =====================================================
+   GLOBAL MOBILE BASE (ALL ADMIN PAGES)
+   ===================================================== */
+
+@media (max-width: 768px) {
+  body {
+    padding: 16px;
+  }
+
+  h1 {
+    font-size: 20px;
+  }
+
+  h3 {
+    font-size: 16px;
+  }
+
+  button {
+    font-size: 16px;
+    padding: 14px;
+  }
+
+  #logoutBtn {
+    width: 100%;
+  }
+}
+
+
+
 
 /* =====================================================
    ADMIN DASHBOARD
