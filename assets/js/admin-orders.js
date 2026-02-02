@@ -80,16 +80,21 @@ function renderPagination(current, total) {
   for (let i = 1; i <= total; i++) {
     const btn = document.createElement("button");
     btn.textContent = i;
-    btn.disabled = i === current;
 
-    btn.onclick = () => {
+    if (i === current) {
+      btn.classList.add("active");
+    }
+
+    btn.addEventListener("click", () => {
+      if (i === current) return; // don't reload same page
       currentPage = i;
       loadOrders(i);
-    };
+    });
 
     container.appendChild(btn);
   }
 }
+
 
 /* ================================
    INIT (ONE CALL)
