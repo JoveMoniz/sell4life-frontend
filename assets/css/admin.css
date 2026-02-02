@@ -541,6 +541,7 @@ button {
 
   .admin-signin .signin-wrapper {
     padding: 20px;
+    max-width: 85vh;
   }
 
   .admin-signin h1 {
