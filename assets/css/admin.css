@@ -510,6 +510,23 @@ button {
   font-size: 14px;
 }
 
+/* Base message */
+.admin-signin #error {
+  margin-top: 14px;
+  font-size: 14px;
+}
+
+/* Error state */
+.admin-signin #error.error {
+  color: #dc2626; /* red */
+}
+
+/* Success state */
+.admin-signin #error.success {
+  color: #16a34a; /* calm green */
+}
+
+
 /* =====================================================
    ADMIN SIGN IN – MOBILE & TABLET
    ===================================================== */
