@@ -179,7 +179,7 @@ button {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
   text-align: center;
 
-  margin: 72 auto 0;
+  margin: 82px auto 0;
 }
 
 .admin-dashboard h1 {
@@ -396,7 +396,7 @@ button {
 
 
 
-  margin: 72px auto 0; /* 👈 THIS WAS MISSING */
+  margin: 82px auto 0; /* 👈 THIS WAS MISSING */
 }
 
 
