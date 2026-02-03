@@ -520,7 +520,7 @@ button {
 /* Success state inside button (subtle) */
 .admin-signin button.success {
   background: #374151;   /* same as normal */
-  color: #d1fae5; /* very soft green tint */
+  color: #16a34a; /* green */
   font-weight: 600;
 }
 
