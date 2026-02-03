@@ -504,17 +504,13 @@ button {
   background: #1f2937;
 }
 
+/* Base message (neutral) */
 .admin-signin #error {
   margin-top: 14px;
-  color: #dc2626;
   font-size: 14px;
+  color: #374151; /* neutral grey */
 }
 
-/* Base message */
-.admin-signin #error {
-  margin-top: 14px;
-  font-size: 14px;
-}
 
 /* Error state */
 .admin-signin #error.error {

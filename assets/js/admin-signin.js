@@ -30,22 +30,25 @@ form.addEventListener("submit", async (e) => {
       return;
     }
 
-    // 🔐 Persist auth state
+    // 🚫 BLOCK NON-ADMINS HERE
+    if (data.user.role !== "admin") {
+      error.textContent = "You do not have admin access.";
+      error.className = "error";
+      return;
+    }
+
+    // 🔐 Persist auth state (ADMIN ONLY)
     localStorage.setItem("s4l_token", data.token);
     localStorage.setItem("s4l_role", data.user.role);
     localStorage.setItem("s4l_user", JSON.stringify(data.user));
 
-    // ✅ Success feedback (brief, human, calm)
+    // ✅ Success feedback
     error.textContent = "Login successful";
     error.className = "success";
 
-    // 🚦 Redirect after short confirmation
+    // 🚦 Redirect to admin dashboard
     setTimeout(() => {
-      if (data.user.role === "admin") {
-        window.location.href = "/account/admin/index.html";
-      } else {
-        window.location.href = "/account/orders.html";
-      }
+      window.location.replace("/account/admin/index.html");
     }, 600);
 
   } catch (err) {
