@@ -41,7 +41,7 @@ async function loadOrders(page = 1) {
 
     tr.addEventListener("click", () => {
       window.location.href =
-        `/account/admin/admin-order-details.html?id=${order.id}`;
+        `/account/admin/order-details.html?id=${order.id}`;
     });
 
     tr.innerHTML = `
@@ -55,7 +55,7 @@ async function loadOrders(page = 1) {
       </td>
       <td>${new Date(order.createdAt).toLocaleString()}</td>
       <td>
-        <a href="/account/admin/admin-order-details.html?id=${order.id}"
+        <a href="/account/admin/order-details.html?id=${order.id}"
            onclick="event.stopPropagation()">
           View
         </a>
