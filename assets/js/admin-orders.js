@@ -55,7 +55,7 @@ async function loadOrders(page = 1) {
       </td>
       <td>${new Date(order.createdAt).toLocaleString()}</td>
       <td>
-        <a href="/account/admin/order-details.html?id=${order.id}"
+        <a href="/account/admin/admin-order-details.html?id=${order.id}"
            onclick="event.stopPropagation()">
           View
         </a>
