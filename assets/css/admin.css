@@ -519,8 +519,8 @@ button {
 
 /* Success state inside button (subtle) */
 .admin-signin button.success {
-  background: #374151;   /* same as normal */
-  color: #16a34a; /* green */
+  background: #ffffff;   /* same as normal */
+  color: #16a34a;        /* calm, readable */
   font-weight: 600;
 }
 
