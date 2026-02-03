@@ -1,7 +1,7 @@
 import { API_BASE } from "./config.js";
 
 /* ================================
-   AUTH GUARD (ADMIN TOKEN ONLY)
+   AUTH GUARD
 ================================ */
 const token = localStorage.getItem("s4l_token");
 
@@ -11,13 +11,12 @@ if (!token) {
 }
 
 /* ================================
-   GET ORDER ID (MATCH ORDERS PAGE)
+   GET ORDER ID
 ================================ */
 const params  = new URLSearchParams(window.location.search);
 const orderId = params.get("id");
 
 if (!orderId) {
-  console.error("Missing order ID in URL");
   window.location.href = "/account/admin/orders.html";
   throw new Error("Missing order ID");
 }
@@ -28,10 +27,16 @@ if (!orderId) {
 const info         = document.getElementById("orderInfo");
 const historyList = document.getElementById("statusHistory");
 const statusSelect = document.getElementById("statusSelect");
+const updateBtn    = document.getElementById("updateStatus");
 const result       = document.getElementById("result");
 
 /* ================================
-   LOAD ORDER (ADMIN)
+   STATE (SINGLE SOURCE)
+================================ */
+let currentOrder = null;
+
+/* ================================
+   LOAD ORDER
 ================================ */
 async function loadOrder() {
   try {
@@ -52,6 +57,7 @@ async function loadOrder() {
     if (!res.ok) throw new Error("Failed to load order");
 
     const order = await res.json();
+    currentOrder = order; // ✅ store once, globally
 
     info.innerHTML = `
       <p><strong>ID:</strong> S4L-${order.id.slice(0, 8).toUpperCase()}</p>
@@ -76,43 +82,49 @@ async function loadOrder() {
   }
 }
 
-loadOrder();
-
 /* ================================
    UPDATE STATUS
 ================================ */
-document
-  .getElementById("updateStatus")
-  .addEventListener("click", async () => {
-    try {
-      const res = await fetch(
-        `${API_BASE}/api/admin/orders/${orderId}/status`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            status: statusSelect.value
-          })
-        }
-      );
+updateBtn.addEventListener("click", async () => {
+  if (!currentOrder) return;
 
-      if (res.status === 401 || res.status === 403) {
-        window.location.href = "/";
-        return;
+  updateBtn.disabled = true;
+  updateBtn.textContent = "Updating…";
+  result.textContent = "";
+
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/admin/orders/${orderId}/status`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status: statusSelect.value
+        })
       }
+    );
 
-      if (!res.ok) throw new Error("Update failed");
+    if (!res.ok) throw new Error("Update failed");
 
-      result.textContent = "Status updated successfully";
+    result.textContent = "Status updated";
+    result.className = "success";
 
-      // reload to refresh history
-      loadOrder();
+    await loadOrder(); // 🔁 reload from backend
 
-    } catch (err) {
-      console.error(err);
-      result.textContent = "Error updating status";
-    }
-  });
+  } catch (err) {
+    console.error("STATUS UPDATE ERROR:", err);
+    result.textContent = "Error updating status";
+    result.className = "error";
+  } finally {
+    updateBtn.disabled = false;
+    updateBtn.textContent = "Update Status";
+  }
+});
+
+/* ================================
+   INIT
+================================ */
+loadOrder();
