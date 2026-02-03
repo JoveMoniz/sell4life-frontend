@@ -522,6 +522,7 @@ button {
   background: #ffffff;   /* same as normal */
   color: #16a34a;        /* calm, readable */
   font-weight: 600;
+  border: 1px solid black;
 }
 
 
