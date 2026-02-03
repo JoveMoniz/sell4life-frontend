@@ -36,7 +36,7 @@ const updateBtn    = document.getElementById("updateStatus");
 ================================ */
 async function loadOrder() {
   try {
-    const res = await fetch(`${API_BASE}/api/admin/orders/${orderId}`, {
+    const res = await fetch(`${API_BASE}/api/admin/orders/${order.Id}`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
