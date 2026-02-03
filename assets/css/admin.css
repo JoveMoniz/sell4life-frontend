@@ -517,15 +517,13 @@ button {
   color: #dc2626; /* red */
 }
 
-/* Success state */
-.admin-signin #error.success {
-  color: #16a34a; /* calm green */
+/* Success state inside button (subtle) */
+.admin-signin button.success {
+  background: #374151;   /* same as normal */
+  color: #d1fae5; /* very soft green tint */
+  font-weight: 600;
 }
 
-.admin-signin button.success {
-  background: #16a34a;
-  color: #ffffff;
-}
 
 .admin-signin button:disabled {
   opacity: 0.75;

@@ -46,12 +46,9 @@ form.addEventListener("submit", async (e) => {
     localStorage.setItem("s4l_user", JSON.stringify(data.user));
 
     // ✅ Success feedback INSIDE BUTTON
-    btn.textContent = "Logged in";
+    btn.textContent = "Login successful";
     btn.classList.add("success");
 
-    // Optional secondary confirmation (quiet, not required)
-    error.textContent = "Login successful";
-    error.className = "success";
 
     // 🚦 Leave promptly
     setTimeout(() => {
