@@ -41,7 +41,7 @@ async function loadOrders(page = 1) {
 
     tr.addEventListener("click", () => {
       window.location.href =
-        `/account/admin/order-details.html?id=${order._id}`;
+        `/account/admin/admin-order-details.html?id=${order.id}`;
     });
 
     tr.innerHTML = `
