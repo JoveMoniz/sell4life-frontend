@@ -2,6 +2,7 @@ import { API_BASE } from "./config.js";
 
 /* ================================
    AUTH GUARD (TOKEN ONLY)
+   Backend decides who is admin
 ================================ */
 const token = localStorage.getItem("s4l_token");
 
@@ -11,7 +12,7 @@ if (!token) {
 }
 
 /* ================================
-   GET ORDER ID
+   GET ORDER ID (MATCHES ORDERS PAGE)
 ================================ */
 const params  = new URLSearchParams(window.location.search);
 const orderId = params.get("id");
@@ -31,7 +32,7 @@ const result       = document.getElementById("result");
 const updateBtn    = document.getElementById("updateStatus");
 
 /* ================================
-   LOAD ORDER (SOURCE OF TRUTH)
+   LOAD ORDER (ADMIN ENDPOINT)
 ================================ */
 async function loadOrder() {
   try {
@@ -50,8 +51,9 @@ async function loadOrder() {
 
     const order = await res.json();
 
+    // ✅ ID DISPLAY MATCHES ORDERS PAGE
     info.innerHTML = `
-      <p><strong>ID:</strong> ${order._id}</p>
+      <p><strong>ID:</strong> S4L-${order.id.slice(0, 8).toUpperCase()}</p>
       <p><strong>User:</strong> ${order.user?.email || "-"}</p>
       <p><strong>Total:</strong> £${order.total.toFixed(2)}</p>
       <p><strong>Status:</strong> ${order.status}</p>
@@ -103,7 +105,7 @@ updateBtn.addEventListener("click", async () => {
 
     if (!res.ok) throw new Error("Update failed");
 
-    // Re-load from backend (truth wins)
+    // 🔁 Reload from backend (truth source)
     await loadOrder();
 
     result.textContent = "Status updated";
