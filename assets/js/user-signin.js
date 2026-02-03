@@ -1,5 +1,5 @@
 // =====================================================
-// SIGN IN (intent-based + role-aware redirect)
+// SIGN IN (intent-based, NOT role-based)
 // =====================================================
 
 import { API_BASE } from "./config.js";
@@ -13,7 +13,7 @@ const existingToken = localStorage.getItem("s4l_token");
 
 if (existingToken) {
   const redirect =
-    localStorage.getItem("postLoginRedirect") || "/";
+    localStorage.getItem("postLoginRedirect") || "/account/orders.html";
 
   localStorage.removeItem("postLoginRedirect");
   window.location.href = redirect;
@@ -37,8 +37,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const email    = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
 
-    msg.textContent = "Checking credentials...";
-    msg.style.color = "white";
+    msg.textContent = "Checking credentials…";
+    msg.style.color = "#e5e7eb"; // neutral
 
     try {
       const res = await fetch(`${API_BASE}/api/auth/login`, {
@@ -48,10 +48,8 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       const text = await res.text();
-      console.log("LOGIN STATUS:", res.status);
-      console.log("LOGIN RAW RESPONSE:", text);
 
-      let data = {};
+      let data;
       try {
         data = JSON.parse(text);
       } catch {
@@ -67,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // =====================================================
-      // STORE AUTH (ONLY PLACE TOKEN IS CREATED)
+      // STORE AUTH (TOKEN CREATED HERE ONLY)
       // =====================================================
       localStorage.setItem("s4l_token", data.token);
       localStorage.setItem("s4l_user", JSON.stringify(data.user));
@@ -76,18 +74,15 @@ document.addEventListener("DOMContentLoaded", () => {
       msg.style.color = "lightgreen";
 
       // =====================================================
-      // REDIRECT LOGIC (INTENT > ROLE > DEFAULT)
+      // REDIRECT LOGIC (INTENT ONLY)
       // =====================================================
       let redirect = localStorage.getItem("postLoginRedirect");
 
       localStorage.removeItem("postLoginRedirect");
 
+      // PUBLIC SIGN-IN ALWAYS GOES TO USER AREA
       if (!redirect) {
-        if (data.user.role === "admin") {
-          redirect = "/account/admin/orders.html";
-        } else {
-          redirect = "/account/orders.html";
-        }
+        redirect = "/account/orders.html";
       }
 
       setTimeout(() => {
