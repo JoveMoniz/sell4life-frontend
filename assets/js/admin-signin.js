@@ -7,7 +7,7 @@ const btn   = form.querySelector("button");
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  // reset message
+  // Reset message state
   error.textContent = "";
   error.className = "";
 
@@ -15,8 +15,9 @@ form.addEventListener("submit", async (e) => {
   const password = document.getElementById("password").value;
 
   // Button loading state
-  btn.disabled = true;
   const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.classList.remove("success");
   btn.textContent = "Checking credentials…";
 
   try {
@@ -39,16 +40,20 @@ form.addEventListener("submit", async (e) => {
       throw new Error("You do not have admin access.");
     }
 
-    // 🔐 Persist auth state
+    // 🔐 Persist auth state (ADMIN ONLY)
     localStorage.setItem("s4l_token", data.token);
     localStorage.setItem("s4l_role", data.user.role);
     localStorage.setItem("s4l_user", JSON.stringify(data.user));
 
-    // Success feedback
+    // ✅ Success feedback INSIDE BUTTON
     btn.textContent = "Logged in";
+    btn.classList.add("success");
+
+    // Optional secondary confirmation (quiet, not required)
     error.textContent = "Login successful";
     error.className = "success";
 
+    // 🚦 Leave promptly
     setTimeout(() => {
       window.location.replace("/account/admin/index.html");
     }, 600);
@@ -58,6 +63,7 @@ form.addEventListener("submit", async (e) => {
 
     // Restore button
     btn.disabled = false;
+    btn.classList.remove("success");
     btn.textContent = originalText;
 
     error.textContent = err.message || "Server error. Try again.";

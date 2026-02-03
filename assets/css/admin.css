@@ -522,6 +522,17 @@ button {
   color: #16a34a; /* calm green */
 }
 
+.admin-signin button.success {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.admin-signin button:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+
 
 /* =====================================================
    ADMIN SIGN IN – MOBILE & TABLET
