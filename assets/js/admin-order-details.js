@@ -40,9 +40,8 @@ let currentOrder = null;
 ================================ */
 async function loadOrder() {
   try {
-    const res = await fetch(
-      `${API_BASE}/api/admin/orders/${orderId}`,
-      {
+    const res = await fetch(`${API_BASE}/api/admin/order/${orderId}`, {
+
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -60,7 +59,7 @@ async function loadOrder() {
     currentOrder = order; // ✅ store once, globally
 
     info.innerHTML = `
-      <p><strong>ID:</strong> S4L-${order.id.slice(0, 8).toUpperCase()}</p>
+      <p><strong>ID:</strong> S4L-${order.id.slice(0, 10).toUpperCase()}</p>
       <p><strong>User:</strong> ${order.user?.email || "-"}</p>
       <p><strong>Total:</strong> £${order.total.toFixed(2)}</p>
       <p><strong>Status:</strong> ${order.status}</p>
