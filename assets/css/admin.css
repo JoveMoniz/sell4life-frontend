@@ -371,7 +371,6 @@ button {
 }
 
 
-
 /* =====================================================
    ADMIN ORDER DETAILS
    ===================================================== */
@@ -385,21 +384,70 @@ button {
   font-size: 14px;
 }
 
+/* Section titles */
+.admin-order-details .order-box h3 {
+  margin-top: 0;
+  margin-bottom: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* -----------------------------------------------------
+   PRODUCTS TABLE
+----------------------------------------------------- */
+
+.admin-order-details .order-products {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-order-details .order-products th,
+.admin-order-details .order-products td {
+  padding: 10px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+}
+
+.admin-order-details .order-products th {
+  background: #f9fafb;
+  font-weight: 600;
+  text-align: left;
+}
+
+.admin-order-details .order-products td {
+  vertical-align: middle;
+}
+
+/* Numeric alignment */
+.admin-order-details .order-products td:nth-child(2),
+.admin-order-details .order-products td:nth-child(3),
+.admin-order-details .order-products td:nth-child(4) {
+  text-align: right;
+}
+
+/* -----------------------------------------------------
+   STATUS CONTROLS
+----------------------------------------------------- */
+
 .admin-order-details .status-controls {
   display: flex;
   gap: 12px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .admin-order-details select {
   padding: 8px 10px;
   border-radius: 6px;
   border: 1px solid #d1d5db;
+  font-size: 14px;
 }
 
 .admin-order-details #updateStatus {
   background: #0f766e;
   color: #ffffff;
+  padding: 10px 14px;
 }
 
 .admin-order-details #updateStatus:hover {
@@ -409,7 +457,12 @@ button {
 .admin-order-details #result {
   margin-top: 12px;
   font-weight: 600;
+  font-size: 14px;
 }
+
+/* -----------------------------------------------------
+   STATUS HISTORY
+----------------------------------------------------- */
 
 .admin-order-details #statusHistory {
   margin-top: 10px;
@@ -419,6 +472,32 @@ button {
 .admin-order-details #statusHistory li {
   margin-bottom: 6px;
   font-size: 14px;
+}
+
+/* -----------------------------------------------------
+   MOBILE ADJUSTMENTS
+----------------------------------------------------- */
+
+@media (max-width: 768px) {
+  .admin-order-details .order-box {
+    padding: 16px;
+  }
+
+  .admin-order-details .order-products th,
+  .admin-order-details .order-products td {
+    padding: 8px;
+    font-size: 13px;
+  }
+
+  .admin-order-details .status-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-order-details select,
+  .admin-order-details #updateStatus {
+    width: 100%;
+  }
 }
 
 /* =====================================================
