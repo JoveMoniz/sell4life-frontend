@@ -40,7 +40,7 @@ let currentOrder = null;
 ================================ */
 async function loadOrder() {
   try {
-    const res = await fetch(`${API_BASE}/api/admin/order/${orderId}`, {
+    const res = await fetch(`${API_BASE}/api/admin/orders/${orderId}`, {
 
         headers: {
           Authorization: `Bearer ${token}`
