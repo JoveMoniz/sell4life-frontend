@@ -413,7 +413,7 @@ button {
   .admin-orders-table th:nth-child(6),
   .admin-orders-table td:nth-child(6) {
     min-width: 50px;
-    text-align: right;
+    text-align: left;
   }
 }
 
