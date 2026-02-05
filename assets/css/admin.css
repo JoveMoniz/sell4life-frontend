@@ -344,19 +344,18 @@ button {
 
   .admin-orders-table th:nth-child(4),
   .admin-orders-table td:nth-child(4) {
-    min-width: 140px;
+    min-width: 100px;
              /* Status */
   }
 
   .admin-orders-table th:nth-child(5),
   .admin-orders-table td:nth-child(5) {
-    min-width: 170px;
-    padding-left: 30px;
+    min-width: 140px;
   }
 
   .admin-orders-table th:nth-child(6),
   .admin-orders-table td:nth-child(6) {
-    min-width: 80px;
+    min-width: 60px;
     text-align: right;
   }
 }
