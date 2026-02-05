@@ -379,6 +379,8 @@ button {
   .admin-table-scroll {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+     /* 🔑 visual clarity */
+    padding-bottom: 10px;
   }
 
   .admin-orders-table {
