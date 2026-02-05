@@ -320,7 +320,7 @@ button {
 
   /* Table stays wide and is shifted left */
   .admin-table-scroll .admin-orders-table {
-    min-width: 780px;
+    min-width: 800px;
     table-layout: fixed;
   }
 
