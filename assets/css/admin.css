@@ -366,60 +366,56 @@ button {
 }
 
 /* =====================================================
-   ADMIN ORDERS – MOBILE HORIZONTAL (BALANCED)
+   ADMIN ORDERS – MOBILE: PUSH TOTAL & STATUS OFFSCREEN
    ===================================================== */
 
 @media (max-width: 480px) {
 
+  /* Scroll container gets breathing room */
   .admin-table-scroll {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    padding-left: 24px;        /* 👈 creates visual offset */
   }
 
-  .admin-orders-table {
-    min-width: 760px;      /* 👈 reduced from 900 */
+  /* Table stays wide and is shifted left */
+  .admin-table-scroll .admin-orders-table {
+    min-width: 900px;
+    margin-left: -24px;        /* 👈 cancels padding visually */
     table-layout: fixed;
   }
 
-  /* Order ID */
+  /* Lock column widths so browser can’t squeeze */
   .admin-orders-table th:nth-child(1),
   .admin-orders-table td:nth-child(1) {
-    min-width: 180px;
+    min-width: 190px;
   }
 
-  /* User */
   .admin-orders-table th:nth-child(2),
   .admin-orders-table td:nth-child(2) {
-    min-width: 210px;
+    min-width: 220px;
   }
 
-  /* Total */
   .admin-orders-table th:nth-child(3),
   .admin-orders-table td:nth-child(3) {
-    min-width: 110px;
-    text-align: left;
+    min-width: 120px;          /* Total */
   }
 
-  /* Status ← THIS WAS THE PROBLEM */
   .admin-orders-table th:nth-child(4),
   .admin-orders-table td:nth-child(4) {
-    min-width: 110px;      /* 👈 pulled back */
+    min-width: 140px;          /* Status */
   }
 
-  /* Created */
   .admin-orders-table th:nth-child(5),
   .admin-orders-table td:nth-child(5) {
-    min-width: 150px;
+    min-width: 170px;
   }
 
-  /* Action */
   .admin-orders-table th:nth-child(6),
   .admin-orders-table td:nth-child(6) {
-    min-width: 64px;
+    min-width: 80px;
     text-align: right;
-    padding-right: 8px;
   }
 }
+
 
 
 /* =====================================================
