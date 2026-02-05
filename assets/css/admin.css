@@ -244,7 +244,7 @@ button {
 
 @media (max-width: 480px) {
   .admin-dashboard {
-    padding: 20px;
+    padding: 0;
   }
 
   .admin-dashboard h1 {
