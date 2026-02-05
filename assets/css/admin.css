@@ -339,7 +339,7 @@ button {
   .admin-orders-table th:nth-child(3),
   .admin-orders-table td:nth-child(3) {
     min-width: 80px;
-    margin-left: 20px;
+    padding-left: 30px;
     text-align: left;
            /* Total */
   }
@@ -360,6 +360,7 @@ button {
   .admin-orders-table th:nth-child(6),
   .admin-orders-table td:nth-child(6) {
     min-width: 45px;
+    padding-left: 20px;
     text-align: left;
   }
 }
