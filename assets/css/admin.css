@@ -286,6 +286,31 @@ button {
   font-weight: 600;
 }
 
+@media (max-width: 768px) {
+
+  .admin-table-scroll {
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+
+
+@media (max-width: 768px) {
+
+  .admin-table-scroll::after {
+    content: "← swipe to see more →";
+    display: block;
+    text-align: center;
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 6px;
+  }
+}
+
+
 /* =====================================================
    ADMIN ORDERS
    ===================================================== */
