@@ -24,10 +24,11 @@ if (!orderId) {
 /* ================================
    ELEMENTS
 ================================ */
-const statusSelect = document.getElementById("statusSelect");
-const updateBtn    = document.getElementById("updateStatus");
-const result       = document.getElementById("result");
-const historyList  = document.getElementById("statusHistory");
+const statusSelect  = document.getElementById("statusSelect");
+const updateBtn     = document.getElementById("updateStatus");
+const result        = document.getElementById("result");
+const historyList   = document.getElementById("statusHistory");
+const productsTable = document.getElementById("productsTable");
 
 /* ================================
    STATE
@@ -74,8 +75,31 @@ async function loadOrder() {
     document.getElementById("orderStatus").textContent =
       order.status;
 
-    /* ========= STATUS CONTROL ========= */
     statusSelect.value = order.status;
+
+    /* ========= PRODUCTS ========= */
+    productsTable.innerHTML = "";
+
+    if (!order.items || order.items.length === 0) {
+      productsTable.innerHTML = `
+        <tr>
+          <td colspan="4">No products</td>
+        </tr>
+      `;
+    } else {
+      order.items.forEach(item => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td>${item.name}</td>
+          <td>${item.quantity}</td>
+          <td>£${item.price.toFixed(2)}</td>
+          <td>£${(item.price * item.quantity).toFixed(2)}</td>
+        `;
+
+        productsTable.appendChild(tr);
+      });
+    }
 
     /* ========= STATUS HISTORY ========= */
     historyList.innerHTML = "";
@@ -122,7 +146,7 @@ updateBtn.addEventListener("click", async () => {
     result.textContent = "Status updated";
     result.className = "success";
 
-    await loadOrder(); // reload from backend
+    await loadOrder();
 
   } catch (err) {
     console.error("STATUS UPDATE ERROR:", err);
