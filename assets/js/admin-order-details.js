@@ -24,14 +24,13 @@ if (!orderId) {
 /* ================================
    ELEMENTS
 ================================ */
-const info         = document.getElementById("orderInfo");
-const historyList = document.getElementById("statusHistory");
 const statusSelect = document.getElementById("statusSelect");
 const updateBtn    = document.getElementById("updateStatus");
 const result       = document.getElementById("result");
+const historyList  = document.getElementById("statusHistory");
 
 /* ================================
-   STATE (SINGLE SOURCE)
+   STATE
 ================================ */
 let currentOrder = null;
 
@@ -40,8 +39,9 @@ let currentOrder = null;
 ================================ */
 async function loadOrder() {
   try {
-    const res = await fetch(`${API_BASE}/api/admin/orders/${orderId}`, {
-
+    const res = await fetch(
+      `${API_BASE}/api/admin/orders/${orderId}`,
+      {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -56,17 +56,28 @@ async function loadOrder() {
     if (!res.ok) throw new Error("Failed to load order");
 
     const order = await res.json();
-    currentOrder = order; // ✅ store once, globally
+    currentOrder = order;
 
-    info.innerHTML = `
-      <p><strong>ID:</strong> S4L-${order.id.slice(0, 10).toUpperCase()}</p>
-      <p><strong>User:</strong> ${order.user?.email || "-"}</p>
-      <p><strong>Total:</strong> £${order.total.toFixed(2)}</p>
-      <p><strong>Status:</strong> ${order.status}</p>
-    `;
+    /* ========= ORDER SUMMARY ========= */
+    document.getElementById("orderId").textContent =
+      `S4L-${order.id.slice(0, 10).toUpperCase()}`;
 
+    document.getElementById("orderUser").textContent =
+      order.user?.email || "-";
+
+    document.getElementById("orderDate").textContent =
+      new Date(order.createdAt).toLocaleString();
+
+    document.getElementById("orderTotal").textContent =
+      order.total.toFixed(2);
+
+    document.getElementById("orderStatus").textContent =
+      order.status;
+
+    /* ========= STATUS CONTROL ========= */
     statusSelect.value = order.status;
 
+    /* ========= STATUS HISTORY ========= */
     historyList.innerHTML = "";
     order.statusHistory.forEach(h => {
       const li = document.createElement("li");
@@ -111,7 +122,7 @@ updateBtn.addEventListener("click", async () => {
     result.textContent = "Status updated";
     result.className = "success";
 
-    await loadOrder(); // 🔁 reload from backend
+    await loadOrder(); // reload from backend
 
   } catch (err) {
     console.error("STATUS UPDATE ERROR:", err);
