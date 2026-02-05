@@ -379,8 +379,6 @@ button {
   .admin-table-scroll {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-     /* 🔑 visual clarity */
-    padding-bottom: 10px;
   }
 
   .admin-orders-table {
@@ -390,16 +388,6 @@ button {
 }
 
 
- @media (max-width: 768px) {
-  .admin-table-scroll::after {
-    content: "← swipe →";
-    display: block;
-    text-align: center;
-    font-size: 12px;
-    color: #9ca3af;
-    margin-top: 6px;
-  }
-}
 
 
 
