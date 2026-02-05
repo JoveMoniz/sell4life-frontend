@@ -320,7 +320,7 @@ button {
 
   /* Table stays wide and is shifted left */
   .admin-table-scroll .admin-orders-table {
-    min-width: 900px;
+    min-width: 800px;
     table-layout: fixed;
   }
 
@@ -351,7 +351,7 @@ button {
 
   .admin-orders-table th:nth-child(5),
   .admin-orders-table td:nth-child(5) {
-    min-width: 170px;
+    min-width: 180px;
   text-align: right;
   }
 
