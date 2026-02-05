@@ -327,13 +327,13 @@ button {
   /* Lock column widths so browser can’t squeeze */
   .admin-orders-table th:nth-child(1),
   .admin-orders-table td:nth-child(1) {
-    min-width: 210px;
+    min-width: 220px;
    
   }
 
   .admin-orders-table th:nth-child(2),
   .admin-orders-table td:nth-child(2) {
-    min-width: 245px;
+    min-width: 255px;
    
   }
 
@@ -354,14 +354,14 @@ button {
 
   .admin-orders-table th:nth-child(5),
   .admin-orders-table td:nth-child(5) {
-    min-width: 170px;
+    min-width: 165px;
 
   }
 
   .admin-orders-table th:nth-child(6),
   .admin-orders-table td:nth-child(6) {
-    min-width: 45px;
-    padding-left: 20px;
+    min-width: 30px;
+    padding-left: 10px;
     text-align: left;
   }
 }
