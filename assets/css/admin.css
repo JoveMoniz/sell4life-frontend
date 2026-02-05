@@ -260,39 +260,48 @@ button {
   }
 }
 
-@media (max-width: 768px) {
+/* =====================================================
+   ADMIN ORDERS – MOBILE TEXT FLOW FIX
+   ===================================================== */
 
-  /* Tighten Action column (View was wasting space) */
-  .admin-orders-table th:last-child,
-  .admin-orders-table td:last-child {
-    width: 64px;
-    text-align: right;
-    white-space: nowrap;
+@media (max-width: 480px) {
+
+  .admin-orders-table {
+    table-layout: fixed;
   }
 
-  /* Make Total readable and stop clipping */
+  /* TOTAL column: give space, keep readable */
   .admin-orders-table th:nth-child(3),
   .admin-orders-table td:nth-child(3) {
-    min-width: 90px;
-    text-align: left; /* 👈 critical */
+    min-width: 110px;
+    text-align: left;        /* 👈 text flows normally */
+    padding-left: 8px;
+    padding-right: 6px;
     white-space: nowrap;
   }
 
-  /* Prevent Status + Date wrapping */
+  /* STATUS + CREATED: same logic */
   .admin-orders-table th:nth-child(4),
   .admin-orders-table td:nth-child(4),
   .admin-orders-table th:nth-child(5),
   .admin-orders-table td:nth-child(5) {
+    min-width: 90px;
+    text-align: left;
     white-space: nowrap;
   }
 
-  /* Reduce padding slightly to fit everything */
-  .admin-orders-table th,
-  .admin-orders-table td {
-    padding-left: 10px;
-    padding-right: 10px;
+  /* ACTION (View): keep tight, align right */
+  .admin-orders-table th:nth-child(6),
+  .admin-orders-table td:nth-child(6) {
+    min-width: 52px;
+    max-width: 52px;
+    text-align: right;       /* 👈 this one stays right */
+    padding-left: 4px;
+    padding-right: 6px;
+    white-space: nowrap;
   }
 }
+
 
 
 
