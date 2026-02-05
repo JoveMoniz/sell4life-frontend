@@ -379,7 +379,7 @@ button {
 
   /* Table stays wide and is shifted left */
   .admin-table-scroll .admin-orders-table {
-    min-width: 900px;
+    min-width: 700px;
     margin-left: -24px;        /* 👈 cancels padding visually */
     table-layout: fixed;
   }
