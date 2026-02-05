@@ -370,23 +370,6 @@ button {
   pointer-events: none;
 }
 
-/* =====================================================
-   ADMIN ORDERS – MOBILE HORIZONTAL SCROLL
-===================================================== */
-
-@media (max-width: 768px) {
-
-  .admin-table-scroll {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .admin-orders-table {
-    min-width: 720px; /* prevents column squeeze */
-  }
-
-}
-
 
 
 
