@@ -261,50 +261,55 @@ button {
 }
 
 /* =====================================================
-   ADMIN ORDERS – MOBILE COLUMN FLOW FIX (FINAL)
+   ADMIN ORDERS – MOBILE: PUSH STATUS OFF FIRST VIEW
    ===================================================== */
 
 @media (max-width: 480px) {
 
-  /* Let content define column widths */
+  /* Force table wider than screen */
   .admin-orders-table {
-    table-layout: auto; /* 🔑 THIS IS THE KEY */
+    min-width: 900px;   /* 🔑 this is the key */
+    table-layout: fixed;
   }
 
-  /* Order ID + User: slight separation */
+  /* Order ID */
   .admin-orders-table th:nth-child(1),
-  .admin-orders-table td:nth-child(1),
+  .admin-orders-table td:nth-child(1) {
+    min-width: 190px;
+  }
+
+  /* User */
   .admin-orders-table th:nth-child(2),
   .admin-orders-table td:nth-child(2) {
-    padding-right: 14px;
+    min-width: 220px;
   }
 
-  /* Total + Status: push right naturally */
+  /* Total */
   .admin-orders-table th:nth-child(3),
-  .admin-orders-table td:nth-child(3),
+  .admin-orders-table td:nth-child(3) {
+    min-width: 120px;
+  }
+
+  /* Status – intentionally pushed right */
   .admin-orders-table th:nth-child(4),
   .admin-orders-table td:nth-child(4) {
-    padding-left: 14px;
-    padding-right: 14px;
-    white-space: nowrap;
+    min-width: 130px;
   }
 
-  /* Created: compact but readable */
+  /* Created */
   .admin-orders-table th:nth-child(5),
   .admin-orders-table td:nth-child(5) {
-    padding-left: 12px;
-    white-space: nowrap;
+    min-width: 170px;
   }
 
-  /* Action stays tight */
+  /* Action */
   .admin-orders-table th:nth-child(6),
   .admin-orders-table td:nth-child(6) {
-    padding-left: 4px;
-    padding-right: 4px;
+    min-width: 80px;
     text-align: right;
-    white-space: nowrap;
   }
 }
+
 
 
 
