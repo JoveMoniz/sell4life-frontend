@@ -452,6 +452,34 @@ button {
 
 
 /* -----------------------------------------------------
+   PRODUCT THUMBNAIL
+----------------------------------------------------- */
+
+.admin-order-details .product-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-order-details .product-thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  flex-shrink: 0;
+}
+
+.admin-order-details .product-name {
+  display: block;
+  font-weight: 500;
+  color: #111827;
+}
+
+
+
+/* -----------------------------------------------------
    STATUS CONTROLS
 ----------------------------------------------------- */
 
