@@ -395,13 +395,13 @@ button {
 }
 
 /* =====================================================
-   PRODUCTS TABLE (ALIGNED)
+   PRODUCTS TABLE (ALIGNED, GAP FIXED SAFELY)
 ===================================================== */
 
 .admin-order-details .order-products {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed; /* force alignment */
+  table-layout: fixed;
 }
 
 .admin-order-details .order-products th,
@@ -420,23 +420,31 @@ button {
   text-align: left;
 }
 
-/* Column widths */
+/* Column widths (SAFE) */
 .admin-order-details .order-products th:nth-child(1),
 .admin-order-details .order-products td:nth-child(1) {
-  width: 55%;
+  width: auto; /* 🔑 prevents empty gap */
 }
 
 .admin-order-details .order-products th:nth-child(2),
-.admin-order-details .order-products td:nth-child(2),
-.admin-order-details .order-products th:nth-child(3),
-.admin-order-details .order-products td:nth-child(3),
-.admin-order-details .order-products th:nth-child(4),
-.admin-order-details .order-products td:nth-child(4) {
-  width: 15%;
+.admin-order-details .order-products td:nth-child(2) {
+  width: 80px;
   text-align: right;
 }
 
-/* Align Product header with product name (account for thumbnail) */
+.admin-order-details .order-products th:nth-child(3),
+.admin-order-details .order-products td:nth-child(3) {
+  width: 110px;
+  text-align: right;
+}
+
+.admin-order-details .order-products th:nth-child(4),
+.admin-order-details .order-products td:nth-child(4) {
+  width: 110px;
+  text-align: right;
+}
+
+/* Align Product header with product content (thumbnail offset) */
 .admin-order-details .order-products th:first-child {
   padding-left: 66px;
 }
@@ -534,25 +542,21 @@ button {
     font-size: 13px;
   }
 
-  /* Slightly larger thumbs on mobile */
   .admin-order-details .product-thumb {
     width: 48px;
     height: 48px;
   }
 
-  /* Allow product names to wrap on mobile */
   .admin-order-details .product-name {
     white-space: normal;
     line-height: 1.3;
     font-size: 14px;
   }
 
-  /* Let rows breathe */
   .admin-order-details .order-products tr {
     height: auto;
   }
 
-  /* Status controls stack */
   .admin-order-details .status-controls {
     flex-direction: column;
     align-items: stretch;
@@ -564,6 +568,7 @@ button {
     width: 100%;
   }
 }
+
 
 
 
