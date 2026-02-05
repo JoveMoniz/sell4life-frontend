@@ -395,12 +395,13 @@ button {
 }
 
 /* -----------------------------------------------------
-   PRODUCTS TABLE
+   PRODUCTS TABLE (ALIGNED)
 ----------------------------------------------------- */
 
 .admin-order-details .order-products {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed; /* 🔑 forces alignment */
 }
 
 .admin-order-details .order-products th,
@@ -410,22 +411,45 @@ button {
   font-size: 14px;
 }
 
+/* Header styling */
 .admin-order-details .order-products th {
   background: #f9fafb;
   font-weight: 600;
+  color: #111827;
+}
+
+/* Column widths */
+.admin-order-details .order-products th:nth-child(1),
+.admin-order-details .order-products td:nth-child(1) {
+  width: 55%;
   text-align: left;
 }
 
-.admin-order-details .order-products td {
-  vertical-align: middle;
-}
-
-/* Numeric alignment */
-.admin-order-details .order-products td:nth-child(2),
-.admin-order-details .order-products td:nth-child(3),
-.admin-order-details .order-products td:nth-child(4) {
+.admin-order-details .order-products th:nth-child(2),
+.admin-order-details .order-products td:nth-child(2) {
+  width: 15%;
   text-align: right;
 }
+
+.admin-order-details .order-products th:nth-child(3),
+.admin-order-details .order-products td:nth-child(3) {
+  width: 15%;
+  text-align: right;
+}
+
+.admin-order-details .order-products th:nth-child(4),
+.admin-order-details .order-products td:nth-child(4) {
+  width: 15%;
+  text-align: right;
+}
+
+/* Prevent long product names from breaking layout */
+.admin-order-details .order-products td:nth-child(1) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 
 /* -----------------------------------------------------
    STATUS CONTROLS
