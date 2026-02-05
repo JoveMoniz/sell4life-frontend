@@ -327,7 +327,7 @@ button {
   /* Lock column widths so browser can’t squeeze */
   .admin-orders-table th:nth-child(1),
   .admin-orders-table td:nth-child(1) {
-    min-width: 220px;
+    min-width: 250px;
    
   }
 
@@ -354,7 +354,7 @@ button {
 
   .admin-orders-table th:nth-child(5),
   .admin-orders-table td:nth-child(5) {
-    min-width: 165px;
+    min-width: 190px;
 
   }
 
