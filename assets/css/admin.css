@@ -528,79 +528,30 @@ button {
 }
 
 /* -----------------------------------------------------
-   MOBILE PRODUCT TABLE IMPROVEMENTS
+   MOBILE ADJUSTMENTS
 ----------------------------------------------------- */
 
 @media (max-width: 768px) {
-
-  /* Hide table header on mobile */
-  .admin-order-details .order-products thead {
-    display: none;
+  .admin-order-details .order-box {
+    padding: 16px;
   }
 
-  /* Each row becomes a block */
-  .admin-order-details .order-products tr {
-    display: block;
-    padding: 12px 0;
-    border-bottom: 1px solid #e5e7eb;
-  }
-
+  .admin-order-details .order-products th,
   .admin-order-details .order-products td {
-    display: block;
-    padding: 6px 0;
-    border: none;
-    text-align: left;
+    padding: 8px;
+    font-size: 13px;
   }
 
-  /* Product cell stays on top */
-  .admin-order-details .order-products td:first-child {
-    padding-bottom: 8px;
+  .admin-order-details .status-controls {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  /* Product layout */
-  .admin-order-details .product-cell {
-    gap: 10px;
-  }
-
-  .admin-order-details .product-thumb {
-    width: 48px;
-    height: 48px;
-  }
-
-  .admin-order-details .product-name {
-    font-size: 15px;
-    font-weight: 600;
-    white-space: normal; /* allow wrap on mobile */
-  }
-
-  /* Price row (Qty / Unit / Total) */
-  .admin-order-details .order-products td:nth-child(2),
-  .admin-order-details .order-products td:nth-child(3),
-  .admin-order-details .order-products td:nth-child(4) {
-    font-size: 14px;
-    color: #374151;
-  }
-
-  /* Add labels via pseudo-elements */
-  .admin-order-details .order-products td:nth-child(2)::before {
-    content: "Qty: ";
-    font-weight: 600;
-    color: #6b7280;
-  }
-
-  .admin-order-details .order-products td:nth-child(3)::before {
-    content: "Unit: ";
-    font-weight: 600;
-    color: #6b7280;
-  }
-
-  .admin-order-details .order-products td:nth-child(4)::before {
-    content: "Total: ";
-    font-weight: 600;
-    color: #6b7280;
+  .admin-order-details select,
+  .admin-order-details #updateStatus {
+    width: 100%;
   }
 }
-
 
 
 
