@@ -286,29 +286,7 @@ button {
   font-weight: 600;
 }
 
-@media (max-width: 768px) {
 
-  .admin-table-scroll {
-    margin-left: -16px;
-    margin-right: -16px;
-    padding-left: 16px;
-    padding-right: 16px;
-  }
-}
-
-
-
-@media (max-width: 768px) {
-
-  .admin-table-scroll::after {
-    content: "← swipe to see more →";
-    display: block;
-    text-align: center;
-    font-size: 12px;
-    color: #9ca3af;
-    margin-top: 6px;
-  }
-}
 
 
 /* =====================================================
@@ -324,6 +302,61 @@ button {
 .admin-orders td:last-child a:hover {
   text-decoration: underline;
 }
+
+
+
+/* =====================================================
+   ADMIN ORDERS – MOBILE SAFE HORIZONTAL TABLE
+   ===================================================== */
+
+/* Scroll container (already in HTML, just activate it) */
+.admin-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Table should NOT shrink to viewport */
+.admin-table-scroll .admin-orders-table {
+  width: 100%;
+  min-width: 720px;          /* 🔑 allows scroll instead of squeeze */
+  border-collapse: collapse;
+}
+
+/* Base cell styling (inherits existing look) */
+.admin-table-scroll th,
+.admin-table-scroll td {
+  white-space: nowrap;       /* prevent ugly wrapping */
+}
+
+/* Order ID needs space */
+.admin-table-scroll th:first-child,
+.admin-table-scroll td:first-child {
+  min-width: 180px;
+}
+
+/* User (email) needs more space */
+.admin-table-scroll th:nth-child(2),
+.admin-table-scroll td:nth-child(2) {
+  min-width: 220px;
+}
+
+/* Keep money columns readable */
+.admin-table-scroll th:nth-child(3),
+.admin-table-scroll td:nth-child(3),
+.admin-table-scroll th:nth-child(4),
+.admin-table-scroll td:nth-child(4) {
+  min-width: 100px;
+  text-align: right;
+}
+
+/* Action column */
+.admin-table-scroll th:last-child,
+.admin-table-scroll td:last-child {
+  min-width: 80px;
+}
+
+
 
 /* =====================================================
    ADMIN PAGINATION
