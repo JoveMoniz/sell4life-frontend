@@ -65,6 +65,12 @@ async function loadOrders(page = 1) {
     tbody.appendChild(tr);
   });
 
+  /* 🔑 FIX: reset horizontal scroll after table redraw */
+  const scrollWrapper = document.querySelector(".admin-table-scroll");
+  if (scrollWrapper) {
+    scrollWrapper.scrollLeft = 0;
+  }
+
   renderPagination(data.page, data.totalPages);
 }
 
@@ -86,7 +92,7 @@ function renderPagination(current, total) {
     }
 
     btn.addEventListener("click", () => {
-      if (i === current) return; // don't reload same page
+      if (i === current) return;
       currentPage = i;
       loadOrders(i);
     });
@@ -95,8 +101,7 @@ function renderPagination(current, total) {
   }
 }
 
-
 /* ================================
-   INIT (ONE CALL)
+   INIT
 ================================ */
 loadOrders(currentPage);
