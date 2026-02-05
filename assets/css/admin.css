@@ -260,51 +260,7 @@ button {
   }
 }
 
-/* =====================================================
-   ADMIN ORDERS – MOBILE COLUMN FLOW FIX (FINAL)
-   ===================================================== */
 
-@media (max-width: 480px) {
-
-  /* Let content define column widths */
-  .admin-orders-table {
-    table-layout: auto; /* 🔑 THIS IS THE KEY */
-  }
-
-  /* Order ID + User: slight separation */
-  .admin-orders-table th:nth-child(1),
-  .admin-orders-table td:nth-child(1),
-  .admin-orders-table th:nth-child(2),
-  .admin-orders-table td:nth-child(2) {
-    padding-right: 14px;
-  }
-
-  /* Total + Status: push right naturally */
-  .admin-orders-table th:nth-child(3),
-  .admin-orders-table td:nth-child(3),
-  .admin-orders-table th:nth-child(4),
-  .admin-orders-table td:nth-child(4) {
-    padding-left: 14px;
-    padding-right: 14px;
-    white-space: nowrap;
-  }
-
-  /* Created: compact but readable */
-  .admin-orders-table th:nth-child(5),
-  .admin-orders-table td:nth-child(5) {
-    padding-left: 12px;
-    white-space: nowrap;
-  }
-
-  /* Action stays tight */
-  .admin-orders-table th:nth-child(6),
-  .admin-orders-table td:nth-child(6) {
-    padding-left: 4px;
-    padding-right: 4px;
-    text-align: right;
-    white-space: nowrap;
-  }
-}
 
 
 
@@ -367,76 +323,47 @@ button {
   }
 
   .admin-table-scroll .admin-orders-table {
-    width: 100%;
     min-width: 720px;
-    border-collapse: collapse;
-    table-layout: fixed; /* 🔑 THIS STOPS OVERLAP */
+    table-layout: fixed; /* ✅ ONE authority */
   }
 
-  /* Order ID */
+  .admin-table-scroll th,
+  .admin-table-scroll td {
+    white-space: nowrap;
+  }
+
   .admin-table-scroll th:first-child,
   .admin-table-scroll td:first-child {
     min-width: 180px;
-    white-space: nowrap;
   }
 
-  /* User (email) */
   .admin-table-scroll th:nth-child(2),
   .admin-table-scroll td:nth-child(2) {
     min-width: 220px;
-    white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* 👈 prevents overlap */
+    text-overflow: ellipsis;
   }
 
-  /* Total */
   .admin-table-scroll th:nth-child(3),
   .admin-table-scroll td:nth-child(3) {
-    min-width: 100px;
-    max-width: 120px;       /* 👈 critical */
-    white-space: nowrap;
-    text-align: left;
+    min-width: 120px; /* 🔑 Total is now safe */
   }
 
-  /* Status + Created */
   .admin-table-scroll th:nth-child(4),
-  .admin-table-scroll td:nth-child(4),
+  .admin-table-scroll td:nth-child(4) {
+    min-width: 130px; /* 🔑 Status pushed out */
+  }
+
   .admin-table-scroll th:nth-child(5),
   .admin-table-scroll td:nth-child(5) {
-    min-width: 100px;
-    white-space: nowrap;
+    min-width: 180px;
   }
 
-  /* Action */
   .admin-table-scroll th:last-child,
   .admin-table-scroll td:last-child {
     min-width: 72px;
-    white-space: nowrap;
     text-align: right;
   }
-}
-
-/* =====================================================
-   ADMIN ORDERS – MOBILE COLUMN PADDING BALANCE FIX
-   ===================================================== */
-
-@media (max-width: 480px) {
-
-  /* Give breathing room to data columns */
-  .admin-orders-table th:not(:last-child),
-  .admin-orders-table td:not(:last-child) {
-    padding-left: 10px;
-    padding-right: 10px;
-  }
-
-  /* Action column stays tight */
-  .admin-orders-table th:last-child,
-  .admin-orders-table td:last-child {
-    padding-left: 4px;
-    padding-right: 4px;
-    text-align: right;
-  }
-
 }
 
 
