@@ -528,7 +528,7 @@ button {
 }
 
 /* -----------------------------------------------------
-   MOBILE ADJUSTMENTS
+   MOBILE ADJUSTMENTS (SAFE)
 ----------------------------------------------------- */
 
 @media (max-width: 768px) {
@@ -536,15 +536,41 @@ button {
     padding: 16px;
   }
 
+  /* Table spacing */
   .admin-order-details .order-products th,
   .admin-order-details .order-products td {
-    padding: 8px;
+    padding: 10px 8px;
     font-size: 13px;
   }
 
+  /* Product cell: stack image + name nicely */
+  .admin-order-details .product-cell {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .admin-order-details .product-thumb {
+    width: 48px;
+    height: 48px;
+  }
+
+  .admin-order-details .product-name {
+    white-space: normal;   /* allow wrapping */
+    line-height: 1.3;
+    font-size: 14px;
+  }
+
+  /* Give rows a bit more air */
+  .admin-order-details .order-products tr {
+    height: auto;
+  }
+
+  /* Status controls remain stacked */
   .admin-order-details .status-controls {
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
   }
 
   .admin-order-details select,
