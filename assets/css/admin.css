@@ -213,33 +213,6 @@ button {
 }
 
 
-/* =====================================================
-   ADMIN DASHBOARD – MOBILE & TABLET
-   ===================================================== */
-
-
-@media (max-width: 768px) {
-  .admin-dashboard {
-    padding: 0;
-  }
-
-  .admin-dashboard .dashboard-wrapper {
-    min-height: 100vh;
-    width: 100%;
-    max-width: none;
-    padding: 24px;
-    border-radius: 0;
-    box-shadow: none;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-
-  .admin-dashboard .dashboard-nav a {
-    font-size: 18px;
-    padding: 18px;
-  }
-}
 
 
 
