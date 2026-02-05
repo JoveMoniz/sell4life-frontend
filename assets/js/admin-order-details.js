@@ -70,31 +70,40 @@ async function loadOrder() {
       new Date(order.createdAt).toLocaleString();
 
     document.getElementById("orderTotal").textContent =
-      order.total.toFixed(2);
+      Number(order.total).toFixed(2);
 
     document.getElementById("orderStatus").textContent =
       order.status;
 
     statusSelect.value = order.status;
 
-    /* ========= PRODUCTS ========= */
+    /* ========= PRODUCTS (FINAL FIX) ========= */
     productsTable.innerHTML = "";
 
-    if (!order.items || order.items.length === 0) {
+    const items =
+      order.items ||
+      order.products ||
+      [];
+
+    if (!Array.isArray(items) || items.length === 0) {
       productsTable.innerHTML = `
         <tr>
-          <td colspan="4">No products</td>
+          <td colspan="4" style="text-align:center; opacity:.6">
+            No products found for this order
+          </td>
         </tr>
       `;
     } else {
-      order.items.forEach(item => {
-        const tr = document.createElement("tr");
+      items.forEach(item => {
+        const qty   = Number(item.quantity || 0);
+        const price = Number(item.price || 0);
 
+        const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${item.name}</td>
-          <td>${item.quantity}</td>
-          <td>£${item.price.toFixed(2)}</td>
-          <td>£${(item.price * item.quantity).toFixed(2)}</td>
+          <td>${item.name || "Unnamed product"}</td>
+          <td>${qty}</td>
+          <td>£${price.toFixed(2)}</td>
+          <td>£${(qty * price).toFixed(2)}</td>
         `;
 
         productsTable.appendChild(tr);
@@ -103,7 +112,7 @@ async function loadOrder() {
 
     /* ========= STATUS HISTORY ========= */
     historyList.innerHTML = "";
-    order.statusHistory.forEach(h => {
+    (order.statusHistory || []).forEach(h => {
       const li = document.createElement("li");
       li.textContent =
         `${h.status} – ${new Date(h.date).toLocaleString()}`;
