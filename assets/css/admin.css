@@ -391,19 +391,19 @@ button {
   .admin-orders-table th:nth-child(2),
   .admin-orders-table td:nth-child(2) {
     min-width: 220px;
-    padding-left: 10px;
+   
   }
 
   .admin-orders-table th:nth-child(3),
   .admin-orders-table td:nth-child(3) {
     min-width: 120px;
-    padding-left: 20px;          /* Total */
+           /* Total */
   }
 
   .admin-orders-table th:nth-child(4),
   .admin-orders-table td:nth-child(4) {
     min-width: 140px;
-    padding-left: 30px;          /* Status */
+             /* Status */
   }
 
   .admin-orders-table th:nth-child(5),
