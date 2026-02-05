@@ -402,17 +402,17 @@ button {
 
   .admin-orders-table th:nth-child(4),
   .admin-orders-table td:nth-child(4) {
-    min-width: 140px;          /* Status */
+    min-width: 120px;          /* Status */
   }
 
   .admin-orders-table th:nth-child(5),
   .admin-orders-table td:nth-child(5) {
-    min-width: 170px;
+    min-width: 150px;
   }
 
   .admin-orders-table th:nth-child(6),
   .admin-orders-table td:nth-child(6) {
-    min-width: 80px;
+    min-width: 50px;
     text-align: right;
   }
 }
