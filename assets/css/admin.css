@@ -345,12 +345,14 @@ button {
   .admin-orders-table th:nth-child(4),
   .admin-orders-table td:nth-child(4) {
     min-width: 100px;
+    padding-left: 40px;
              /* Status */
   }
 
   .admin-orders-table th:nth-child(5),
   .admin-orders-table td:nth-child(5) {
-    min-width: 140px;
+    min-width: 170px;
+  text-align: right;
   }
 
   .admin-orders-table th:nth-child(6),
