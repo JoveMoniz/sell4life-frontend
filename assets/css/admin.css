@@ -260,6 +260,41 @@ button {
   }
 }
 
+@media (max-width: 480px) {
+
+  /* Tighten Action column (View was wasting space) */
+  .admin-orders-table th:last-child,
+  .admin-orders-table td:last-child {
+    width: 64px;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* Make Total readable and stop clipping */
+  .admin-orders-table th:nth-child(3),
+  .admin-orders-table td:nth-child(3) {
+    min-width: 90px;
+    text-align: left; /* 👈 critical */
+    white-space: nowrap;
+  }
+
+  /* Prevent Status + Date wrapping */
+  .admin-orders-table th:nth-child(4),
+  .admin-orders-table td:nth-child(4),
+  .admin-orders-table th:nth-child(5),
+  .admin-orders-table td:nth-child(5) {
+    white-space: nowrap;
+  }
+
+  /* Reduce padding slightly to fit everything */
+  .admin-orders-table th,
+  .admin-orders-table td {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+
 
 
 
