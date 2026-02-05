@@ -313,7 +313,9 @@ button {
 .admin-table-scroll {
   width: 100%;
   overflow-x: auto;
+  padding-left: 16px;
   -webkit-overflow-scrolling: touch;
+
 }
 
 /* Table should NOT shrink to viewport */
