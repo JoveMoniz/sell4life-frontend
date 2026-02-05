@@ -366,6 +366,58 @@ button {
   }
 }
 
+/* =====================================================
+   ADMIN ORDERS – MOBILE: PUSH TOTAL & STATUS OFFSCREEN
+   ===================================================== */
+
+@media (max-width: 480px) {
+
+  /* Scroll container gets breathing room */
+  .admin-table-scroll {
+    padding-left: 24px;        /* 👈 creates visual offset */
+  }
+
+  /* Table stays wide and is shifted left */
+  .admin-table-scroll .admin-orders-table {
+    min-width: 900px;
+    margin-left: -24px;        /* 👈 cancels padding visually */
+    table-layout: fixed;
+  }
+
+  /* Lock column widths so browser can’t squeeze */
+  .admin-orders-table th:nth-child(1),
+  .admin-orders-table td:nth-child(1) {
+    min-width: 190px;
+  }
+
+  .admin-orders-table th:nth-child(2),
+  .admin-orders-table td:nth-child(2) {
+    min-width: 220px;
+  }
+
+  .admin-orders-table th:nth-child(3),
+  .admin-orders-table td:nth-child(3) {
+    min-width: 120px;          /* Total */
+  }
+
+  .admin-orders-table th:nth-child(4),
+  .admin-orders-table td:nth-child(4) {
+    min-width: 140px;          /* Status */
+  }
+
+  .admin-orders-table th:nth-child(5),
+  .admin-orders-table td:nth-child(5) {
+    min-width: 170px;
+  }
+
+  .admin-orders-table th:nth-child(6),
+  .admin-orders-table td:nth-child(6) {
+    min-width: 80px;
+    text-align: right;
+  }
+}
+
+
 
 
 /* =====================================================
