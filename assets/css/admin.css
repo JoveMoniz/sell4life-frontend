@@ -371,10 +371,7 @@ button {
 
 @media (max-width: 480px) {
 
-  /* Scroll container gets breathing room */
-  .admin-table-scroll {
-    padding-left: 24px;        /* 👈 creates visual offset */
-  }
+
 
   /* Table stays wide and is shifted left */
   .admin-table-scroll .admin-orders-table {
