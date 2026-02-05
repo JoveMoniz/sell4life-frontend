@@ -338,21 +338,22 @@ button {
 
   .admin-orders-table th:nth-child(3),
   .admin-orders-table td:nth-child(3) {
-    min-width: 120px;
+    min-width: 100px;
+    text-align: right;
            /* Total */
   }
 
   .admin-orders-table th:nth-child(4),
   .admin-orders-table td:nth-child(4) {
-    min-width: 100px;
-    padding-left: 40px;
+    min-width: 80px;
+    padding-left: 20px;
              /* Status */
   }
 
   .admin-orders-table th:nth-child(5),
   .admin-orders-table td:nth-child(5) {
-    min-width: 180px;
-  text-align: right;
+    min-width: 200px;
+
   }
 
   .admin-orders-table th:nth-child(6),
