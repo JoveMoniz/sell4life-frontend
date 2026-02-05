@@ -310,10 +310,10 @@ button {
    ===================================================== */
 
 /* Scroll container (already in HTML, just activate it) */
+@media (max-width: 768px) {
 .admin-table-scroll {
   width: 100%;
   overflow-x: auto;
-  padding-left: 16px;
   -webkit-overflow-scrolling: touch;
 
 }
@@ -357,7 +357,7 @@ button {
 .admin-table-scroll td:last-child {
   min-width: 80px;
 }
-
+}
 
 
 /* =====================================================
