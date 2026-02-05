@@ -412,6 +412,30 @@ button {
   }
 }
 
+/* =====================================================
+   ADMIN ORDERS – MOBILE COLUMN PADDING BALANCE FIX
+   ===================================================== */
+
+@media (max-width: 480px) {
+
+  /* Give breathing room to data columns */
+  .admin-orders-table th:not(:last-child),
+  .admin-orders-table td:not(:last-child) {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  /* Action column stays tight */
+  .admin-orders-table th:last-child,
+  .admin-orders-table td:last-child {
+    padding-left: 4px;
+    padding-right: 4px;
+    text-align: right;
+  }
+
+}
+
+
 
 /* =====================================================
    ADMIN PAGINATION
