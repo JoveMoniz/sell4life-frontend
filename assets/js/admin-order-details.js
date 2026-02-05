@@ -100,11 +100,19 @@ async function loadOrder() {
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${item.name || "Unnamed product"}</td>
-          <td>${qty}</td>
-          <td>£${price.toFixed(2)}</td>
-          <td>£${(qty * price).toFixed(2)}</td>
-        `;
+  <td class="product-cell">
+    <img
+      src="${item.image || "/assets/images/products/default.png"}"
+      alt="${item.name}"
+      class="product-thumb"
+    />
+    <span class="product-name">${item.name}</span>
+  </td>
+  <td>${qty}</td>
+  <td>£${price.toFixed(2)}</td>
+  <td>£${(qty * price).toFixed(2)}</td>
+`;
+
 
         productsTable.appendChild(tr);
       });
