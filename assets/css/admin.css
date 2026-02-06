@@ -493,24 +493,24 @@ button {
 .admin-order-details .order-products th:nth-child(2),
 .admin-order-details .order-products td:nth-child(2) {
   width: 80px;
-  text-align: right;
+  text-align: left;
 }
 
 .admin-order-details .order-products th:nth-child(3),
 .admin-order-details .order-products td:nth-child(3) {
   width: 110px;
-  text-align: right;
+  text-align: left;
 }
 
 .admin-order-details .order-products th:nth-child(4),
 .admin-order-details .order-products td:nth-child(4) {
   width: 110px;
-  text-align: right;
+  text-align: left;
 }
 
 /* Align Product header with product content (thumbnail offset) */
 .admin-order-details .order-products th:first-child {
-  padding-left: 66px;
+  padding-left: 56px;
 }
 
 /* =====================================================
