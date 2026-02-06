@@ -48,6 +48,7 @@ button {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 16px;
+  letter-spacing: 0.2px;
 
   padding: 16px 20px;
   margin-bottom: 24px;
@@ -87,6 +88,7 @@ button {
   font-weight: 600;
   color: #374151;
   text-decoration: none;
+   opacity: 0.85;
 }
 
 .admin-back:hover {
@@ -394,7 +396,7 @@ button {
   }
 
   .admin-orders-table th {
-    font-size: 14px;
+    font-size: 15px;
   }
 
   .admin-orders-table td {
@@ -414,7 +416,7 @@ button {
 
 @media (max-width: 360px) {
   .admin-orders-table {
-    font-size: 13px;
+    font-size: 15px;
   }
 }
 
