@@ -328,12 +328,11 @@ button {
   }
 
   .admin-orders-table {
-    min-width: 780px;   /* enough for all columns */
+    min-width: 780px;   /* 3-column swipe baseline */
     table-layout: auto;
   }
 
-
-    /* Order ID */
+  /* Order ID */
   .admin-orders-table th:nth-child(1),
   .admin-orders-table td:nth-child(1) {
     padding-right: 6px;
@@ -345,13 +344,13 @@ button {
   .admin-orders-table th:nth-child(2),
   .admin-orders-table td:nth-child(2) {
     padding-right: 6px;
-    padding-left: 0px;
+    padding-left: 0;
   }
 
   /* Total */
   .admin-orders-table th:nth-child(3),
   .admin-orders-table td:nth-child(3) {
-    padding-left: 0px;
+    padding-left: 0;
     padding-right: 6px;
     white-space: nowrap;
   }
@@ -362,25 +361,35 @@ button {
     white-space: nowrap;
   }
 
-  /* Action stays tight */
+  /* Action */
   .admin-orders-table th:last-child,
   .admin-orders-table td:last-child {
     padding-left: 8px;
     white-space: nowrap;
   }
 
-    body {
+  body {
     padding: 12px;
+  }
+}
+
+
+/* SMALL PHONES – FORCE 2 COLUMNS PER SWIPE */
+@media (max-width: 390px) and (orientation: portrait) {
+
+  .admin-orders-table {
+    min-width: 1050px; /* wider table = fewer columns visible */
   }
 
 }
-
 
 @media (max-width: 360px) {
   .admin-orders-table {
     font-size: 13px;
   }
 }
+
+
 
 /* =====================================================
    ADMIN PAGINATION
