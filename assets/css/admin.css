@@ -213,29 +213,6 @@ button {
 }
 
 
-/* =====================================================
-   ADMIN DASHBOARD – MOBILE & TABLET
-   ===================================================== */
-
-
-   @media (max-width: 480px) {
-
-  /* ORDER ID column */
-  .admin-orders-table td:nth-child(1),
-  .admin-orders-table th:nth-child(1) {
-    padding-right: 16px;     /* space before User */
-    white-space: normal;     /* allow wrap */
-    word-break: break-word; /* prevent overflow */
-  }
-
-}
-
-
-
-@media (max-width: 480px) {
-  .admin-dashboard {
-    padding: 0;
-  }
 
   .admin-dashboard .dashboard-wrapper {
     min-height: 75vh;
@@ -322,31 +299,8 @@ button {
   text-decoration: underline;
 }
 
-@media (max-width: 768px) {
 
-  /* USER column */
-  .admin-orders-table td:nth-child(2),
-  .admin-orders-table th:nth-child(2) {
-    padding-right: 16px;   /* creates air before Total */
-  }
-
-  /* TOTAL column */
-  .admin-orders-table td:nth-child(3),
-  .admin-orders-table th:nth-child(3) {
-    padding-left: 16px;    /* stops £ from hugging email */
-    white-space: nowrap;
-  }
-
-}
-
-
-
-
-/* =====================================================
-   ADMIN ORDERS – MOBILE (SCROLL, NO SQUEEZE)
-   ===================================================== */
-
-@media (max-width: 480px) {
+@media (max-width: 480px) and (orientation: portrait) {
 
   .admin-table-scroll {
     overflow-x: auto;
@@ -354,21 +308,45 @@ button {
   }
 
   .admin-orders-table {
-    min-width: 900px; /* forces horizontal scroll */
-    border-collapse: collapse;
+    min-width: 640px;   /* enough for all columns */
+    table-layout: auto;
   }
 
-  .admin-orders-table th,
-  .admin-orders-table td {
+
+    /* Order ID */
+  .admin-orders-table th:nth-child(1),
+  .admin-orders-table td:nth-child(1) {
+    padding-right: 14px;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* User */
+  .admin-orders-table th:nth-child(2),
+  .admin-orders-table td:nth-child(2) {
+    padding-right: 14px;
+  }
+
+  /* Total */
+  .admin-orders-table th:nth-child(3),
+  .admin-orders-table td:nth-child(3) {
+    padding-right: 14px;
     white-space: nowrap;
-    padding: 12px 14px; /* THIS is what you wanted */
   }
 
-  /* Let browser size columns naturally */
+  /* Status */
+  .admin-orders-table th:nth-child(4),
+  .admin-orders-table td:nth-child(4) {
+    white-space: nowrap;
+  }
+
+  /* Action stays tight */
   .admin-orders-table th:last-child,
   .admin-orders-table td:last-child {
-    padding-right: 8px; /* Action tighter */
+    padding-left: 8px;
+    white-space: nowrap;
   }
+
 }
 
 
