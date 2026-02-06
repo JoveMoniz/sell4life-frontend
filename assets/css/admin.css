@@ -325,11 +325,13 @@ button {
   .admin-orders-table th:nth-child(2),
   .admin-orders-table td:nth-child(2) {
     padding-right: 10px;
+    padding-left: 0px;
   }
 
   /* Total */
   .admin-orders-table th:nth-child(3),
   .admin-orders-table td:nth-child(3) {
+    padding-left: 0px;
     padding-right: 10px;
     white-space: nowrap;
   }
