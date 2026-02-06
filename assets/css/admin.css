@@ -604,7 +604,7 @@ button {
 /* Column widths (SAFE) */
 .admin-order-details .order-products th:nth-child(1),
 .admin-order-details .order-products td:nth-child(1) {
-  width: 280px; /* 🔑 prevents empty gap */
+  width: auto; /* 🔑 prevents empty gap */
 }
 
 .admin-order-details .order-products th:nth-child(2),
