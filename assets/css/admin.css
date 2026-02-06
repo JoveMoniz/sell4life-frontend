@@ -308,7 +308,7 @@ button {
   }
 
   .admin-orders-table {
-    min-width: 760px;   /* enough for all columns */
+    min-width: 780px;   /* enough for all columns */
     table-layout: auto;
   }
 
