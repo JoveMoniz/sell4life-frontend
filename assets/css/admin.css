@@ -128,6 +128,18 @@ button {
   color: #00BFFF;
 }
 
+.admin-back {
+  display: inline-block;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  text-decoration: none;
+}
+
+.admin-back:hover {
+  text-decoration: underline;
+}
 
 
 /* =====================================================
@@ -597,10 +609,6 @@ button {
 @media (max-width: 480px) {
 
 
-
-
-
-
 /* Column widths (SAFE) */
 .admin-order-details .order-products th:nth-child(1),
 .admin-order-details .order-products td:nth-child(1) {
@@ -610,19 +618,19 @@ button {
 .admin-order-details .order-products th:nth-child(2),
 .admin-order-details .order-products td:nth-child(2) {
   width: 30px;
-  text-align: right;
+  text-align: left;
 }
 
 .admin-order-details .order-products th:nth-child(3),
 .admin-order-details .order-products td:nth-child(3) {
   width: 65px;
-  text-align: right;
+  text-align: left;
 }
 
 .admin-order-details .order-products th:nth-child(4),
 .admin-order-details .order-products td:nth-child(4) {
   width: 65px;
-  text-align: right;
+  text-align: left;
 }
 
 }
