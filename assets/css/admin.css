@@ -370,6 +370,7 @@ button {
 
   .admin-orders-table td {
     font-size: 15px;
+     font-weight: 500;
   }
 }
 
