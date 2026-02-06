@@ -708,7 +708,7 @@ button {
 
 .admin-users-table {
   width: 100%;
-  min-width: 480px; /* enough for Email + Role + Action */
+  min-width: 360px; /* enough for Email + Role + Action */
   border-collapse: collapse;
   table-layout: fixed;
 }
