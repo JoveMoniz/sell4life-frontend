@@ -316,7 +316,7 @@ button {
     /* Order ID */
   .admin-orders-table th:nth-child(1),
   .admin-orders-table td:nth-child(1) {
-    padding-right: 14px;
+    padding-right: 10px;
     white-space: normal;
     word-break: break-word;
   }
