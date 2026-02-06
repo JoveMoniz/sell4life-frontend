@@ -218,6 +218,20 @@ button {
    ===================================================== */
 
 
+   @media (max-width: 768px) {
+
+  /* ORDER ID column */
+  .admin-orders-table td:nth-child(1),
+  .admin-orders-table th:nth-child(1) {
+    padding-right: 16px;     /* space before User */
+    white-space: normal;     /* allow wrap */
+    word-break: break-word; /* prevent overflow */
+  }
+
+}
+
+
+
 @media (max-width: 768px) {
   .admin-dashboard {
     padding: 0;
@@ -308,65 +322,55 @@ button {
   text-decoration: underline;
 }
 
+@media (max-width: 768px) {
+
+  /* USER column */
+  .admin-orders-table td:nth-child(2),
+  .admin-orders-table th:nth-child(2) {
+    padding-right: 16px;   /* creates air before Total */
+  }
+
+  /* TOTAL column */
+  .admin-orders-table td:nth-child(3),
+  .admin-orders-table th:nth-child(3) {
+    padding-left: 16px;    /* stops £ from hugging email */
+    white-space: nowrap;
+  }
+
+}
+
+
 
 
 /* =====================================================
-   ADMIN ORDERS – MOBILE: PUSH TOTAL & STATUS OFFSCREEN
+   ADMIN ORDERS – MOBILE (SCROLL, NO SQUEEZE)
    ===================================================== */
 
 @media (max-width: 480px) {
 
-
-
-  /* Table stays wide and is shifted left */
-  .admin-table-scroll .admin-orders-table {
-    min-width: 800px;
-    table-layout: fixed;
+  .admin-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
-  /* Lock column widths so browser can’t squeeze */
-  .admin-orders-table th:nth-child(1),
-  .admin-orders-table td:nth-child(1) {
-    min-width: 270px;
-   
+  .admin-orders-table {
+    min-width: 900px; /* forces horizontal scroll */
+    border-collapse: collapse;
   }
 
-  .admin-orders-table th:nth-child(2),
-  .admin-orders-table td:nth-child(2) {
-    min-width: 240px;
-    
-   
+  .admin-orders-table th,
+  .admin-orders-table td {
+    white-space: nowrap;
+    padding: 12px 14px; /* THIS is what you wanted */
   }
 
-  .admin-orders-table th:nth-child(3),
-  .admin-orders-table td:nth-child(3) {
-    min-width: 50px;
-    margin-left: 20px;
-    text-align: left;
-           /* Total */
-  }
-
-  .admin-orders-table th:nth-child(4),
-  .admin-orders-table td:nth-child(4) {
-    min-width: 50px;
-    padding-left: 20px;
-             /* Status */
-  }
-
-  .admin-orders-table th:nth-child(5),
-  .admin-orders-table td:nth-child(5) {
-    min-width: 250px;
-
-
-  }
-
-  .admin-orders-table th:nth-child(6),
-  .admin-orders-table td:nth-child(6) {
-    min-width: 50px;
-    padding-left: 10px;
-    text-align: left;
+  /* Let browser size columns naturally */
+  .admin-orders-table th:last-child,
+  .admin-orders-table td:last-child {
+    padding-right: 8px; /* Action tighter */
   }
 }
+
 
 
 
