@@ -136,7 +136,7 @@ button {
 
 @media (max-width: 768px) {
   body {
-    padding: 12px;
+    padding: 16px;
   }
 
   h1 {
@@ -230,7 +230,7 @@ button {
     font-size: 18px;
     padding: 18px;
   }
-}
+
 
 
 @media (max-width: 480px) {
@@ -345,6 +345,10 @@ button {
   .admin-orders-table td:last-child {
     padding-left: 8px;
     white-space: nowrap;
+  }
+
+    body {
+    padding: 12px;
   }
 
 }
