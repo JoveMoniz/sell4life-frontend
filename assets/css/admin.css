@@ -218,7 +218,7 @@ button {
    ===================================================== */
 
 
-   @media (max-width: 768px) {
+   @media (max-width: 480px) {
 
   /* ORDER ID column */
   .admin-orders-table td:nth-child(1),
@@ -232,7 +232,7 @@ button {
 
 
 
-@media (max-width: 768px) {
+@media (max-width: 480px) {
   .admin-dashboard {
     padding: 0;
   }
