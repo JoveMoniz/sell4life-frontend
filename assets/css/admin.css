@@ -136,7 +136,7 @@ button {
 
 @media (max-width: 768px) {
   body {
-    padding: 16px;
+    padding: 12px;
   }
 
   h1 {
@@ -350,7 +350,11 @@ button {
 }
 
 
-
+@media (max-width: 360px) {
+  .admin-orders-table {
+    font-size: 13px;
+  }
+}
 
 /* =====================================================
    ADMIN PAGINATION
