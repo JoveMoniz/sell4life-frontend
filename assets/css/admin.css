@@ -328,50 +328,36 @@ button {
   }
 
   .admin-orders-table {
-    min-width: 780px;   /* 3-column swipe baseline */
-    table-layout: auto;
+    min-width: 960px;      /* 👈 THIS is the key */
+    table-layout: fixed;  /* stop browser guessing */
   }
 
-  /* Order ID */
+  .admin-orders-table th,
+  .admin-orders-table td {
+    padding: 10px 12px;
+    white-space: nowrap;
+  }
+
+  /* Optional: fine-tune per column */
   .admin-orders-table th:nth-child(1),
-  .admin-orders-table td:nth-child(1) {
-    padding-right: 6px;
-    white-space: normal;
-    word-break: break-word;
-  }
+  .admin-orders-table td:nth-child(1) { width: 200px; } /* Order ID */
 
-  /* User */
   .admin-orders-table th:nth-child(2),
-  .admin-orders-table td:nth-child(2) {
-    padding-right: 6px;
-    padding-left: 0;
-  }
+  .admin-orders-table td:nth-child(2) { width: 220px; } /* User */
 
-  /* Total */
   .admin-orders-table th:nth-child(3),
-  .admin-orders-table td:nth-child(3) {
-    padding-left: 0;
-    padding-right: 6px;
-    white-space: nowrap;
-  }
+  .admin-orders-table td:nth-child(3) { width: 140px; } /* Total */
 
-  /* Status */
   .admin-orders-table th:nth-child(4),
-  .admin-orders-table td:nth-child(4) {
-    white-space: nowrap;
-  }
+  .admin-orders-table td:nth-child(4) { width: 140px; } /* Status */
 
-  /* Action */
-  .admin-orders-table th:last-child,
-  .admin-orders-table td:last-child {
-    padding-left: 8px;
-    white-space: nowrap;
-  }
+  .admin-orders-table th:nth-child(5),
+  .admin-orders-table td:nth-child(5) { width: 180px; } /* Created */
 
-  body {
-    padding: 12px;
-  }
+  .admin-orders-table th:nth-child(6),
+  .admin-orders-table td:nth-child(6) { width: 120px; } /* Action */
 }
+
 
 
 /* SMALL PHONES – FORCE 2 COLUMNS PER SWIPE */
