@@ -3,9 +3,10 @@
    ===================================================== */
 html,
 body {
-    max-width: 100%;
+  max-width: 100%;
   overflow-x: hidden;
 }
+
 
 
 
@@ -696,10 +697,58 @@ button {
    ADMIN USERS
    ===================================================== */
 
-.admin-users select {
-  padding: 6px 8px;
-  border-radius: 4px;
+/* =====================================================
+   ADMIN USERS – TABLE STABILITY
+   ===================================================== */
+
+.admin-users .admin-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
+
+.admin-users-table {
+  width: 100%;
+  min-width: 480px; /* enough for Email + Role + Action */
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.admin-users-table th,
+.admin-users-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* Email column */
+.admin-users-table th:nth-child(1),
+.admin-users-table td:nth-child(1) {
+  width: auto;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Role */
+.admin-users-table th:nth-child(2),
+.admin-users-table td:nth-child(2) {
+  width: 90px;
+}
+
+/* Action */
+.admin-users-table th:nth-child(3),
+.admin-users-table td:nth-child(3) {
+  width: 90px;
+}
+
+
+@media (max-width: 480px) {
+  .admin-users-table {
+    font-size: 15px;
+  }
+}
+
 
 /* =====================================================
    ADMIN SIGN IN (CENTERED)

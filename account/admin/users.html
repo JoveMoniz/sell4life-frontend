@@ -14,42 +14,47 @@
 
 <body class="admin admin-users">
 
+  <!-- TOP BAR -->
   <div class="admin-top">
-  <!-- Logo -->
-     <header class="admin-header">
-  <a href="/index.html" class="admin-logo">
-    <span class="logo-dollar">$</span>
-    <span class="logo-text">ell</span>
-    <span class="logo-four">4</span>
-    <span class="logo-text">Life</span>
-  </a>
-</header>
 
-<div class="admin-title">
+    <!-- Logo -->
+    <header class="admin-header">
+      <a href="/index.html" class="admin-logo">
+        <span class="logo-dollar">$</span>
+        <span class="logo-text">ell</span>
+        <span class="logo-four">4</span>
+        <span class="logo-text">Life</span>
+      </a>
+    </header>
 
-  <a href="/account/admin/index.html" class="admin-back">← back to dashboar</a>
+    <!-- Title + Back -->
+    <div class="admin-title">
+      <a href="/account/admin/index.html" class="admin-back">← back to dashboard</a>
+      <h1>Users</h1>
+    </div>
 
-<h1>Users</h1>
+    <!-- Logout -->
+    <button id="logoutBtn">Log out</button>
 
-</div>
+  </div>
 
+  <!-- USERS TABLE (WRAPPED – THIS IS THE FIX) -->
+  <div class="admin-table-scroll">
+    <table class="admin-users-table">
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="usersTable"></tbody>
+    </table>
+  </div>
 
-
-<button id="logoutBtn">Log out</button>
-</div>
-<table>
-  <thead>
-    <tr>
-      <th>Email</th>
-      <th>Role</th>
-      <th>Action</th>
-    </tr>
-  </thead>
-  <tbody id="usersTable"></tbody>
-</table>
-
-<script type="module" src="/assets/js/admin-users.js?v=20260206-dev"></script>
-<script type="module" src="/assets/js/admin-logout.js?v=20260206-dev"></script>
+  <!-- Scripts -->
+  <script type="module" src="/assets/js/admin-users.js?v=20260206-dev"></script>
+  <script type="module" src="/assets/js/admin-logout.js?v=20260206-dev"></script>
 
 </body>
 </html>
