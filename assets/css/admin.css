@@ -308,7 +308,7 @@ button {
   }
 
   .admin-orders-table {
-    min-width: 640px;   /* enough for all columns */
+    min-width: 760px;   /* enough for all columns */
     table-layout: auto;
   }
 
@@ -316,7 +316,7 @@ button {
     /* Order ID */
   .admin-orders-table th:nth-child(1),
   .admin-orders-table td:nth-child(1) {
-    padding-right: 14px;
+    padding-right: 18px;
     white-space: normal;
     word-break: break-word;
   }
@@ -324,13 +324,13 @@ button {
   /* User */
   .admin-orders-table th:nth-child(2),
   .admin-orders-table td:nth-child(2) {
-    padding-right: 14px;
+    padding-right: 18px;
   }
 
   /* Total */
   .admin-orders-table th:nth-child(3),
   .admin-orders-table td:nth-child(3) {
-    padding-right: 14px;
+    padding-right: 18px;
     white-space: nowrap;
   }
 
