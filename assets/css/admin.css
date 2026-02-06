@@ -219,6 +219,42 @@ button {
   }
 }
 
+/* Mobile: make ALL admin tables horizontally scroll when needed */
+@media (max-width: 480px) and (orientation: portrait) {
+  .admin-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-table-scroll table {
+    min-width: 520px; /* users table baseline */
+    table-layout: auto;
+  }
+
+  .admin th, .admin td {
+    font-size: 15px;
+    padding: 10px;
+    white-space: nowrap;
+  }
+}
+/* Mobile: make ALL admin tables horizontally scroll when needed */
+@media (max-width: 480px) and (orientation: portrait) {
+  .admin-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-table-scroll table {
+    min-width: 520px; /* users table baseline */
+    table-layout: auto;
+  }
+
+  .admin th, .admin td {
+    font-size: 15px;
+    padding: 10px;
+    white-space: nowrap;
+  }
+}
 
 
 
@@ -748,6 +784,19 @@ button {
     font-size: 15px;
   }
 }
+
+@media (max-width: 480px) and (orientation: portrait) {
+  .admin-users td:last-child,
+  .admin-users th:last-child {
+    width: 80px;
+    text-align: right;
+  }
+
+  .admin-users select {
+    min-width: 110px;
+  }
+}
+
 
 
 /* =====================================================
