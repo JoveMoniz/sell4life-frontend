@@ -358,7 +358,20 @@ button {
   .admin-orders-table td:nth-child(6) { width: 120px; } /* Action */
 }
 
+@media (max-width: 480px) and (orientation: portrait) {
 
+  .admin-orders-table {
+    font-size: 15px; /* was ~14px */
+  }
+
+  .admin-orders-table th {
+    font-size: 14px;
+  }
+
+  .admin-orders-table td {
+    font-size: 15px;
+  }
+}
 
 /* SMALL PHONES – FORCE 2 COLUMNS PER SWIPE */
 @media (max-width: 390px) and (orientation: portrait) {
