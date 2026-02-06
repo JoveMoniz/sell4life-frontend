@@ -594,7 +594,7 @@ button {
    MOBILE ADJUSTMENTS (SAFE)
 ===================================================== */
 
-@media (max-width: 768px) {
+@media (max-width: 480px) {
 
   .admin-order-details .order-box {
     padding: 16px;
