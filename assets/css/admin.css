@@ -609,19 +609,19 @@ button {
 
 .admin-order-details .order-products th:nth-child(2),
 .admin-order-details .order-products td:nth-child(2) {
-  width: 40px;
+  width: 30px;
   text-align: right;
 }
 
 .admin-order-details .order-products th:nth-child(3),
 .admin-order-details .order-products td:nth-child(3) {
-  width: 80px;
+  width: 65px;
   text-align: right;
 }
 
 .admin-order-details .order-products th:nth-child(4),
 .admin-order-details .order-products td:nth-child(4) {
-  width: 80px;
+  width: 65px;
   text-align: right;
 }
 
