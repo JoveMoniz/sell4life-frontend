@@ -716,11 +716,6 @@ button {
    ADMIN USERS
    ===================================================== */
 
-/* =====================================================
-   ADMIN USERS – TABLE STABILITY
-   ===================================================== */
-
-
 
 .admin-users-table {
   width: 100%;
@@ -760,62 +755,50 @@ button {
 
 
 /* ================================
-   ADMIN USERS – MOBILE (FINAL)
+   ADMIN USERS – MOBILE (FIXED, TABLE-BASED)
 ================================ */
 @media (max-width: 480px) {
 
-  .admin-users .admin-table-scroll {
-    overflow: visible;
-  }
-
-  .admin-users table,
-  .admin-users thead,
-  .admin-users tbody,
-  .admin-users tr {
-    display: block;
+  /* Keep table behavior */
+  .admin-users-table {
+    table-layout: fixed; /* 🔑 critical */
     width: 100%;
   }
 
-  .admin-users thead {
-    display: none;
-  }
-
-  .admin-users tr {
-    border-bottom: 1px solid #e5e7eb;
-    padding: 12px 0;
-  }
-
-  .admin-users td {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 0;
-    border: none;
-    white-space: normal;
-  }
-
-  /* Email */
-  .admin-users td:nth-child(1) {
-    font-weight: 600;
+  .admin-users-table th,
+  .admin-users-table td {
+    padding: 10px;
     font-size: 15px;
-    word-break: break-all;
-    justify-content: flex-start;
+    white-space: nowrap;
   }
 
-  /* Role + Action */
-  .admin-users td:nth-child(2),
-  .admin-users td:nth-child(3) {
-    gap: 10px;
+  /* Email column */
+  .admin-users-table th:nth-child(1),
+  .admin-users-table td:nth-child(1) {
+    width: 60%;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* Role */
+  .admin-users-table th:nth-child(2),
+  .admin-users-table td:nth-child(2) {
+    width: 20%;
+    text-align: center;
+  }
+
+  /* Action */
+  .admin-users-table th:nth-child(3),
+  .admin-users-table td:nth-child(3) {
+    width: 20%;
+    text-align: right;
   }
 
   .admin-users select {
-    min-width: 110px;
-  }
-
-  .admin-users button {
-    min-width: 72px;
+    max-width: 100%;
   }
 }
+
 
 
 
