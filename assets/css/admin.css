@@ -377,14 +377,6 @@ button {
   text-decoration: underline;
 }
 
-
-@media (max-width: 480px) and (orientation: portrait) {
-
-  .admin-table-scroll {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
   .admin-orders-table {
     min-width: 960px;      /* 👈 THIS is the key */
     table-layout: fixed;  /* stop browser guessing */
