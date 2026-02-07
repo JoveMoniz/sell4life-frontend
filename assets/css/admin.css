@@ -361,6 +361,37 @@ button {
 }
 
 
+/* =====================================================
+   ADMIN ORDERS – INLINE DETAILS
+===================================================== */
+
+.order-details-row {
+  display: none;
+  background: #f9fafb;
+}
+
+.order-details-row td {
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.order-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  font-size: 14px;
+}
+
+.order-details-grid strong {
+  color: #111827;
+}
+
+.order-details-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
 
 
 /* =====================================================
@@ -381,6 +412,12 @@ button {
 /* =====================================================
    ADMIN ORDERS – MOBILE SWIPE (CLEAN RESET)
    2 COLUMNS PER SWIPE × 3 SWIPES
+   
+   
+   TODO: admin-orders mobile swipe
+   Revisit if mobile admin becomes required.
+   Desktop is the primary target. 
+
 ===================================================== */
 
 @media (max-width: 480px) and (orientation: portrait) {
