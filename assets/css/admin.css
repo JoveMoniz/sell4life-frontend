@@ -378,6 +378,11 @@ button {
 }
 
 
+/* =====================================================
+   ADMIN ORDERS – MOBILE SWIPE (CLEAN RESET)
+   2 COLUMNS PER SWIPE × 3 SWIPES
+===================================================== */
+
 @media (max-width: 480px) and (orientation: portrait) {
 
   .admin-table-scroll {
@@ -386,8 +391,10 @@ button {
   }
 
   .admin-orders-table {
-    min-width: 960px;      /* 👈 THIS is the key */
-    table-layout: fixed;  /* stop browser guessing */
+    table-layout: fixed;
+    width: 1200px;        /* 🔑 total width = 3 swipes */
+    min-width: 1200px;
+    font-size: 15px;
   }
 
   .admin-orders-table th,
@@ -396,55 +403,27 @@ button {
     white-space: nowrap;
   }
 
-  /* Optional: fine-tune per column */
+  /* === COLUMN PAIRS === */
+  /* Swipe 1 */
   .admin-orders-table th:nth-child(1),
-  .admin-orders-table td:nth-child(1) { width: 200px; } /* Order ID */
+  .admin-orders-table td:nth-child(1) { width: 300px; } /* Order ID */
 
   .admin-orders-table th:nth-child(2),
-  .admin-orders-table td:nth-child(2) { width: 220px; } /* User */
+  .admin-orders-table td:nth-child(2) { width: 300px; } /* User */
 
+  /* Swipe 2 */
   .admin-orders-table th:nth-child(3),
-  .admin-orders-table td:nth-child(3) { width: 140px; } /* Total */
+  .admin-orders-table td:nth-child(3) { width: 200px; } /* Total */
 
   .admin-orders-table th:nth-child(4),
-  .admin-orders-table td:nth-child(4) { width: 140px; } /* Status */
+  .admin-orders-table td:nth-child(4) { width: 200px; } /* Status */
 
+  /* Swipe 3 */
   .admin-orders-table th:nth-child(5),
-  .admin-orders-table td:nth-child(5) { width: 180px; } /* Created */
+  .admin-orders-table td:nth-child(5) { width: 120px; } /* Created */
 
   .admin-orders-table th:nth-child(6),
-  .admin-orders-table td:nth-child(6) { width: 120px; } /* Action */
-}
-
-@media (max-width: 480px) and (orientation: portrait) {
-
-  .admin-orders-table {
-    font-size: 15px; /* was ~14px */
-  }
-
-  .admin-orders-table th {
-    font-size: 15px;
-  }
-
-  .admin-orders-table td {
-    font-size: 15px;
-     font-weight: 500;
-  }
-}
-
-/* SMALL PHONES – FORCE 2 COLUMNS PER SWIPE */
-@media (max-width: 390px) and (orientation: portrait) {
-
-  .admin-orders-table {
-    min-width: 1050px; /* wider table = fewer columns visible */
-  }
-
-}
-
-@media (max-width: 360px) {
-  .admin-orders-table {
-    font-size: 15px;
-  }
+  .admin-orders-table td:nth-child(6) { width: 80px; }  /* Action */
 }
 
 
