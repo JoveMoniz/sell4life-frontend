@@ -219,6 +219,24 @@ button {
   }
 }
 
+/* Mobile: make ALL admin tables horizontally scroll when needed */
+@media (max-width: 480px) and (orientation: portrait) {
+  .admin-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-table-scroll table {
+    min-width: 520px; /* users table baseline */
+    table-layout: auto;
+  }
+
+  .admin th, .admin td {
+    font-size: 15px;
+    padding: 10px;
+    white-space: nowrap;
+  }
+}
 
 
 
@@ -368,7 +386,7 @@ button {
   }
 
   .admin-orders-table {
-    min-width: 1200px;      /* 👈 THIS is the key */
+    min-width: 960px;      /* 👈 THIS is the key */
     table-layout: fixed;  /* stop browser guessing */
   }
 
@@ -380,7 +398,7 @@ button {
 
   /* Optional: fine-tune per column */
   .admin-orders-table th:nth-child(1),
-  .admin-orders-table td:nth-child(1) { width: 220px; } /* Order ID */
+  .admin-orders-table td:nth-child(1) { width: 200px; } /* Order ID */
 
   .admin-orders-table th:nth-child(2),
   .admin-orders-table td:nth-child(2) { width: 220px; } /* User */
@@ -392,10 +410,10 @@ button {
   .admin-orders-table td:nth-child(4) { width: 140px; } /* Status */
 
   .admin-orders-table th:nth-child(5),
-  .admin-orders-table td:nth-child(5) { width: 220px; } /* Created */
+  .admin-orders-table td:nth-child(5) { width: 180px; } /* Created */
 
   .admin-orders-table th:nth-child(6),
-  .admin-orders-table td:nth-child(6) { width: 90px; } /* Action */
+  .admin-orders-table td:nth-child(6) { width: 120px; } /* Action */
 }
 
 @media (max-width: 480px) and (orientation: portrait) {
