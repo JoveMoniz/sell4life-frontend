@@ -368,7 +368,7 @@ button {
   }
 
   .admin-orders-table {
-    min-width: 1024px;      /* 👈 THIS is the key */
+    min-width: 1050px;      /* 👈 THIS is the key */
     table-layout: fixed;  /* stop browser guessing */
   }
 
