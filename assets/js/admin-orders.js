@@ -200,7 +200,7 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
 
           ${
             isFinal
-              ? `<em style="opacity:.6">Final state – no further changes</em>`
+              ? `<em style="opacity:.6">Final state – <br>no further changes</em>`
               : `<button class="inline-update" data-id="${orderId}">
                    Update status
                  </button>`
