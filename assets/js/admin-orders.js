@@ -107,11 +107,7 @@ function renderPagination(current, total) {
 /* ================================
    INLINE DETAILS + STATUS UPDATE
 ================================ */
-document
-  .getElementById("ordersTable")
-  .addEventListener("click", async (e) => {
-
-  const portal = document.getElementById("inlineDetailsPortal");
+document.addEventListener("click", async (e) => {
 
   /* ===============================
      OPEN / CLOSE INLINE DETAILS
@@ -128,10 +124,7 @@ document
     const isFinal = FINAL_STATES.includes(currentStatus);
 
     /* -------- TOGGLE SAME ORDER -------- */
-    if (
-      portal.dataset.openId === orderId &&
-      portal.innerHTML.trim() !== ""
-    ) {
+    if (portal.dataset.openId === orderId) {
       portal.innerHTML = "";
       portal.dataset.openId = "";
       return;
@@ -151,17 +144,11 @@ document
     const allowedStatuses =
       TRANSITIONS[currentStatus] || [backendStatus];
 
-    const optionsHtml = allowedStatuses
-      .map(
-        (status) => `
-        <option value="${status}" ${
-          status === backendStatus ? "selected" : ""
-        }>
-          ${status}
-        </option>
-      `
-      )
-      .join("");
+    const optionsHtml = allowedStatuses.map(status => `
+      <option value="${status}" ${status === backendStatus ? "selected" : ""}>
+        ${status}
+      </option>
+    `).join("");
 
     /* -------- BUILD PANEL -------- */
     const wrapper = document.createElement("div");
@@ -254,7 +241,7 @@ document
     statusCell.textContent = newStatus;
     statusCell.className = `status status-${newStatus.toLowerCase()}`;
 
-    // Close panel (forces re-open with fresh truth)
+    // Close panel after save
     portal.innerHTML = "";
     portal.dataset.openId = "";
 
