@@ -366,20 +366,10 @@ button {
 ===================================================== */
 
 .order-details-row td {
-  padding: 0;
+  padding: 20px 24px;
   background: #f9fafb;
-  border: 0;
-  
+  border-bottom: 1px solid #e5e7eb;
 }
-
-.order-details-row.open {
-  height: auto;
-}
-
-.order-details-row.open > td {
-  padding: 16px 0; /* adjust if needed */
-}
-
 
 /* Main inline layout */
 .inline-order-grid {
@@ -444,24 +434,25 @@ button {
 }
 
 .inline-order-wrapper {
-  width: 100%;
+  width: fit-content;
   margin-left: auto;
+  overflow: hidden;
 
-  visibility: hidden;
+  max-height: 0;
   opacity: 0;
-  height: 0;
-}
+  transform: translateY(-4x) scale(0.98);
 
-.order-details-row.open .inline-order-wrapper {
-  visibility: visible;
-  opacity: 1;
-  height: auto;
+transition:
+  max-height 420ms cubic-bezier(.25,.8,.25,1) 90ms,
+  opacity 180ms ease,
+  transform 260ms cubic-bezier(.22,.61,.36,1);
+
+  pointer-events: none;
 }
 
 
 .order-details-row td {
   padding: 0;
-   border: 0;
   background: transparent;
 }
 
@@ -472,7 +463,6 @@ button {
   transform: translateY(0) scale(1);
   pointer-events: auto;
   max-height: 1000px;
-  display: block;
 }
 
  
@@ -481,6 +471,13 @@ button {
     
   }
 
+
+  /* prevent table constraints */
+  .order-details-row td {
+    padding: 0;
+    background: transparent;
+    
+  }
 
   .status {
   display: inline-block;
@@ -492,47 +489,7 @@ button {
   white-space: nowrap;
 }
 
-/* Processing – neutral / waiting */
-.status-processing {
-  background: #eef2ff;
-  color: #3730a3;
-}
 
-/* Shipped – action / in motion */
-.status-shipped {
-  background: #ecfeff;
-  color: #0f766e;
-}
-
-/* Delivered – final / success */
-.status-delivered {
-  background: #f1f5f9;
-  color: #475569;
-}
-
-/* Cancelled – final / warning */
-.status-cancelled {
-  background: #fef2f2;
-  color: #991b1b;
-}
-
-.status-delivered {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-.inline-status {
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-weight: 600;
-}
-
-@media (max-width: 768px) {
-  .inline-order-wrapper {
-    margin: 0;
-    padding: 0;
-  }
-}
 
 
 
