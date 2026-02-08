@@ -37,9 +37,7 @@ async function loadOrders(page = 1) {
 
   data.orders.forEach(order => {
     const tr = document.createElement("tr");
-    tr.style.cursor = "pointer";
-
-
+   
 
     tr.innerHTML = `
       <td>S4L-${order.id.slice(0, 10).toUpperCase()}</td>
