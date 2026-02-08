@@ -109,20 +109,38 @@ function renderPagination(current, total) {
 ================================ */
 document.getElementById("ordersTable").addEventListener("click", async (e) => {
 
-  /* ---------- OPEN / CLOSE ---------- */
+  /* ===============================
+     OPEN / CLOSE INLINE DETAILS
+  =============================== */
   const viewBtn = e.target.closest(".view-order");
   if (viewBtn) {
     const row = viewBtn.closest("tr");
     const orderId = viewBtn.dataset.id;
-    const currentStatus = row.children[3].textContent.trim();
-    const currentIndex = STATUS_FLOW.indexOf(currentStatus);
 
+    // Normalize current status
+    const currentStatus = row.children[3].textContent
+      .trim()
+      .toLowerCase();
+
+    const STATUS_FLOW = ["processing", "shipped", "delivered"];
+    const currentIndex = STATUS_FLOW.indexOf(currentStatus);
+    const isFinal = currentStatus === "delivered";
+
+    // 🔁 Toggle if already open
+    let detailsRow = row.nextElementSibling;
+    if (detailsRow && detailsRow.classList.contains("order-details-row")) {
+      detailsRow.style.display =
+        detailsRow.style.display === "table-row" ? "none" : "table-row";
+      return;
+    }
+
+    // 🔒 Close others
     document.querySelectorAll(".order-details-row").forEach(r => r.remove());
 
-    const detailsRow = document.createElement("tr");
-detailsRow.className = "order-details-row";
-detailsRow.style.display = "table-row";
-
+    // ➕ Create details row
+    detailsRow = document.createElement("tr");
+    detailsRow.className = "order-details-row";
+    detailsRow.style.display = "table-row";
 
     const cell = document.createElement("td");
     cell.colSpan = 6;
@@ -149,7 +167,7 @@ detailsRow.style.display = "table-row";
           <strong>Status</strong><br>
           <select class="inline-status" data-id="${orderId}">
             ${STATUSES.map(s => {
-              const sIndex = STATUS_FLOW.indexOf(s);
+              const sIndex = STATUS_FLOW.indexOf(s.toLowerCase());
               const disabled =
                 currentIndex !== -1 &&
                 sIndex !== -1 &&
@@ -157,7 +175,7 @@ detailsRow.style.display = "table-row";
 
               return `
                 <option value="${s}"
-                  ${s === currentStatus ? "selected" : ""}
+                  ${s.toLowerCase() === currentStatus ? "selected" : ""}
                   ${disabled ? "disabled" : ""}>
                   ${s}
                 </option>
@@ -165,13 +183,15 @@ detailsRow.style.display = "table-row";
             }).join("")}
           </select><br><br>
 
-          <button class="inline-update" data-id="${orderId}">
+          <button class="inline-update"
+            data-id="${orderId}"
+            ${isFinal ? "disabled" : ""}>
             Update status
-          </button>
-          <a href="/account/admin/order-details.html?id=${orderId}">
-  Open full details →
-</a>
+          </button><br>
 
+          <a href="/account/admin/order-details.html?id=${orderId}">
+            Open full details →
+          </a>
         </div>
       </div>
     `;
@@ -181,9 +201,11 @@ detailsRow.style.display = "table-row";
     return;
   }
 
-  /* ---------- SAVE STATUS ---------- */
+  /* ===============================
+     SAVE STATUS
+  =============================== */
   const saveBtn = e.target.closest(".inline-update");
-  if (!saveBtn) return;
+  if (!saveBtn || saveBtn.disabled) return;
 
   const orderId = saveBtn.dataset.id;
   const select = document.querySelector(
@@ -215,6 +237,7 @@ detailsRow.style.display = "table-row";
     saveBtn.disabled = false;
   }, 1200);
 });
+
 
 /* ================================
    INIT
