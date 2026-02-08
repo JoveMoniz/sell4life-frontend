@@ -494,7 +494,7 @@ transition:
 
 @media (max-width: 480px) {
   .inline-order-wrapper {
-    width: 500px;
+    width: 300px;
   }
 }
 
