@@ -128,9 +128,12 @@ detailsRow.className = "order-details-row";
 
 const cell = document.createElement("td");
 cell.colSpan = 6;
+const currentStatus = row.children[3].textContent.trim();
+const statuses = ["Processing", "Shipped", "Delivered", "Cancelled"];
+
 cell.innerHTML = `
   <div class="inline-order-grid">
-    
+
     <div>
       <strong>Order ID</strong><br>
       ${orderId}<br><br>
@@ -147,14 +150,17 @@ cell.innerHTML = `
       ${row.children[2].textContent}<br><br>
 
       <strong>Status</strong><br>
-      <select class="inline-status">
-        <option>Processing</option>
-        <option>Shipped</option>
-        <option>Delivered</option>
-        <option>Cancelled</option>
+      <select class="inline-status" data-id="${orderId}">
+        ${statuses
+          .map(
+            s => `<option value="${s}" ${s === currentStatus ? "selected" : ""}>${s}</option>`
+          )
+          .join("")}
       </select><br><br>
 
-      <button class="inline-update">Update status</button><br><br>
+      <button class="inline-update" data-id="${orderId}">
+        Update status
+      </button><br><br>
 
       <a href="/account/admin/order-details.html?id=${orderId}">
         Open full details →
@@ -165,7 +171,60 @@ cell.innerHTML = `
 `;
 
 
+
 detailsRow.appendChild(cell);
 row.after(detailsRow);
 
   });
+
+
+  document.addEventListener("click", async (e) => {
+  if (!e.target.classList.contains("inline-update")) return;
+
+  const btn = e.target;
+  const orderId = btn.dataset.id;
+  const select = document.querySelector(
+    `.inline-status[data-id="${orderId}"]`
+  );
+
+  if (!select) return;
+
+  const newStatus = select.value;
+
+  btn.disabled = true;
+  btn.textContent = "Saving…";
+
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/admin/orders/${orderId}/status`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      }
+    );
+
+    if (!res.ok) throw new Error("Failed to update status");
+
+    // Update table row immediately
+    const detailsRow = btn.closest("tr");
+    const mainRow = detailsRow.previousElementSibling;
+    const statusCell = mainRow.children[3];
+
+    statusCell.textContent = newStatus;
+    statusCell.className = `status status-${newStatus.toLowerCase()}`;
+
+    btn.textContent = "Saved";
+  } catch (err) {
+    console.error(err);
+    btn.textContent = "Error";
+  }
+
+  setTimeout(() => {
+    btn.textContent = "Update status";
+    btn.disabled = false;
+  }, 1200);
+});
