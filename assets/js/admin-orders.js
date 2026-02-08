@@ -1,27 +1,3 @@
-
-async function updateOrderStatus(orderId, status) {
-  const res = await fetch(
-    `${API_BASE}/api/admin/orders/${orderId}/status`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({ status })
-    }
-  );
-
-  if (!res.ok) {
-    const msg = await res.text();
-    throw new Error(msg || "Status update failed");
-  }
-}
-
-
-
-
-
 import { API_BASE } from "./config.js";
 
 /* ================================
