@@ -237,21 +237,24 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
   saveBtn.disabled = true;
   saveBtn.textContent = "Saving…";
 
-  try {
-    await updateOrderStatus(orderId, newStatus);
+try {
+  await updateOrderStatus(orderId, newStatus);
 
-    const detailsRow = saveBtn.closest("tr");
-    const mainRow = detailsRow.previousElementSibling;
-    const statusCell = mainRow.children[3];
+  const detailsRow = saveBtn.closest("tr");
+  const mainRow = detailsRow.previousElementSibling;
+  const statusCell = mainRow.children[3];
 
-    statusCell.textContent = newStatus;
-    statusCell.className = `status status-${newStatus.toLowerCase()}`;
+  statusCell.textContent = newStatus;
+  statusCell.className = `status status-${newStatus.toLowerCase()}`;
 
-    saveBtn.textContent = "Saved";
-  } catch (err) {
-    console.error(err);
-    saveBtn.textContent = "Error";
-  }
+  // 🔴 THIS IS THE FIX
+  detailsRow.remove();
+
+} catch (err) {
+  console.error(err);
+  saveBtn.textContent = "Error";
+}
+
 
   setTimeout(() => {
     saveBtn.textContent = "Update status";
