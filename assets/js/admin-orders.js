@@ -117,14 +117,16 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     const row = viewBtn.closest("tr");
     const orderId = viewBtn.dataset.id;
 
-    const currentStatus = row.children[3].textContent
-      .trim()
-      .toLowerCase();
+    // Backend status (as displayed)
+    const backendStatus = row.children[3].textContent.trim();
+
+    // Normalized for logic
+    const currentStatus = backendStatus.toLowerCase();
 
     const FINAL_STATES = ["delivered", "cancelled"];
     const isFinal = FINAL_STATES.includes(currentStatus);
 
-    // Toggle if already open
+    // Toggle same row
     let detailsRow = row.nextElementSibling;
     if (detailsRow && detailsRow.classList.contains("order-details-row")) {
       detailsRow.style.display =
@@ -135,23 +137,24 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     // Close others
     document.querySelectorAll(".order-details-row").forEach(r => r.remove());
 
-    // Allowed transitions
+    /* -------- STATUS TRANSITIONS (LOGIC ONLY) -------- */
     const TRANSITIONS = {
-      processing: ["processing", "shipped", "cancelled"],
-      shipped: ["shipped", "delivered"],
-      delivered: ["delivered"],
-      cancelled: ["cancelled"]
+      processing: ["Processing", "Shipped", "Cancelled"],
+      shipped: ["Shipped", "Delivered"],
+      delivered: ["Delivered"],
+      cancelled: ["Cancelled"]
     };
 
-    const allowedStatuses = TRANSITIONS[currentStatus] || [currentStatus];
+    const allowedStatuses =
+      TRANSITIONS[currentStatus] || [backendStatus];
 
-    const optionsHtml = allowedStatuses.map(s => `
-      <option value="${s}" ${s === currentStatus ? "selected" : ""}>
-        ${s.charAt(0).toUpperCase() + s.slice(1)}
+    const optionsHtml = allowedStatuses.map(status => `
+      <option value="${status}" ${status === backendStatus ? "selected" : ""}>
+        ${status}
       </option>
     `).join("");
 
-    // Create details row
+    /* -------- BUILD ROW -------- */
     detailsRow = document.createElement("tr");
     detailsRow.className = "order-details-row";
     detailsRow.style.display = "table-row";
@@ -183,7 +186,7 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
           ${
             isFinal
               ? `<span class="status status-${currentStatus}">
-                   ${currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
+                   ${backendStatus}
                  </span>`
               : `
                 <select class="inline-status" data-id="${orderId}">
@@ -228,7 +231,8 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
   );
   if (!select) return;
 
-  const newStatus = select.value.toLowerCase();
+  // IMPORTANT: send backend enum, NOT lowercase
+  const newStatus = select.value;
 
   saveBtn.disabled = true;
   saveBtn.textContent = "Saving…";
@@ -240,9 +244,8 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     const mainRow = detailsRow.previousElementSibling;
     const statusCell = mainRow.children[3];
 
-    statusCell.textContent =
-      newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
-    statusCell.className = `status status-${newStatus}`;
+    statusCell.textContent = newStatus;
+    statusCell.className = `status status-${newStatus.toLowerCase()}`;
 
     saveBtn.textContent = "Saved";
   } catch (err) {
@@ -255,6 +258,7 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     saveBtn.disabled = false;
   }, 1200);
 });
+
 
 
 /* ================================
