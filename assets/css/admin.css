@@ -458,6 +458,7 @@ button {
   }
 
   .inline-order-grid > div:first-child {
+    padding-right: 10px;
     border-right: 1px solid rgba(207, 207, 207, 0.606);
   }
 
