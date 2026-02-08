@@ -117,7 +117,6 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     const row = viewBtn.closest("tr");
     const orderId = viewBtn.dataset.id;
 
-    // Normalize status
     const currentStatus = row.children[3].textContent
       .trim()
       .toLowerCase();
@@ -128,7 +127,7 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     const currentIndex = STATUS_FLOW.indexOf(currentStatus);
     const isFinal = FINAL_STATES.includes(currentStatus);
 
-    // Toggle if already open
+    /* Toggle if already open */
     let detailsRow = row.nextElementSibling;
     if (detailsRow && detailsRow.classList.contains("order-details-row")) {
       detailsRow.style.display =
@@ -136,10 +135,28 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
       return;
     }
 
-    // Close others
+    /* Close others */
     document.querySelectorAll(".order-details-row").forEach(r => r.remove());
 
-    // Create details row
+    /* Build status options (NO JS IN HTML) */
+    const optionsHtml = STATUSES.map(s => {
+      const sLower = s.toLowerCase();
+      const sIndex = STATUS_FLOW.indexOf(sLower);
+
+      const disabled =
+        isFinal ||
+        (currentIndex !== -1 && sIndex !== -1 && sIndex < currentIndex);
+
+      return `
+        <option value="${s}"
+          ${sLower === currentStatus ? "selected" : ""}
+          ${disabled ? "disabled" : ""}>
+          ${s}
+        </option>
+      `;
+    }).join("");
+
+    /* Create details row */
     detailsRow = document.createElement("tr");
     detailsRow.className = "order-details-row";
     detailsRow.style.display = "table-row";
@@ -168,26 +185,7 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
 
           <strong>Status</strong><br>
           <select class="inline-status" data-id="${orderId}">
-            ${STATUSES.map(s => {
-              const sLower = s.toLowerCase();
-              const sIndex = STATUS_FLOW.indexOf(sLower);
-
-              const disabled =
-                isFinal ||
-                (
-                  currentIndex !== -1 &&
-                  sIndex !== -1 &&
-                  sIndex < currentIndex
-                );
-
-              return `
-                <option value="${s}"
-                  ${sLower === currentStatus ? "selected" : ""}
-                  ${disabled ? "disabled" : ""}>
-                  ${s}
-                </option>
-              `;
-            }).join("")}
+            ${optionsHtml}
           </select><br><br>
 
           <button class="inline-update"
@@ -244,6 +242,7 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     saveBtn.disabled = false;
   }, 1200);
 });
+
 
 
 
