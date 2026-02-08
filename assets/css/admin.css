@@ -444,6 +444,12 @@ button {
 
 
 @media (max-width: 480px) {
+
+  @media (max-width: 480px) {
+  .inline-order-wrapper {
+    max-width: calc(100vw - 32px);
+  }
+}
  
   .inline-order-grid {
     gap: 10px;
@@ -459,8 +465,7 @@ button {
   .order-details-row td {
     padding: 0;
     background: transparent;
-    display: flex;
-    justify-content: flex-end; /* align dropdown to right */
+    
   }
 }
 
