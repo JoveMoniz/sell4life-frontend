@@ -451,11 +451,6 @@ transition:
 }
 
 
-.order-details-row {
-  height: auto;
-}
-
-
 .order-details-row td {
   padding: 0;
   background: transparent;
