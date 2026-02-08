@@ -124,7 +124,9 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
 
     const STATUS_FLOW = ["processing", "shipped", "delivered"];
     const currentIndex = STATUS_FLOW.indexOf(currentStatus);
-    const isFinal = currentStatus === "delivered";
+    const FINAL_STATES = ["delivered", "cancelled"];
+const isFinal = FINAL_STATES.includes(currentStatus);
+
 
     // 🔁 Toggle if already open
     let detailsRow = row.nextElementSibling;
@@ -165,23 +167,9 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
           ${row.children[2].textContent}<br><br>
 
           <strong>Status</strong><br>
-          <select class="inline-status" data-id="${orderId}">
-            ${STATUSES.map(s => {
-              const sIndex = STATUS_FLOW.indexOf(s.toLowerCase());
-              const disabled =
-                currentIndex !== -1 &&
-                sIndex !== -1 &&
-                sIndex < currentIndex;
-
-              return `
-                <option value="${s}"
-                  ${s.toLowerCase() === currentStatus ? "selected" : ""}
-                  ${disabled ? "disabled" : ""}>
-                  ${s}
-                </option>
-              `;
-            }).join("")}
-          </select><br><br>
+          const FINAL_STATES = ["delivered", "cancelled"];
+const isFinal = FINAL_STATES.includes(currentStatus);
+<br><br>
 
           <button class="inline-update"
             data-id="${orderId}"
