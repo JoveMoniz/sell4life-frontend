@@ -1,5 +1,5 @@
 
-const FINAL_STATES = ["delivered", "cancelled"];
+const FINAL_STATES = ["Processing","delivered", "cancelled"];
 
 import { API_BASE } from "./config.js";
 
