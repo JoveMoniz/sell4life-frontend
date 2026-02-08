@@ -438,7 +438,7 @@ button {
   margin-left: auto;
   overflow: hidden;
 
-  max-height: 1000px;
+  max-height: 0;
   opacity: 0;
   transform: translateY(-12x) scale(0.98);
 
