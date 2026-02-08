@@ -109,7 +109,9 @@ function renderPagination(current, total) {
 ================================ */
 document.getElementById("ordersTable").addEventListener("click", async (e) => {
 
-  /* ---------- OPEN / CLOSE INLINE ---------- */
+  /* ===============================
+     OPEN / CLOSE INLINE DETAILS
+  =============================== */
   const viewBtn = e.target.closest(".view-order");
   if (viewBtn) {
     const row = viewBtn.closest("tr");
@@ -119,7 +121,6 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
       .trim()
       .toLowerCase();
 
-    const STATUS_FLOW = ["processing", "shipped", "delivered"];
     const FINAL_STATES = ["delivered", "cancelled"];
     const isFinal = FINAL_STATES.includes(currentStatus);
 
@@ -133,6 +134,22 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
 
     // Close others
     document.querySelectorAll(".order-details-row").forEach(r => r.remove());
+
+    // Allowed transitions
+    const TRANSITIONS = {
+      processing: ["processing", "shipped", "cancelled"],
+      shipped: ["shipped", "delivered"],
+      delivered: ["delivered"],
+      cancelled: ["cancelled"]
+    };
+
+    const allowedStatuses = TRANSITIONS[currentStatus] || [currentStatus];
+
+    const optionsHtml = allowedStatuses.map(s => `
+      <option value="${s}" ${s === currentStatus ? "selected" : ""}>
+        ${s.charAt(0).toUpperCase() + s.slice(1)}
+      </option>
+    `).join("");
 
     // Create details row
     detailsRow = document.createElement("tr");
@@ -170,17 +187,7 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
                  </span>`
               : `
                 <select class="inline-status" data-id="${orderId}">
-                  ${STATUS_FLOW.map(s => {
-                    const disabled =
-                      STATUS_FLOW.indexOf(s) < STATUS_FLOW.indexOf(currentStatus);
-                    return `
-                      <option value="${s}"
-                        ${s === currentStatus ? "selected" : ""}
-                        ${disabled ? "disabled" : ""}>
-                        ${s.charAt(0).toUpperCase() + s.slice(1)}
-                      </option>
-                    `;
-                  }).join("")}
+                  ${optionsHtml}
                 </select>
               `
           }
@@ -209,7 +216,9 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     return;
   }
 
-  /* ---------- SAVE STATUS ---------- */
+  /* ===============================
+     SAVE STATUS
+  =============================== */
   const saveBtn = e.target.closest(".inline-update");
   if (!saveBtn) return;
 
@@ -219,19 +228,21 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
   );
   if (!select) return;
 
+  const newStatus = select.value.toLowerCase();
+
   saveBtn.disabled = true;
   saveBtn.textContent = "Saving…";
 
   try {
-    await updateOrderStatus(orderId, select.value);
+    await updateOrderStatus(orderId, newStatus);
 
     const detailsRow = saveBtn.closest("tr");
     const mainRow = detailsRow.previousElementSibling;
     const statusCell = mainRow.children[3];
 
     statusCell.textContent =
-      select.value.charAt(0).toUpperCase() + select.value.slice(1);
-    statusCell.className = `status status-${select.value}`;
+      newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+    statusCell.className = `status status-${newStatus}`;
 
     saveBtn.textContent = "Saved";
   } catch (err) {
@@ -244,8 +255,6 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     saveBtn.disabled = false;
   }, 1200);
 });
-
-
 
 
 /* ================================
