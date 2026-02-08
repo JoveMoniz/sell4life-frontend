@@ -377,7 +377,7 @@ button {
   grid-template-columns: 1fr 1fr;
   gap: 32px;
   font-size: 14px;
-  margin-left: 30px;
+ 
 }
 
 /* Subtle hierarchy for metadata column */
@@ -492,7 +492,11 @@ transition:
 }
 
 
-
+@media (max-width: 480px) {
+  .inline-order-wrapper {
+    padding-left: 16px;
+  }
+}
 
 
 /* =====================================================
