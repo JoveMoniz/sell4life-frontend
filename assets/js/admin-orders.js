@@ -241,20 +241,40 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
   saveBtn.textContent = "Saving…";
 
   try {
-    await updateOrderStatus(orderId, newStatus);
+  await updateOrderStatus(orderId, newStatus);
 
-    const detailsRow = saveBtn.closest("tr");
-    const mainRow = detailsRow.previousElementSibling;
-    const statusCell = mainRow.children[3];
+  const detailsRow = saveBtn.closest("tr");
+  const mainRow = detailsRow.previousElementSibling;
+  const statusCell = mainRow.children[3];
 
-    statusCell.textContent = newStatus;
-    statusCell.className = `status status-${newStatus.toLowerCase()}`;
+  const normalized = newStatus.toLowerCase();
+  const isFinalNow = FINAL_STATES.includes(normalized);
 
-    saveBtn.textContent = "Saved";
-  } catch (err) {
-    console.error(err);
-    saveBtn.textContent = "Error";
+  /* ---- UPDATE MAIN TABLE ROW ---- */
+  statusCell.textContent = newStatus;
+  statusCell.className = `status status-${normalized}`;
+
+  /* ---- FORCE INLINE UI INTO FINAL STATE ---- */
+  if (isFinalNow) {
+    const statusContainer = detailsRow.querySelector(".inline-status")?.parentElement;
+
+    if (statusContainer) {
+      statusContainer.innerHTML = `
+        <span class="status status-${normalized}">
+          ${newStatus}
+        </span>
+        <br><br>
+        <em style="opacity:.6">Final state <br> no further changes</em>
+      `;
+    }
   }
+
+  saveBtn.remove();
+
+} catch (err) {
+  console.error(err);
+  saveBtn.textContent = "Error";
+}
 
   setTimeout(() => {
     saveBtn.textContent = "Update status";
