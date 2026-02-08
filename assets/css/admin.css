@@ -401,12 +401,34 @@ button {
   font-size: 14px;
 }
 
-.inline-update {
-  padding: 6px 12px;
-  font-size: 14px;
+/* Inline Order ID emphasis */
+.inline-order-id {
+  display: inline-block;
   font-weight: 600;
-  cursor: pointer;
+  color: #111827;
+  margin-left: 6px;
 }
+
+
+/* Inline update status button – match Order Details */
+.inline-update {
+  background: #0f766e;      /* teal green */
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-weight: 600;
+}
+
+.inline-update:hover {
+  background: #0d5f59;
+}
+
+.inline-update:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 
 /* Action spacing */
 .inline-order-grid a {

@@ -141,8 +141,11 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     cell.innerHTML = `
       <div class="inline-order-grid">
         <div>
-          <strong>Order ID</strong><br>
-          ${orderId}<br><br>
+<strong>Order ID:</strong>
+<span class="inline-order-id">
+  S4L-${orderId.slice(0, 10).toUpperCase()}
+</span><br><br>
+
 
           <strong>User</strong><br>
           ${row.children[1].textContent}<br><br>
