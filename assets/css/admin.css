@@ -445,9 +445,9 @@ button {
   opacity: 0;
   transform: translateY(-6px);
   transition:
-    max-height 320ms cubic-bezier(.2,.8,.2,1),
-    opacity 200ms ease,
-    transform 200ms ease
+    max-height 520ms cubic-bezier(.22,.9,.22,1),
+    opacity 360ms ease,
+    transform 360ms ease;
 }
 
 .order-details-row {
