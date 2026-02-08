@@ -439,11 +439,12 @@ button {
  overflow: hidden;
   max-height: 0;
   opacity: 0;
-  transform: translateY(-12px);
+  transform: translateY(-10px) scale(0.98);
   transition:
-    max-height 420ms cubic-bezier(.25,.8,.25,1),
-    opacity 320ms ease,
-    transform 320ms ease;
+    opacity 260ms ease,
+    transform 320ms cubic-bezier(.22,.61,.36,1);
+
+  pointer-events: none;
 }
 
 .order-details-row.open {
@@ -466,9 +467,9 @@ button {
 
 /* open state */
 .order-details-row.open .inline-order-wrapper {
-  max-height: 240px;
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
 }
 
 
