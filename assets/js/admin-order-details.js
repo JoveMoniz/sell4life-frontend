@@ -35,6 +35,9 @@ const productsTable = document.getElementById("productsTable");
 ================================ */
 let currentOrder = null;
 
+const STATUSES = ["Processing", "Shipped", "Delivered", "Cancelled"];
+const STATUS_FLOW = ["Processing", "Shipped", "Delivered"];
+
 /* ================================
    LOAD ORDER
 ================================ */
@@ -43,9 +46,7 @@ async function loadOrder() {
     const res = await fetch(
       `${API_BASE}/api/admin/orders/${orderId}`,
       {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       }
     );
 
@@ -75,15 +76,37 @@ async function loadOrder() {
     document.getElementById("orderStatus").textContent =
       order.status;
 
-    statusSelect.value = order.status;
+    /* ========= STATUS SELECT (DOWNGRADE SAFE) ========= */
+    statusSelect.innerHTML = "";
 
-    /* ========= PRODUCTS (FINAL FIX) ========= */
+    const currentIndex = STATUS_FLOW.indexOf(order.status);
+
+    STATUSES.forEach(status => {
+      const option = document.createElement("option");
+      option.value = status;
+      option.textContent = status;
+
+      const statusIndex = STATUS_FLOW.indexOf(status);
+
+      if (
+        currentIndex !== -1 &&
+        statusIndex !== -1 &&
+        statusIndex < currentIndex
+      ) {
+        option.disabled = true;
+      }
+
+      if (status === order.status) {
+        option.selected = true;
+      }
+
+      statusSelect.appendChild(option);
+    });
+
+    /* ========= PRODUCTS ========= */
     productsTable.innerHTML = "";
 
-    const items =
-      order.items ||
-      order.products ||
-      [];
+    const items = order.items || order.products || [];
 
     if (!Array.isArray(items) || items.length === 0) {
       productsTable.innerHTML = `
@@ -100,19 +123,18 @@ async function loadOrder() {
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
-  <td class="product-cell">
-    <img
-      src="${item.image || "/assets/images/products/default.png"}"
-      alt="${item.name}"
-      class="product-thumb"
-    />
-    <span class="product-name">${item.name}</span>
-  </td>
-  <td>${qty}</td>
-  <td>£${price.toFixed(2)}</td>
-  <td>£${(qty * price).toFixed(2)}</td>
-`;
-
+          <td class="product-cell">
+            <img
+              src="${item.image || "/assets/images/products/default.png"}"
+              alt="${item.name}"
+              class="product-thumb"
+            />
+            <span class="product-name">${item.name}</span>
+          </td>
+          <td>${qty}</td>
+          <td>£${price.toFixed(2)}</td>
+          <td>£${(qty * price).toFixed(2)}</td>
+        `;
 
         productsTable.appendChild(tr);
       });
