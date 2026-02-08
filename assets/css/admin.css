@@ -438,15 +438,25 @@ button {
 }
 
 @media (max-width: 768px) {
-  .order-details-row td {
+  .inline-order-wrapper {
     position: sticky;
-    top: 72px; /* adjust to height of admin top bar */
-    z-index: 20;
+    top: 72px; /* height of admin top bar */
+    z-index: 50;
+
     background: #f9fafb;
-    box-shadow: 0 6px 16px rgba(0,0,0,.08);
-    border-radius: 10px;
+    border-radius: 12px;
+    padding: 12px;
+
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+
+  /* prevent table constraints */
+  .order-details-row td {
+    padding: 0;
+    background: transparent;
   }
 }
+
 
 
 

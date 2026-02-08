@@ -163,6 +163,7 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     cell.colSpan = 6;
 
     cell.innerHTML = `
+    <div class="inline-order-wrapper">
       <div class="inline-order-grid">
         <div>
           <strong>Order ID:</strong>
@@ -211,6 +212,7 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
             Open full details →
           </a>
         </div>
+      </div>
       </div>
     `;
 
