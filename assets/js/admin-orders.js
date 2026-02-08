@@ -117,21 +117,12 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     const currentStatus = row.children[3].textContent.trim();
     const currentIndex = STATUS_FLOW.indexOf(currentStatus);
 
-    // 🔑 CHECK EXISTING DETAILS ROW (TOGGLE)
-    let detailsRow = row.nextElementSibling;
-    if (detailsRow && detailsRow.classList.contains("order-details-row")) {
-      detailsRow.style.display =
-        detailsRow.style.display === "table-row" ? "none" : "table-row";
-      return;
-    }
-
-    // 🔒 CLOSE ALL OTHER OPEN ROWS
     document.querySelectorAll(".order-details-row").forEach(r => r.remove());
 
-    // ➕ CREATE NEW DETAILS ROW
-    detailsRow = document.createElement("tr");
-    detailsRow.className = "order-details-row";
-    detailsRow.style.display = "table-row";
+    const detailsRow = document.createElement("tr");
+detailsRow.className = "order-details-row";
+detailsRow.style.display = "table-row";
+
 
     const cell = document.createElement("td");
     cell.colSpan = 6;
@@ -220,7 +211,6 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     saveBtn.disabled = false;
   }, 1200);
 });
-
 
 /* ================================
    INIT
