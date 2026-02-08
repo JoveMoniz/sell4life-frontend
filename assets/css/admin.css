@@ -440,10 +440,35 @@ button {
 .inline-order-wrapper {
   width: fit-content;
   margin-left: auto;   /* push to the right */
+ overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    max-height 320ms cubic-bezier(.2,.8,.2,1),
+    opacity 200ms ease,
+    transform 200ms ease
+}
+
+.order-details-row {
+  height: auto;
+}
+
+.order-details-row td {
+  padding: 0;
+  background: transparent;
 }
 
 
-@media (max-width: 480px) {
+/* open state */
+.order-details-row.open .inline-order-wrapper {
+  max-height: 500px; /* big enough for content */
+  opacity: 1;
+  transform: translateY(0);
+}
+
+
+
 
   @media (max-width: 480px) {
   .inline-order-wrapper {
@@ -467,7 +492,7 @@ button {
     background: transparent;
     
   }
-}
+
 
 
 

@@ -129,8 +129,8 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     // Toggle same row
     let detailsRow = row.nextElementSibling;
     if (detailsRow && detailsRow.classList.contains("order-details-row")) {
-      detailsRow.style.display =
-        detailsRow.style.display === "table-row" ? "none" : "table-row";
+      detailsRow.classList.toggle("open");
+
       return;
     }
 
