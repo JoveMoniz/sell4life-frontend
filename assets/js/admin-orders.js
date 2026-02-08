@@ -159,8 +159,9 @@ if (viewBtn) {
 
     /* -------- BUILD ROW -------- */
     detailsRow = document.createElement("tr");
-    detailsRow.className = "order-details-row";
-    detailsRow.style.display = "table-row";
+    detailsRow.className = "order-details-row open";
+
+    
 
     const cell = document.createElement("td");
     cell.colSpan = 6;
