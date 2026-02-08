@@ -129,11 +129,19 @@ detailsRow.className = "order-details-row";
 const cell = document.createElement("td");
 cell.colSpan = 6;
 cell.innerHTML = `
-  <div style="padding:12px; font-size:14px;">
-    Inline details placeholder for order:<br>
-    <strong>${orderId}</strong>
+  <div style="display:flex; justify-content:space-between; gap:24px;">
+    <div>
+      <strong>Order ID:</strong><br>
+      ${orderId}
+    </div>
+
+    <div>
+      <strong>Quick actions:</strong><br>
+      <em>Status and summary will go here</em>
+    </div>
   </div>
 `;
+
 
 detailsRow.appendChild(cell);
 row.after(detailsRow);
