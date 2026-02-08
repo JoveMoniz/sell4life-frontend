@@ -167,11 +167,12 @@ detailsRow.style.display = "table-row";
 
           <button class="inline-update" data-id="${orderId}">
             Update status
-          </button>          
-        </div>
-        <a href="/account/admin/order-details.html?id=${orderId}">
+          </button>
+          <a href="/account/admin/order-details.html?id=${orderId}">
   Open full details →
 </a>
+
+        </div>
       </div>
     `;
 
