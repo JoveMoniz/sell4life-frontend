@@ -1,5 +1,5 @@
 
-const FINAL_STATES = ["Processing","delivered", "cancelled"];
+const FINAL_STATES = ["delivered", "cancelled"];
 
 import { API_BASE } from "./config.js";
 
@@ -254,6 +254,13 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     const normalized = newStatus.toLowerCase();
 const isFinalNow = FINAL_STATES.includes(normalized);
 
+const TRANSITIONS = {
+  processing: ["Processing", "Shipped", "Cancelled"],
+  shipped: ["Shipped", "Delivered"],
+  delivered: ["Delivered"],
+  cancelled: ["Cancelled"]
+};
+
 if (isFinalNow) {
   const select = detailsRow.querySelector(".inline-status");
   const btn = detailsRow.querySelector(".inline-update");
@@ -271,7 +278,24 @@ if (isFinalNow) {
       <em style="opacity:.6">Final state <br> no further changes</em>
     `;
   }
+
+} else {
+  // 🔧 REBUILD DROPDOWN FOR NON-FINAL STATES (THIS IS THE FIX)
+  const select = detailsRow.querySelector(".inline-status");
+  if (select) {
+    const allowed = TRANSITIONS[normalized] || [newStatus];
+
+    select.innerHTML = allowed
+      .map(
+        s =>
+          `<option value="${s}" ${
+            s === newStatus ? "selected" : ""
+          }>${s}</option>`
+      )
+      .join("");
+  }
 }
+
 
 
     saveBtn.textContent = "Saved";
