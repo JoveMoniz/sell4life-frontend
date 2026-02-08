@@ -451,6 +451,15 @@ button {
 
     box-shadow: 0 8px 24px rgba(0,0,0,0.12);
   }
+ 
+  .inline-order-grid {
+    gap: 10px;
+    
+  }
+
+  .inline-order-grid > div:first-child {
+    border-left: 1px solid rgba(207, 207, 207, 0.606);
+  }
 
   /* prevent table constraints */
   .order-details-row td {
