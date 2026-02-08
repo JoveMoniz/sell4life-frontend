@@ -10,19 +10,18 @@ if (!token || role !== "admin") {
   window.location.href = "/account/admin/signin.html";
 }
 
-/* ================================
+/* ================================s
    STATE
 ================================ */
 let currentPage = 1;
+const STATUSES = ["Processing", "Shipped", "Delivered", "Cancelled"];
 
 /* ================================
    LOAD ORDERS
 ================================ */
 async function loadOrders(page = 1) {
   const res = await fetch(`${API_BASE}/api/admin/orders?page=${page}`, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+    headers: { Authorization: `Bearer ${token}` }
   });
 
   if (res.status === 401 || res.status === 403) {
@@ -31,18 +30,16 @@ async function loadOrders(page = 1) {
   }
 
   const data = await res.json();
-
   const tbody = document.getElementById("ordersTable");
   tbody.innerHTML = "";
 
   data.orders.forEach(order => {
     const tr = document.createElement("tr");
-   
 
     tr.innerHTML = `
       <td>S4L-${order.id.slice(0, 10).toUpperCase()}</td>
       <td>${order.user?.email || "-"}</td>
-      <td>£${order.total.toFixed(2)}</td>
+      <td>£${Number(order.total || 0).toFixed(2)}</td>
       <td>
         <span class="status status-${order.status.toLowerCase()}">
           ${order.status}
@@ -50,21 +47,17 @@ async function loadOrders(page = 1) {
       </td>
       <td>${new Date(order.createdAt).toLocaleString()}</td>
       <td>
-  <button class="view-order" data-id="${order.id}">
-    View
-  </button>
-</td>
-
+        <button class="view-order" data-id="${order.id}">
+          View
+        </button>
+      </td>
     `;
 
     tbody.appendChild(tr);
   });
 
-  /* 🔑 FIX: reset horizontal scroll after table redraw */
   const scrollWrapper = document.querySelector(".admin-table-scroll");
-  if (scrollWrapper) {
-    scrollWrapper.scrollLeft = 0;
-  }
+  if (scrollWrapper) scrollWrapper.scrollLeft = 0;
 
   renderPagination(data.page, data.totalPages);
 }
@@ -81,10 +74,7 @@ function renderPagination(current, total) {
   for (let i = 1; i <= total; i++) {
     const btn = document.createElement("button");
     btn.textContent = i;
-
-    if (i === current) {
-      btn.classList.add("active");
-    }
+    if (i === current) btn.classList.add("active");
 
     btn.addEventListener("click", () => {
       if (i === current) return;
@@ -97,102 +87,87 @@ function renderPagination(current, total) {
 }
 
 /* ================================
-   INIT
+   INLINE DETAILS + STATUS UPDATE
 ================================ */
-loadOrders(currentPage);
+document.getElementById("ordersTable").addEventListener("click", async (e) => {
 
+  /* ---------- OPEN / CLOSE INLINE ---------- */
+  const viewBtn = e.target.closest(".view-order");
+  if (viewBtn) {
+    const row = viewBtn.closest("tr");
+    const orderId = viewBtn.dataset.id;
+    let detailsRow = row.nextElementSibling;
 
-document
-  .getElementById("ordersTable")
-  .addEventListener("click", (e) => {
-    const btn = e.target.closest(".view-order");
-    if (!btn) return;
+    if (detailsRow?.classList.contains("order-details-row")) {
+      detailsRow.style.display =
+        detailsRow.style.display === "table-row" ? "none" : "table-row";
+      return;
+    }
 
-    const orderId = btn.dataset.id;
-const row = btn.closest("tr");
-let detailsRow = row.nextElementSibling;
+    document.querySelectorAll(".order-details-row").forEach(r => r.remove());
 
-/* If already open → toggle */
-if (detailsRow && detailsRow.classList.contains("order-details-row")) {
-  detailsRow.style.display =
-    detailsRow.style.display === "table-row" ? "none" : "table-row";
-  return;
-}
+    detailsRow = document.createElement("tr");
+    detailsRow.className = "order-details-row";
 
-/* Close any other open rows */
-document.querySelectorAll(".order-details-row").forEach(r => r.remove());
+    const cell = document.createElement("td");
+    cell.colSpan = 6;
 
-/* Create new details row */
-detailsRow = document.createElement("tr");
-detailsRow.className = "order-details-row";
+    const currentStatus = row.children[3].textContent.trim();
 
-const cell = document.createElement("td");
-cell.colSpan = 6;
-const currentStatus = row.children[3].textContent.trim();
-const statuses = ["Processing", "Shipped", "Delivered", "Cancelled"];
+    cell.innerHTML = `
+      <div class="inline-order-grid">
+        <div>
+          <strong>Order ID</strong><br>
+          ${orderId}<br><br>
 
-cell.innerHTML = `
-  <div class="inline-order-grid">
+          <strong>User</strong><br>
+          ${row.children[1].textContent}<br><br>
 
-    <div>
-      <strong>Order ID</strong><br>
-      ${orderId}<br><br>
+          <strong>Created</strong><br>
+          ${row.children[4].textContent}
+        </div>
 
-      <strong>User</strong><br>
-      ${row.children[1].textContent}<br><br>
+        <div>
+          <strong>Total</strong><br>
+          ${row.children[2].textContent}<br><br>
 
-      <strong>Created</strong><br>
-      ${row.children[4].textContent}
-    </div>
+          <strong>Status</strong><br>
+          <select class="inline-status" data-id="${orderId}">
+            ${STATUSES.map(
+              s => `<option value="${s}" ${s === currentStatus ? "selected" : ""}>${s}</option>`
+            ).join("")}
+          </select><br><br>
 
-    <div>
-      <strong>Total</strong><br>
-      ${row.children[2].textContent}<br><br>
+          <button class="inline-update" data-id="${orderId}">
+            Update status
+          </button><br><br>
 
-      <strong>Status</strong><br>
-      <select class="inline-status" data-id="${orderId}">
-        ${statuses
-          .map(
-            s => `<option value="${s}" ${s === currentStatus ? "selected" : ""}>${s}</option>`
-          )
-          .join("")}
-      </select><br><br>
+          <a href="/account/admin/order-details.html?id=${orderId}">
+            Open full details →
+          </a>
+        </div>
+      </div>
+    `;
 
-      <button class="inline-update" data-id="${orderId}">
-        Update status
-      </button><br><br>
+    detailsRow.appendChild(cell);
+    row.after(detailsRow);
+    return;
+  }
 
-      <a href="/account/admin/order-details.html?id=${orderId}">
-        Open full details →
-      </a>
-    </div>
+  /* ---------- SAVE STATUS ---------- */
+  const saveBtn = e.target.closest(".inline-update");
+  if (!saveBtn) return;
 
-  </div>
-`;
-
-
-
-detailsRow.appendChild(cell);
-row.after(detailsRow);
-
-  });
-
-
-  document.addEventListener("click", async (e) => {
-  if (!e.target.classList.contains("inline-update")) return;
-
-  const btn = e.target;
-  const orderId = btn.dataset.id;
+  const orderId = saveBtn.dataset.id;
   const select = document.querySelector(
     `.inline-status[data-id="${orderId}"]`
   );
-
   if (!select) return;
 
   const newStatus = select.value;
 
-  btn.disabled = true;
-  btn.textContent = "Saving…";
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Saving…";
 
   try {
     const res = await fetch(
@@ -207,24 +182,28 @@ row.after(detailsRow);
       }
     );
 
-    if (!res.ok) throw new Error("Failed to update status");
+    if (!res.ok) throw new Error("Update failed");
 
-    // Update table row immediately
-    const detailsRow = btn.closest("tr");
+    const detailsRow = saveBtn.closest("tr");
     const mainRow = detailsRow.previousElementSibling;
     const statusCell = mainRow.children[3];
 
     statusCell.textContent = newStatus;
     statusCell.className = `status status-${newStatus.toLowerCase()}`;
 
-    btn.textContent = "Saved";
+    saveBtn.textContent = "Saved";
   } catch (err) {
     console.error(err);
-    btn.textContent = "Error";
+    saveBtn.textContent = "Error";
   }
 
   setTimeout(() => {
-    btn.textContent = "Update status";
-    btn.disabled = false;
+    saveBtn.textContent = "Update status";
+    saveBtn.disabled = false;
   }, 1200);
 });
+
+/* ================================
+   INIT
+================================ */
+loadOrders(currentPage);
