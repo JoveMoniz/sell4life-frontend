@@ -4,7 +4,6 @@ import { API_BASE } from "./config.js";
    AUTH GUARD
 ================================ */
 const token = localStorage.getItem("s4l_token");
-
 if (!token) {
   window.location.href = "/account/admin/signin.html";
   throw new Error("Not authenticated");
@@ -35,8 +34,17 @@ const productsTable = document.getElementById("productsTable");
 ================================ */
 let currentOrder = null;
 
-const STATUSES = ["Processing", "Shipped", "Delivered", "Cancelled"];
-const STATUS_FLOW = ["Processing", "Shipped", "Delivered"];
+/* ================================
+   STATUS TRANSITIONS (SINGLE SOURCE)
+================================ */
+const TRANSITIONS = {
+  processing: ["Processing", "Shipped", "Cancelled"],
+  shipped:    ["Shipped", "Delivered"],
+  delivered:  ["Delivered"],
+  cancelled:  ["Cancelled"]
+};
+
+const FINAL_STATES = ["delivered", "cancelled"];
 
 /* ================================
    LOAD ORDER
@@ -45,22 +53,15 @@ async function loadOrder() {
   try {
     const res = await fetch(
       `${API_BASE}/api/admin/orders/${orderId}`,
-      {
-        headers: { Authorization: `Bearer ${token}` }
-      }
+      { headers: { Authorization: `Bearer ${token}` } }
     );
-
-    if (res.status === 401 || res.status === 403) {
-      window.location.href = "/";
-      return;
-    }
 
     if (!res.ok) throw new Error("Failed to load order");
 
     const order = await res.json();
     currentOrder = order;
 
-    /* ========= ORDER SUMMARY ========= */
+    /* ========= SUMMARY ========= */
     document.getElementById("orderId").textContent =
       `S4L-${order.id.slice(0, 10).toUpperCase()}`;
 
@@ -76,49 +77,50 @@ async function loadOrder() {
     document.getElementById("orderStatus").textContent =
       order.status;
 
-    /* ========= STATUS SELECT (DOWNGRADE SAFE) ========= */
+    /* ========= STATUS SELECT (INLINE-MATCHED) ========= */
+    const backendStatus = order.status;            // "Processing"
+    const currentStatus = backendStatus.toLowerCase();
+    const isFinal = FINAL_STATES.includes(currentStatus);
+
     statusSelect.innerHTML = "";
 
-    const currentIndex = STATUS_FLOW.indexOf(order.status);
+    const allowedStatuses =
+      TRANSITIONS[currentStatus] || [backendStatus];
 
-    STATUSES.forEach(status => {
+    allowedStatuses.forEach(status => {
       const option = document.createElement("option");
       option.value = status;
       option.textContent = status;
-
-      const statusIndex = STATUS_FLOW.indexOf(status);
-
-      if (
-        currentIndex !== -1 &&
-        statusIndex !== -1 &&
-        statusIndex < currentIndex
-      ) {
-        option.disabled = true;
-      }
-
-      if (status === order.status) {
-        option.selected = true;
-      }
-
+      if (status === backendStatus) option.selected = true;
       statusSelect.appendChild(option);
     });
+
+    statusSelect.disabled = isFinal;
+    updateBtn.disabled = isFinal;
+
+    if (isFinal) {
+      result.textContent = "Final state – no further changes";
+      result.className = "info";
+    } else {
+      result.textContent = "";
+    }
 
     /* ========= PRODUCTS ========= */
     productsTable.innerHTML = "";
 
     const items = order.items || order.products || [];
 
-    if (!Array.isArray(items) || items.length === 0) {
+    if (!items.length) {
       productsTable.innerHTML = `
         <tr>
           <td colspan="4" style="text-align:center; opacity:.6">
-            No products found for this order
+            No products found
           </td>
         </tr>
       `;
     } else {
       items.forEach(item => {
-        const qty   = Number(item.quantity || 0);
+        const qty = Number(item.quantity || 0);
         const price = Number(item.price || 0);
 
         const tr = document.createElement("tr");
@@ -135,7 +137,6 @@ async function loadOrder() {
           <td>£${price.toFixed(2)}</td>
           <td>£${(qty * price).toFixed(2)}</td>
         `;
-
         productsTable.appendChild(tr);
       });
     }
@@ -150,8 +151,9 @@ async function loadOrder() {
     });
 
   } catch (err) {
-    console.error("ADMIN ORDER DETAILS ERROR:", err);
+    console.error(err);
     result.textContent = "Failed to load order";
+    result.className = "error";
   }
 }
 
@@ -175,24 +177,23 @@ updateBtn.addEventListener("click", async () => {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          status: statusSelect.value
+          status: statusSelect.value   // BACKEND ENUM
         })
       }
     );
 
     if (!res.ok) throw new Error("Update failed");
 
+    await loadOrder();
+
     result.textContent = "Status updated";
     result.className = "success";
 
-    await loadOrder();
-
   } catch (err) {
-    console.error("STATUS UPDATE ERROR:", err);
+    console.error(err);
     result.textContent = "Error updating status";
     result.className = "error";
   } finally {
-    updateBtn.disabled = false;
     updateBtn.textContent = "Update Status";
   }
 });
