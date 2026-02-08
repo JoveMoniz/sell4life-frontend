@@ -1,3 +1,27 @@
+
+async function updateOrderStatus(orderId, status) {
+  const res = await fetch(
+    `${API_BASE}/api/admin/orders/${orderId}/status`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ status })
+    }
+  );
+
+  if (!res.ok) {
+    const msg = await res.text();
+    throw new Error(msg || "Status update failed");
+  }
+}
+
+
+
+
+
 import { API_BASE } from "./config.js";
 
 /* ================================
@@ -170,17 +194,25 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
   saveBtn.textContent = "Saving…";
 
   try {
-    const res = await fetch(
-      `${API_BASE}/api/admin/orders/${orderId}/status`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: newStatus })
-      }
-    );
+const res = await fetch(
+  `${API_BASE}/api/admin/orders/${orderId}/status`,
+  {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      status: newStatus
+    })
+  }
+);
+
+if (!res.ok) {
+  const msg = await res.text();
+  throw new Error(msg || "Update failed");
+}
+
 
     if (!res.ok) throw new Error("Update failed");
 
