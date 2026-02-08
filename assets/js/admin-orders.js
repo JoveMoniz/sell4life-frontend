@@ -34,11 +34,34 @@ if (!token || role !== "admin") {
   window.location.href = "/account/admin/signin.html";
 }
 
-/* ================================s
+/* ================================
+   HELPERS
+================================ */
+async function updateOrderStatus(orderId, status) {
+  const res = await fetch(
+    `${API_BASE}/api/admin/orders/${orderId}/status`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ status })
+    }
+  );
+
+  if (!res.ok) {
+    const msg = await res.text();
+    throw new Error(msg || "Status update failed");
+  }
+}
+
+/* ================================
    STATE
 ================================ */
 let currentPage = 1;
 const STATUSES = ["Processing", "Shipped", "Delivered", "Cancelled"];
+const STATUS_FLOW = ["Processing", "Shipped", "Delivered"];
 
 /* ================================
    LOAD ORDERS
@@ -71,17 +94,12 @@ async function loadOrders(page = 1) {
       </td>
       <td>${new Date(order.createdAt).toLocaleString()}</td>
       <td>
-        <button class="view-order" data-id="${order.id}">
-          View
-        </button>
+        <button class="view-order" data-id="${order.id}">View</button>
       </td>
     `;
 
     tbody.appendChild(tr);
   });
-
-  const scrollWrapper = document.querySelector(".admin-table-scroll");
-  if (scrollWrapper) scrollWrapper.scrollLeft = 0;
 
   renderPagination(data.page, data.totalPages);
 }
@@ -115,37 +133,29 @@ function renderPagination(current, total) {
 ================================ */
 document.getElementById("ordersTable").addEventListener("click", async (e) => {
 
-  /* ---------- OPEN / CLOSE INLINE ---------- */
+  /* ---------- OPEN / CLOSE ---------- */
   const viewBtn = e.target.closest(".view-order");
   if (viewBtn) {
     const row = viewBtn.closest("tr");
     const orderId = viewBtn.dataset.id;
-    let detailsRow = row.nextElementSibling;
-
-    if (detailsRow?.classList.contains("order-details-row")) {
-      detailsRow.style.display =
-        detailsRow.style.display === "table-row" ? "none" : "table-row";
-      return;
-    }
+    const currentStatus = row.children[3].textContent.trim();
+    const currentIndex = STATUS_FLOW.indexOf(currentStatus);
 
     document.querySelectorAll(".order-details-row").forEach(r => r.remove());
 
-    detailsRow = document.createElement("tr");
+    const detailsRow = document.createElement("tr");
     detailsRow.className = "order-details-row";
 
     const cell = document.createElement("td");
     cell.colSpan = 6;
 
-    const currentStatus = row.children[3].textContent.trim();
-
     cell.innerHTML = `
       <div class="inline-order-grid">
         <div>
-<strong>Order ID:</strong>
-<span class="inline-order-id">
-  S4L-${orderId.slice(0, 10).toUpperCase()}
-</span><br><br>
-
+          <strong>Order ID:</strong>
+          <span class="inline-order-id">
+            S4L-${orderId.slice(0, 10).toUpperCase()}
+          </span><br><br>
 
           <strong>User</strong><br>
           ${row.children[1].textContent}<br><br>
@@ -160,18 +170,26 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
 
           <strong>Status</strong><br>
           <select class="inline-status" data-id="${orderId}">
-            ${STATUSES.map(
-              s => `<option value="${s}" ${s === currentStatus ? "selected" : ""}>${s}</option>`
-            ).join("")}
+            ${STATUSES.map(s => {
+              const sIndex = STATUS_FLOW.indexOf(s);
+              const disabled =
+                currentIndex !== -1 &&
+                sIndex !== -1 &&
+                sIndex < currentIndex;
+
+              return `
+                <option value="${s}"
+                  ${s === currentStatus ? "selected" : ""}
+                  ${disabled ? "disabled" : ""}>
+                  ${s}
+                </option>
+              `;
+            }).join("")}
           </select><br><br>
 
           <button class="inline-update" data-id="${orderId}">
             Update status
-          </button><br><br>
-
-          <a href="/account/admin/order-details.html?id=${orderId}">
-            Open full details →
-          </a>
+          </button>
         </div>
       </div>
     `;
@@ -191,40 +209,18 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
   );
   if (!select) return;
 
-  const newStatus = select.value;
-
   saveBtn.disabled = true;
   saveBtn.textContent = "Saving…";
 
   try {
-const res = await fetch(
-  `${API_BASE}/api/admin/orders/${orderId}/status`,
-  {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({
-      status: newStatus
-    })
-  }
-);
-
-if (!res.ok) {
-  const msg = await res.text();
-  throw new Error(msg || "Update failed");
-}
-
-
-    if (!res.ok) throw new Error("Update failed");
+    await updateOrderStatus(orderId, select.value);
 
     const detailsRow = saveBtn.closest("tr");
     const mainRow = detailsRow.previousElementSibling;
     const statusCell = mainRow.children[3];
 
-    statusCell.textContent = newStatus;
-    statusCell.className = `status status-${newStatus.toLowerCase()}`;
+    statusCell.textContent = select.value;
+    statusCell.className = `status status-${select.value.toLowerCase()}`;
 
     saveBtn.textContent = "Saved";
   } catch (err) {
