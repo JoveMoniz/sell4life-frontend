@@ -436,6 +436,17 @@ button {
   margin-top: 8px;
 }
 
+@media (max-width: 768px) {
+  .order-details-row td {
+    position: sticky;
+    top: 72px; /* adjust to height of admin top bar */
+    z-index: 20;
+    background: #f9fafb;
+    box-shadow: 0 6px 16px rgba(0,0,0,.08);
+    border-radius: 10px;
+  }
+}
+
 
 
 /* =====================================================
