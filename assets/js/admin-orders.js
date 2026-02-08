@@ -265,4 +265,4 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
 /* ================================
    INIT
 ================================ */
-loadOrder();
+loadOrders();
