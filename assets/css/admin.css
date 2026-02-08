@@ -446,7 +446,7 @@ transition:
   max-height 420ms cubic-bezier(.25,.8,.25,1) 90ms,
   opacity 180ms ease,
   transform 260ms cubic-bezier(.22,.61,.36,1);
-  
+
   pointer-events: none;
 }
 
@@ -470,14 +470,6 @@ transition:
   max-height: 1000px;
 }
 
-
-
-
-  @media (max-width: 480px) {
-  .inline-order-wrapper {
-    max-width: calc(100vw - 32px);
-  }
-}
  
   .inline-order-grid {
     gap: 10px;
@@ -491,15 +483,6 @@ transition:
     background: transparent;
     
   }
-
-.inline-order-inner {
-  transition:
-    max-height 420ms cubic-bezier(.25,.8,.25,1) 80ms,
-    opacity 260ms ease,
-    transform 320ms cubic-bezier(.22,.61,.36,1);
-}
-
-
 
 
 /* =====================================================
