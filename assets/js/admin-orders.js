@@ -108,5 +108,34 @@ document
     const btn = e.target.closest(".view-order");
     if (!btn) return;
 
-    console.log("View clicked for order:", btn.dataset.id);
+    const orderId = btn.dataset.id;
+const row = btn.closest("tr");
+let detailsRow = row.nextElementSibling;
+
+/* If already open → toggle */
+if (detailsRow && detailsRow.classList.contains("order-details-row")) {
+  detailsRow.style.display =
+    detailsRow.style.display === "table-row" ? "none" : "table-row";
+  return;
+}
+
+/* Close any other open rows */
+document.querySelectorAll(".order-details-row").forEach(r => r.remove());
+
+/* Create new details row */
+detailsRow = document.createElement("tr");
+detailsRow.className = "order-details-row";
+
+const cell = document.createElement("td");
+cell.colSpan = 6;
+cell.innerHTML = `
+  <div style="padding:12px; font-size:14px;">
+    Inline details placeholder for order:<br>
+    <strong>${orderId}</strong>
+  </div>
+`;
+
+detailsRow.appendChild(cell);
+row.after(detailsRow);
+
   });
