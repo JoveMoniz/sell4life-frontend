@@ -109,13 +109,16 @@ function renderPagination(current, total) {
 ================================ */
 document.getElementById("ordersTable").addEventListener("click", async (e) => {
 
-  /* ===============================
-     OPEN / CLOSE INLINE DETAILS
-  =============================== */
-  const viewBtn = e.target.closest(".view-order");
-  if (viewBtn) {
-    const row = viewBtn.closest("tr");
-    const orderId = viewBtn.dataset.id;
+/* ===============================
+   OPEN / CLOSE INLINE DETAILS
+=============================== */
+const viewBtn = e.target.closest(".view-order");
+if (viewBtn) {
+  e.stopPropagation(); // ⛔ stop click reaching document listener
+
+  const row = viewBtn.closest("tr");
+  const orderId = viewBtn.dataset.id;
+
 
     // Backend status (as displayed)
     const backendStatus = row.children[3].textContent.trim();
