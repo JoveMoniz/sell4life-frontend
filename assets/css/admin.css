@@ -365,10 +365,6 @@ button {
    ADMIN ORDERS – INLINE DETAILS
 ===================================================== */
 
-.order-details-row {
-  display: none;
-}
-
 .order-details-row td {
   padding: 20px 24px;
   background: #f9fafb;
@@ -450,9 +446,17 @@ button {
     transform 320ms ease;
 }
 
-.order-details-row {
-  height: auto;
+.order-details-row.open {
+  display: table-row;
 }
+
+
+.order-details-row {
+  display: none;
+  height: auto;
+
+}
+
 
 .order-details-row td {
   padding: 0;
