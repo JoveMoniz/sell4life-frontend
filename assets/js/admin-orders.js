@@ -107,7 +107,11 @@ function renderPagination(current, total) {
 /* ================================
    INLINE DETAILS + STATUS UPDATE
 ================================ */
-document.getElementById("ordersTable").addEventListener("click", async (e) => {
+document
+  .getElementById("ordersTable")
+  .addEventListener("click", async (e) => {
+
+  const portal = document.getElementById("inlineDetailsPortal");
 
   /* ===============================
      OPEN / CLOSE INLINE DETAILS
@@ -117,27 +121,26 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     const row = viewBtn.closest("tr");
     const orderId = viewBtn.dataset.id;
 
-    // Backend status (as displayed)
     const backendStatus = row.children[3].textContent.trim();
-
-    // Normalized for logic
     const currentStatus = backendStatus.toLowerCase();
 
     const FINAL_STATES = ["delivered", "cancelled"];
     const isFinal = FINAL_STATES.includes(currentStatus);
 
-    // Toggle same row
-    let detailsRow = row.nextElementSibling;
-    if (detailsRow && detailsRow.classList.contains("order-details-row")) {
-      detailsRow.style.display =
-        detailsRow.style.display === "table-row" ? "none" : "table-row";
+    /* -------- TOGGLE SAME ORDER -------- */
+    if (
+      portal.dataset.openId === orderId &&
+      portal.innerHTML.trim() !== ""
+    ) {
+      portal.innerHTML = "";
+      portal.dataset.openId = "";
       return;
     }
 
-    // Close others
-    document.querySelectorAll(".order-details-row").forEach(r => r.remove());
+    portal.dataset.openId = orderId;
+    portal.innerHTML = "";
 
-    /* -------- STATUS TRANSITIONS (LOGIC ONLY) -------- */
+    /* -------- STATUS TRANSITIONS -------- */
     const TRANSITIONS = {
       processing: ["Processing", "Shipped", "Cancelled"],
       shipped: ["Shipped", "Delivered"],
@@ -148,22 +151,23 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     const allowedStatuses =
       TRANSITIONS[currentStatus] || [backendStatus];
 
-    const optionsHtml = allowedStatuses.map(status => `
-      <option value="${status}" ${status === backendStatus ? "selected" : ""}>
-        ${status}
-      </option>
-    `).join("");
+    const optionsHtml = allowedStatuses
+      .map(
+        (status) => `
+        <option value="${status}" ${
+          status === backendStatus ? "selected" : ""
+        }>
+          ${status}
+        </option>
+      `
+      )
+      .join("");
 
-    /* -------- BUILD ROW -------- */
-    detailsRow = document.createElement("tr");
-    detailsRow.className = "order-details-row";
-    detailsRow.style.display = "table-row";
+    /* -------- BUILD PANEL -------- */
+    const wrapper = document.createElement("div");
+    wrapper.className = "inline-order-wrapper";
 
-    const cell = document.createElement("td");
-    cell.colSpan = 6;
-
-    cell.innerHTML = `
-    <div class="inline-order-wrapper">
+    wrapper.innerHTML = `
       <div class="inline-order-grid">
         <div>
           <strong>Order ID:</strong>
@@ -200,7 +204,9 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
 
           ${
             isFinal
-              ? `<em style="opacity:.6">Final state – <br>no further changes</em>`
+              ? `<em style="opacity:.6">
+                   Final state – no further changes
+                 </em>`
               : `<button class="inline-update" data-id="${orderId}">
                    Update status
                  </button>`
@@ -213,11 +219,9 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
           </a>
         </div>
       </div>
-      </div>
     `;
 
-    detailsRow.appendChild(cell);
-    row.after(detailsRow);
+    portal.appendChild(wrapper);
     return;
   }
 
@@ -228,41 +232,43 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
   if (!saveBtn) return;
 
   const orderId = saveBtn.dataset.id;
-  const select = document.querySelector(
+  const select = portal.querySelector(
     `.inline-status[data-id="${orderId}"]`
   );
   if (!select) return;
 
-  // IMPORTANT: send backend enum, NOT lowercase
-  const newStatus = select.value;
+  const newStatus = select.value; // backend enum
 
   saveBtn.disabled = true;
   saveBtn.textContent = "Saving…";
 
-try {
-  await updateOrderStatus(orderId, newStatus);
+  try {
+    await updateOrderStatus(orderId, newStatus);
 
-  const detailsRow = saveBtn.closest("tr");
-  const mainRow = detailsRow.previousElementSibling;
-  const statusCell = mainRow.children[3];
+    // Update main table immediately
+    const mainRow = document
+      .querySelector(`.view-order[data-id="${orderId}"]`)
+      .closest("tr");
 
-  statusCell.textContent = newStatus;
-  statusCell.className = `status status-${newStatus.toLowerCase()}`;
+    const statusCell = mainRow.children[3];
+    statusCell.textContent = newStatus;
+    statusCell.className = `status status-${newStatus.toLowerCase()}`;
 
-  // 🔴 THIS IS THE FIX
-  detailsRow.remove();
+    // Close panel (forces re-open with fresh truth)
+    portal.innerHTML = "";
+    portal.dataset.openId = "";
 
-} catch (err) {
-  console.error(err);
-  saveBtn.textContent = "Error";
-}
-
+  } catch (err) {
+    console.error(err);
+    saveBtn.textContent = "Error";
+  }
 
   setTimeout(() => {
     saveBtn.textContent = "Update status";
     saveBtn.disabled = false;
   }, 1200);
 });
+
 
 
 
