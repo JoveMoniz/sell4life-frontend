@@ -117,18 +117,18 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     const row = viewBtn.closest("tr");
     const orderId = viewBtn.dataset.id;
 
-    // Normalize current status
+    // Normalize status
     const currentStatus = row.children[3].textContent
       .trim()
       .toLowerCase();
 
     const STATUS_FLOW = ["processing", "shipped", "delivered"];
-    const currentIndex = STATUS_FLOW.indexOf(currentStatus);
     const FINAL_STATES = ["delivered", "cancelled"];
-const isFinal = FINAL_STATES.includes(currentStatus);
 
+    const currentIndex = STATUS_FLOW.indexOf(currentStatus);
+    const isFinal = FINAL_STATES.includes(currentStatus);
 
-    // 🔁 Toggle if already open
+    // Toggle if already open
     let detailsRow = row.nextElementSibling;
     if (detailsRow && detailsRow.classList.contains("order-details-row")) {
       detailsRow.style.display =
@@ -136,10 +136,10 @@ const isFinal = FINAL_STATES.includes(currentStatus);
       return;
     }
 
-    // 🔒 Close others
+    // Close others
     document.querySelectorAll(".order-details-row").forEach(r => r.remove());
 
-    // ➕ Create details row
+    // Create details row
     detailsRow = document.createElement("tr");
     detailsRow.className = "order-details-row";
     detailsRow.style.display = "table-row";
@@ -167,9 +167,28 @@ const isFinal = FINAL_STATES.includes(currentStatus);
           ${row.children[2].textContent}<br><br>
 
           <strong>Status</strong><br>
-          const FINAL_STATES = ["delivered", "cancelled"];
-const isFinal = FINAL_STATES.includes(currentStatus);
-<br><br>
+          <select class="inline-status" data-id="${orderId}">
+            ${STATUSES.map(s => {
+              const sLower = s.toLowerCase();
+              const sIndex = STATUS_FLOW.indexOf(sLower);
+
+              const disabled =
+                isFinal ||
+                (
+                  currentIndex !== -1 &&
+                  sIndex !== -1 &&
+                  sIndex < currentIndex
+                );
+
+              return `
+                <option value="${s}"
+                  ${sLower === currentStatus ? "selected" : ""}
+                  ${disabled ? "disabled" : ""}>
+                  ${s}
+                </option>
+              `;
+            }).join("")}
+          </select><br><br>
 
           <button class="inline-update"
             data-id="${orderId}"
@@ -193,7 +212,7 @@ const isFinal = FINAL_STATES.includes(currentStatus);
      SAVE STATUS
   =============================== */
   const saveBtn = e.target.closest(".inline-update");
-  if (!saveBtn || saveBtn.disabled) return;
+  if (!saveBtn) return;
 
   const orderId = saveBtn.dataset.id;
   const select = document.querySelector(
@@ -225,6 +244,7 @@ const isFinal = FINAL_STATES.includes(currentStatus);
     saveBtn.disabled = false;
   }, 1200);
 });
+
 
 
 /* ================================
