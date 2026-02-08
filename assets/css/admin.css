@@ -439,7 +439,7 @@ button {
 
 @media (max-width: 480px) {
   .inline-order-wrapper {
-     max-width: 600px;        /* keeps blocks together */
+     max-width: 450px;        /* keeps blocks together */
   margin: 0 auto;         /* centers on desktop */
     position: sticky;
     top: 72px; /* height of admin top bar */
