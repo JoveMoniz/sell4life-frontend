@@ -107,7 +107,7 @@ function renderPagination(current, total) {
 /* ================================
    INLINE DETAILS + STATUS UPDATE
 ================================ */
-document.addEventListener("click", async (e) => {
+document.getElementById("ordersTable").addEventListener("click", async (e) => {
 
   /* ===============================
      OPEN / CLOSE INLINE DETAILS
@@ -117,23 +117,27 @@ document.addEventListener("click", async (e) => {
     const row = viewBtn.closest("tr");
     const orderId = viewBtn.dataset.id;
 
+    // Backend status (as displayed)
     const backendStatus = row.children[3].textContent.trim();
+
+    // Normalized for logic
     const currentStatus = backendStatus.toLowerCase();
 
     const FINAL_STATES = ["delivered", "cancelled"];
     const isFinal = FINAL_STATES.includes(currentStatus);
 
-    /* -------- TOGGLE SAME ORDER -------- */
-    if (portal.dataset.openId === orderId) {
-      portal.innerHTML = "";
-      portal.dataset.openId = "";
+    // Toggle same row
+    let detailsRow = row.nextElementSibling;
+    if (detailsRow && detailsRow.classList.contains("order-details-row")) {
+      detailsRow.style.display =
+        detailsRow.style.display === "table-row" ? "none" : "table-row";
       return;
     }
 
-    portal.dataset.openId = orderId;
-    portal.innerHTML = "";
+    // Close others
+    document.querySelectorAll(".order-details-row").forEach(r => r.remove());
 
-    /* -------- STATUS TRANSITIONS -------- */
+    /* -------- STATUS TRANSITIONS (LOGIC ONLY) -------- */
     const TRANSITIONS = {
       processing: ["Processing", "Shipped", "Cancelled"],
       shipped: ["Shipped", "Delivered"],
@@ -150,11 +154,16 @@ document.addEventListener("click", async (e) => {
       </option>
     `).join("");
 
-    /* -------- BUILD PANEL -------- */
-    const wrapper = document.createElement("div");
-    wrapper.className = "inline-order-wrapper";
+    /* -------- BUILD ROW -------- */
+    detailsRow = document.createElement("tr");
+    detailsRow.className = "order-details-row";
+    detailsRow.style.display = "table-row";
 
-    wrapper.innerHTML = `
+    const cell = document.createElement("td");
+    cell.colSpan = 6;
+
+    cell.innerHTML = `
+    <div class="inline-order-wrapper">
       <div class="inline-order-grid">
         <div>
           <strong>Order ID:</strong>
@@ -191,9 +200,7 @@ document.addEventListener("click", async (e) => {
 
           ${
             isFinal
-              ? `<em style="opacity:.6">
-                   Final state – no further changes
-                 </em>`
+              ? `<em style="opacity:.6">Final state <br> no further changes</em>`
               : `<button class="inline-update" data-id="${orderId}">
                    Update status
                  </button>`
@@ -206,9 +213,11 @@ document.addEventListener("click", async (e) => {
           </a>
         </div>
       </div>
+     </div> 
     `;
 
-    portal.appendChild(wrapper);
+    detailsRow.appendChild(cell);
+    row.after(detailsRow);
     return;
   }
 
@@ -219,12 +228,13 @@ document.addEventListener("click", async (e) => {
   if (!saveBtn) return;
 
   const orderId = saveBtn.dataset.id;
-  const select = portal.querySelector(
+  const select = document.querySelector(
     `.inline-status[data-id="${orderId}"]`
   );
   if (!select) return;
 
-  const newStatus = select.value; // backend enum
+  // IMPORTANT: send backend enum, NOT lowercase
+  const newStatus = select.value;
 
   saveBtn.disabled = true;
   saveBtn.textContent = "Saving…";
@@ -232,19 +242,14 @@ document.addEventListener("click", async (e) => {
   try {
     await updateOrderStatus(orderId, newStatus);
 
-    // Update main table immediately
-    const mainRow = document
-      .querySelector(`.view-order[data-id="${orderId}"]`)
-      .closest("tr");
-
+    const detailsRow = saveBtn.closest("tr");
+    const mainRow = detailsRow.previousElementSibling;
     const statusCell = mainRow.children[3];
+
     statusCell.textContent = newStatus;
     statusCell.className = `status status-${newStatus.toLowerCase()}`;
 
-    // Close panel after save
-    portal.innerHTML = "";
-    portal.dataset.openId = "";
-
+    saveBtn.textContent = "Saved";
   } catch (err) {
     console.error(err);
     saveBtn.textContent = "Error";
@@ -257,9 +262,7 @@ document.addEventListener("click", async (e) => {
 });
 
 
-
-
 /* ================================
    INIT
 ================================ */
-loadOrders(currentPage);
+loadOrder();
