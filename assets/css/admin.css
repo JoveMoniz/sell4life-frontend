@@ -442,12 +442,11 @@ button {
   opacity: 0;
   transform: translateY(-4x) scale(0.98);
 
- transition:
-  max-height 420ms cubic-bezier(.25,.8,.25,1),
+transition:
+  max-height 420ms cubic-bezier(.25,.8,.25,1) 90ms,
   opacity 180ms ease,
   transform 260ms cubic-bezier(.22,.61,.36,1);
-
-
+  
   pointer-events: none;
 }
 
