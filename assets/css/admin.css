@@ -447,15 +447,9 @@ button {
   pointer-events: none;
 }
 
-.order-details-row.open {
-  display: table-row;
-}
-
 
 .order-details-row {
-  display: none;
   height: auto;
-
 }
 
 
