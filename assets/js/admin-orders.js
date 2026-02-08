@@ -1,4 +1,6 @@
 import { API_BASE } from "./config.js";
+const FINAL_STATES = ["delivered", "cancelled"];
+
 
 /* ================================
    AUTH GUARD (ADMIN ONLY)
@@ -239,7 +241,7 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
   saveBtn.disabled = true;
   saveBtn.textContent = "Saving…";
 
-try {
+  try {
   await updateOrderStatus(orderId, newStatus);
 
   const detailsRow = saveBtn.closest("tr");
