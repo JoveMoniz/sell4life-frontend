@@ -364,53 +364,56 @@ button {
 /* =====================================================
    ADMIN ORDERS – INLINE DETAILS
 ===================================================== */
- 
-.inline-order-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  font-size: 14px;
-}
-
-.inline-order-grid select {
-  padding: 6px;
-  font-size: 14px;
-}
-
-.inline-update {
-  padding: 6px 10px;
-  font-size: 14px;
-}
-
 
 .order-details-row {
   display: none;
-  background: #f9fafb;
 }
 
 .order-details-row td {
-  padding: 16px;
+  padding: 20px 24px;
   background: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
 }
 
-.order-details-grid {
+/* Main inline layout */
+.inline-order-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 32px;
   font-size: 14px;
 }
 
-.order-details-grid strong {
-  color: #111827;
+/* Subtle hierarchy for metadata column */
+.inline-order-grid > div:first-child {
+  padding-left: 12px;
+  border-left: 3px solid #e5e7eb;
 }
 
-.order-details-actions {
-  margin-top: 12px;
-  display: flex;
-  gap: 12px;
-  align-items: center;
+/* Labels */
+.inline-order-grid strong {
+  color: #111827;
+  font-weight: 600;
 }
+
+/* Controls */
+.inline-order-grid select {
+  padding: 6px 8px;
+  font-size: 14px;
+}
+
+.inline-update {
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Action spacing */
+.inline-order-grid a {
+  display: inline-block;
+  margin-top: 8px;
+}
+
 
 
 /* =====================================================
