@@ -100,3 +100,13 @@ function renderPagination(current, total) {
    INIT
 ================================ */
 loadOrders(currentPage);
+
+
+document
+  .getElementById("ordersTable")
+  .addEventListener("click", (e) => {
+    const btn = e.target.closest(".view-order");
+    if (!btn) return;
+
+    console.log("View clicked for order:", btn.dataset.id);
+  });
