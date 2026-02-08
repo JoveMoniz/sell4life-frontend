@@ -129,16 +129,38 @@ detailsRow.className = "order-details-row";
 const cell = document.createElement("td");
 cell.colSpan = 6;
 cell.innerHTML = `
-  <div style="display:flex; justify-content:space-between; gap:24px;">
+  <div class="inline-order-grid">
+    
     <div>
-      <strong>Order ID:</strong><br>
-      ${orderId}
+      <strong>Order ID</strong><br>
+      ${orderId}<br><br>
+
+      <strong>User</strong><br>
+      ${row.children[1].textContent}<br><br>
+
+      <strong>Created</strong><br>
+      ${row.children[4].textContent}
     </div>
 
     <div>
-      <strong>Quick actions:</strong><br>
-      <em>Status and summary will go here</em>
+      <strong>Total</strong><br>
+      ${row.children[2].textContent}<br><br>
+
+      <strong>Status</strong><br>
+      <select class="inline-status">
+        <option>Processing</option>
+        <option>Shipped</option>
+        <option>Delivered</option>
+        <option>Cancelled</option>
+      </select><br><br>
+
+      <button class="inline-update">Update status</button><br><br>
+
+      <a href="/account/admin/order-details.html?id=${orderId}">
+        Open full details →
+      </a>
     </div>
+
   </div>
 `;
 

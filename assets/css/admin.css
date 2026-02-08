@@ -364,6 +364,24 @@ button {
 /* =====================================================
    ADMIN ORDERS – INLINE DETAILS
 ===================================================== */
+ 
+.inline-order-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  font-size: 14px;
+}
+
+.inline-order-grid select {
+  padding: 6px;
+  font-size: 14px;
+}
+
+.inline-update {
+  padding: 6px 10px;
+  font-size: 14px;
+}
+
 
 .order-details-row {
   display: none;
