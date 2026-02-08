@@ -1,3 +1,6 @@
+
+const FINAL_STATES = ["delivered", "cancelled"];
+
 import { API_BASE } from "./config.js";
 
 /* ================================
@@ -123,7 +126,7 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     // Normalized for logic
     const currentStatus = backendStatus.toLowerCase();
 
-    const FINAL_STATES = ["delivered", "cancelled"];
+    
     const isFinal = FINAL_STATES.includes(currentStatus);
 
     // Toggle same row
