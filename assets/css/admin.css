@@ -377,6 +377,7 @@ button {
   grid-template-columns: 1fr 1fr;
   gap: 32px;
   font-size: 14px;
+  margin-left: 30px;
 }
 
 /* Subtle hierarchy for metadata column */
