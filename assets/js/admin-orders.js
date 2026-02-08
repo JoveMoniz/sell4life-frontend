@@ -266,3 +266,17 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
    INIT
 ================================ */
 loadOrders();
+
+
+document.addEventListener("click", (e) => {
+  const openRow = document.querySelector(".order-details-row.open");
+  if (!openRow) return;
+
+  const clickedInsideDropdown =
+    e.target.closest(".inline-order-wrapper") ||
+    e.target.closest(".view-order");
+
+  if (!clickedInsideDropdown) {
+    openRow.classList.remove("open");
+  }
+});
