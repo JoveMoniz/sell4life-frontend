@@ -248,6 +248,28 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
 
     statusCell.textContent = newStatus;
     statusCell.className = `status status-${newStatus.toLowerCase()}`;
+    const normalized = newStatus.toLowerCase();
+const isFinalNow = FINAL_STATES.includes(normalized);
+
+if (isFinalNow) {
+  const select = detailsRow.querySelector(".inline-status");
+  const btn = detailsRow.querySelector(".inline-update");
+
+  if (select) {
+    select.outerHTML = `
+      <span class="status status-${normalized}">
+        ${newStatus}
+      </span>
+    `;
+  }
+
+  if (btn) {
+    btn.outerHTML = `
+      <em style="opacity:.6">Final state <br> no further changes</em>
+    `;
+  }
+}
+
 
     saveBtn.textContent = "Saved";
   } catch (err) {
