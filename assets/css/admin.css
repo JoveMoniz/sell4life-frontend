@@ -437,6 +437,7 @@ button {
   width: fit-content;
   margin-left: auto;
   overflow: hidden;
+  padding-left: 20px;
 
   max-height: 0;
   opacity: 0;
