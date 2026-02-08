@@ -1,6 +1,5 @@
 import { API_BASE } from "./config.js";
 
-  const FINAL_STATES = ["delivered", "cancelled"];
 
 /* ================================
    AUTH GUARD (ADMIN ONLY)
@@ -125,7 +124,7 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     // Normalized for logic
     const currentStatus = backendStatus.toLowerCase();
 
-  
+    const FINAL_STATES = ["delivered", "cancelled"];
     const isFinal = FINAL_STATES.includes(currentStatus);
 
     // Toggle same row
@@ -248,34 +247,10 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     const mainRow = detailsRow.previousElementSibling;
     const statusCell = mainRow.children[3];
 
-   statusCell.textContent = newStatus;
-statusCell.className = `status status-${newStatus.toLowerCase()}`;
+    statusCell.textContent = newStatus;
+    statusCell.className = `status status-${newStatus.toLowerCase()}`;
 
-const normalized = newStatus.toLowerCase();
-const isFinalNow = FINAL_STATES.includes(normalized);
-
-if (isFinalNow) {
-  const rightCol = detailsRow.querySelector(".inline-order-grid > div:last-child");
-
-  rightCol.innerHTML = `
-    <strong>Total</strong><br>
-    ${mainRow.children[2].textContent}<br><br>
-
-    <strong>Status</strong><br>
-    <span class="status status-${normalized}">
-      ${newStatus}
-    </span>
-
-    <br><br>
-    <em style="opacity:.6">Final state <br> no further changes</em>
-
-    <br><br>
-    <a href="/account/admin/order-details.html?id=${orderId}">
-      Open full details →
-    </a>
-  `;
-}
-
+    saveBtn.textContent = "Saved";
   } catch (err) {
     console.error(err);
     saveBtn.textContent = "Error";
