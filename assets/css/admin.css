@@ -458,7 +458,7 @@ button {
   }
 
   .inline-order-grid > div:first-child {
-    border-left: 1px solid rgba(207, 207, 207, 0.606);
+    border-right: 1px solid rgba(207, 207, 207, 0.606);
   }
 
   /* prevent table constraints */
