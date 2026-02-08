@@ -39,10 +39,7 @@ async function loadOrders(page = 1) {
     const tr = document.createElement("tr");
     tr.style.cursor = "pointer";
 
-    tr.addEventListener("click", () => {
-      window.location.href =
-        `/account/admin/order-details.html?id=${order.id}`;
-    });
+
 
     tr.innerHTML = `
       <td>S4L-${order.id.slice(0, 10).toUpperCase()}</td>
@@ -55,11 +52,11 @@ async function loadOrders(page = 1) {
       </td>
       <td>${new Date(order.createdAt).toLocaleString()}</td>
       <td>
-        <a href="/account/admin/order-details.html?id=${order.id}"
-           onclick="event.stopPropagation()">
-          View
-        </a>
-      </td>
+  <button class="view-order" data-id="${order.id}">
+    View
+  </button>
+</td>
+
     `;
 
     tbody.appendChild(tr);
