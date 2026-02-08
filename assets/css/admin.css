@@ -439,18 +439,22 @@ button {
 
 @media (max-width: 480px) {
   .inline-order-wrapper {
-     max-width: 400px;  
-     align-content: end;      /* keeps blocks together */
-  margin: 0 auto;         /* centers on desktop */
-    position: sticky;
-    top: 72px; /* height of admin top bar */
-    z-index: 50;
+    position: fixed;
+    top: 72px;                 /* admin-top height */
+    right: 0;                  /* push to screen edge */
+    left: auto;
+
+    width: calc(100vw - 16px); /* full viewport minus padding */
+    max-width: none;
+
+    margin: 0;
+    z-index: 999;
 
     background: #f9fafb;
-    border-radius: 12px;
+    border-radius: 12px 0 0 12px;
     padding: 12px;
 
-    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    box-shadow: -4px 0 24px rgba(0,0,0,0.15);
   }
  
   .inline-order-grid {
