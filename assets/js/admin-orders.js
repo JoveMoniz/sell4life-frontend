@@ -156,7 +156,7 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
 
     /* -------- BUILD ROW -------- */
     detailsRow = document.createElement("tr");
-    detailsRow.className = "order-details-row open";
+    detailsRow.className = "order-details-row";
 
 
     const cell = document.createElement("td");
@@ -218,6 +218,8 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
 
     detailsRow.appendChild(cell);
     row.after(detailsRow);
+    detailsRow.className = "order-details-row";
+
     return;
   }
 
