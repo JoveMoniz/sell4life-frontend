@@ -220,10 +220,7 @@ button {
   }
 }
 
-body {
-  margin: 0;
-  padding: 0;
-}
+
 
 .admin-page {
   padding: 40px 20px;
@@ -244,11 +241,6 @@ body {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
-  .admin-page {
-    padding: 16px;
-  }
-
-  
 
   .admin-table-scroll table {
     min-width: 520px; /* users table baseline */
@@ -1130,9 +1122,6 @@ transition:
 
 @media (max-width: 768px) {
 
-  .admin-top {
-    margin-bottom: 16px;
-  }
 
   .admin-signin .signin-wrapper,
   .admin-dashboard .dashboard-wrapper {
