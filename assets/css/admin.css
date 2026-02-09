@@ -4,7 +4,8 @@
 html,
 body {
   max-width: 100%;
-  overflow-x: hidden;
+   overflow-x: hidden;
+  overflow-y: auto;
 }
 
 
@@ -61,7 +62,7 @@ button {
   padding: 16px 20px;
   margin-bottom: 24px;
 
-    position: sticky;
+  position: sticky;
   top: 0;
   z-index: 1000;
 
