@@ -1,10 +1,13 @@
 /* =====================================================
    ADMIN BASE (ALL PAGES)
    ===================================================== */
-html,
+html {
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
 body {
-  max-width: 100%;
-   overflow-x: hidden;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
@@ -217,9 +220,21 @@ button {
   }
 }
 
+body {
+  margin: 0;
+  padding: 0;
+}
+
 .admin-page {
   padding: 40px 20px;
 }
+
+@media (max-width: 768px) {
+  .admin-page {
+    padding: 16px;
+  }
+}
+
 
 
 
