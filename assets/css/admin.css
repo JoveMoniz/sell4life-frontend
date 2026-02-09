@@ -220,12 +220,23 @@ button {
   }
 }
 
+.admin-page {
+  padding: 40px 20px;
+}
+
+
+
 /* Mobile: make ALL admin tables horizontally scroll when needed */
 @media (max-width: 480px) and (orientation: portrait) {
   .admin-table-scroll {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+  .admin-page {
+    padding: 16px;
+  }
+
+  
 
   .admin-table-scroll table {
     min-width: 520px; /* users table baseline */
