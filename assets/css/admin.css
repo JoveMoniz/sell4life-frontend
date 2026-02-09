@@ -491,6 +491,49 @@ transition:
   white-space: nowrap;
 }
 
+/* Processing – neutral / waiting */
+.status-processing {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+/* Shipped – action / in motion */
+.status-shipped {
+  background: #ecfeff;
+  color: #0f766e;
+}
+
+/* Delivered – final / success */
+.status-delivered {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* Cancelled – final / warning */
+.status-cancelled {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+
+.status-delivered,
+.status-cancelled {
+  opacity: 0.85;
+}
+
+.inline-status {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.status-delivered {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+
+
 
 @media (max-width: 480px) {
   .inline-order-wrapper {
