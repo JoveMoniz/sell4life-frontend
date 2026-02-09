@@ -1130,10 +1130,6 @@ transition:
 
 @media (max-width: 768px) {
 
-  body {
-    padding: 16px;
-  }
-
   .admin-top {
     margin-bottom: 16px;
   }
