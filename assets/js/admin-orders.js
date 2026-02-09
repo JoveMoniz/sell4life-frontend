@@ -249,8 +249,12 @@ document.getElementById("ordersTable").addEventListener("click", async (e) => {
     const mainRow = detailsRow.previousElementSibling;
     const statusCell = mainRow.children[3];
 
-    statusCell.textContent = newStatus;
-    statusCell.className = `status status-${newStatus.toLowerCase()}`;
+    statusCell.innerHTML = `
+  <span class="status status-${newStatus.toLowerCase()}">
+    ${newStatus}
+  </span>
+`;
+
     const normalized = newStatus.toLowerCase();
 const isFinalNow = FINAL_STATES.includes(normalized);
 
