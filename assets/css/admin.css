@@ -3,8 +3,9 @@
    ===================================================== */
 html {
   overflow-x: hidden;
-  overflow-y: visible;
+  overflow-y: auto;
 }
+
 
 body {
   overflow-x: hidden;
