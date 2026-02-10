@@ -45,13 +45,8 @@ const STATUS_FLOW = ["Processing", "Shipped", "Delivered"];
 /* ================================
    LOAD ORDERS
 ================================ */
-async function loadOrders(page = 1, q = "", status = "all") {
-  let url = `${API_BASE}/admin/orders?page=${page}`;
-
-  if (q) url += `&q=${encodeURIComponent(q)}`;
-  if (status !== "all") url += `&status=${status}`;
-
-  const res = await fetch(url, {
+async function loadOrders(page = 1) {
+  const res = await fetch(`${API_BASE}/admin/orders?page=${page}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
 
@@ -65,7 +60,24 @@ async function loadOrders(page = 1, q = "", status = "all") {
   tbody.innerHTML = "";
 
   data.orders.forEach(order => {
-    // existing row rendering (unchanged)
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>S4L-${order.id.slice(0, 10).toUpperCase()}</td>
+      <td>${order.user?.email || "-"}</td>
+      <td>£${Number(order.total || 0).toFixed(2)}</td>
+      <td>
+        <span class="status status-${order.status.toLowerCase()}">
+          ${order.status}
+        </span>
+      </td>
+      <td>${new Date(order.createdAt).toLocaleString()}</td>
+      <td>
+        <button class="view-order" data-id="${order.id}">View</button>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
   });
 
   renderPagination(data.page, data.totalPages);
