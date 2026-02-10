@@ -366,6 +366,6 @@ async function fetchOrders() {
   });
 
   const orders = await res.json();
-  renderOrders(orders);
+
 }
 
