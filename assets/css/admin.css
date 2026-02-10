@@ -1139,3 +1139,25 @@ transition:
     padding: 20px;
   }
 }
+
+
+
+
+/* =====================================================
+   ADMIN Search
+   ===================================================== */
+
+
+.admin-search-bar {
+  display: flex;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.admin-search-bar input,
+.admin-search-bar select {
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+}
+

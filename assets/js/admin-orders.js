@@ -333,3 +333,39 @@ document.addEventListener("click", (e) => {
     openRow.classList.remove("open");
   }
 });
+
+
+
+/* ================================
+   Order Search 
+================================ */
+
+
+const searchInput = document.getElementById("orderSearch");
+const statusSelect = document.getElementById("statusFilter");
+const searchBtn = document.getElementById("searchBtn");
+
+searchBtn.addEventListener("click", fetchOrders);
+searchInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") fetchOrders();
+});
+
+async function fetchOrders() {
+  const q = searchInput.value.trim();
+  const status = statusSelect.value;
+
+  let url = `${API_BASE}/admin/orders?`;
+
+  if (q) url += `q=${encodeURIComponent(q)}&`;
+  if (status !== "all") url += `status=${status}`;
+
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`
+    }
+  });
+
+  const orders = await res.json();
+  renderOrders(orders);
+}
+
