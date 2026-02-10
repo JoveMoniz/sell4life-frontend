@@ -46,7 +46,7 @@ const STATUS_FLOW = ["Processing", "Shipped", "Delivered"];
    LOAD ORDERS
 ================================ */
 async function loadOrders(page = 1) {
-  const res = await fetch(`${API_BASE}/api/admin/orders?page=${page}`, {
+  const res = await fetch(`${API_BASE}/admin/orders?page=${page}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
 
