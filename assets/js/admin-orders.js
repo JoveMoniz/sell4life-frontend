@@ -18,7 +18,7 @@ if (!token || role !== "admin") {
 ================================ */
 async function updateOrderStatus(orderId, status) {
   const res = await fetch(
-    `${API_BASE}/api/admin/orders/${orderId}/status`,
+    `${API_BASE}/admin/orders/${orderId}/status`,
     {
       method: "PATCH",
       headers: {
