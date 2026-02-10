@@ -65,11 +65,8 @@ button {
   gap: 16px;
   letter-spacing: 0.2px;
 
-.admin-top {
-  margin-bottom: 0;
-  padding-bottom: 24px;
-}
-
+  padding: 16px 20px;
+  margin-bottom: 24px;
 
   position: sticky;
   top: 0;
