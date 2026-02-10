@@ -2,15 +2,17 @@
    ADMIN BASE (ALL PAGES)
    ===================================================== */
 html {
-  overflow-x: hidden;
-  overflow-y: auto;
+html, body {
+  overflow: visible;
+}
+
 }
 
 
 body {
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: visible;
 }
+
 
 
 
@@ -63,8 +65,11 @@ button {
   gap: 16px;
   letter-spacing: 0.2px;
 
-  padding: 16px 20px;
-  margin-bottom: 24px;
+.admin-top {
+  margin-bottom: 0;
+  padding-bottom: 24px;
+}
+
 
   position: sticky;
   top: 0;
