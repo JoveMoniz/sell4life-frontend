@@ -354,18 +354,44 @@ async function fetchOrders() {
   const q = searchInput.value.trim();
   const status = statusSelect.value;
 
-  let url = `${API_BASE}/admin/orders?`;
+  currentPage = 1;
 
-  if (q) url += `q=${encodeURIComponent(q)}&`;
-  if (status !== "all") url += `status=${status}`;
+  let url = `${API_BASE}/api/admin/orders?page=1`;
+
+  if (q) url += `&q=${encodeURIComponent(q)}`;
+  if (status !== "all") url += `&status=${status}`;
 
   const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+    headers: { Authorization: `Bearer ${token}` }
   });
 
-  const orders = await res.json();
+  if (!res.ok) return;
 
+  const data = await res.json();
+
+  const tbody = document.getElementById("ordersTable");
+  tbody.innerHTML = "";
+
+  data.orders.forEach(order => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>S4L-${order._id.slice(0, 10).toUpperCase()}</td>
+      <td>${order.user?.email || "-"}</td>
+      <td>£${Number(order.total || 0).toFixed(2)}</td>
+      <td>
+        <span class="status status-${order.status.toLowerCase()}">
+          ${order.status}
+        </span>
+      </td>
+      <td>${new Date(order.createdAt).toLocaleString()}</td>
+      <td>
+        <button class="view-order" data-id="${order._id}">View</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  renderPagination(1, data.totalPages);
 }
+
 
