@@ -27,7 +27,7 @@ function logout() {
   try {
     // Prevent duplicate header injection
     if (!document.querySelector(".site-header")) {
-      const res = await fetch("/includes/header.html?v=20260125", {
+      const res = await fetch("/includes/header.html?v=20260206-dev", {
         cache: "no-store"
       });
 
@@ -45,7 +45,7 @@ function logout() {
   // ----- FOOTER -----
   try {
     if (!document.querySelector(".site-footer")) {
-      const res = await fetch("/includes/footer.html?v=20260125", {
+      const res = await fetch("/includes/footer.html?v=20260206-dev", {
         cache: "no-store"
       });
 
@@ -68,7 +68,7 @@ document.addEventListener("headerLoaded", () => {
   if (window.__cartScriptLoaded) return;
 
   const script = document.createElement("script");
-  script.src = "/assets/js/cart.js?v=20260125";
+  script.src = "/assets/js/cart.js?v=20260206-dev";
   script.defer = true;
 
   document.body.appendChild(script);
@@ -83,7 +83,7 @@ document.addEventListener("headerLoaded", () => {
   if (window.__searchScriptLoaded) return;
 
   const script = document.createElement("script");
-  script.src = "/assets/js/search.js?v=20260125";
+  script.src = "/assets/js/search.?v=20260206-dev";
   script.defer = true;
 
   document.body.appendChild(script);
