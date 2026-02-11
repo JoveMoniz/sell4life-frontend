@@ -385,7 +385,7 @@ async function fetchOrders() {
       </td>
       <td>${new Date(order.createdAt).toLocaleString()}</td>
       <td>
-        <button class="view-order" data-id="${order._id}">View</button>
+        <button class="view-order" data-id="${order.id}">View</button>
       </td>
     `;
     tbody.appendChild(tr);
