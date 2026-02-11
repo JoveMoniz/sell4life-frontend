@@ -375,7 +375,7 @@ async function fetchOrders() {
   data.orders.forEach(order => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>S4L-${order._id.slice(0, 10).toUpperCase()}</td>
+      <td>S4L-${order.id.slice(0, 10).toUpperCase()}</td>
       <td>${order.user?.email || "-"}</td>
       <td>£${Number(order.total || 0).toFixed(2)}</td>
       <td>
