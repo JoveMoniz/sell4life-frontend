@@ -52,7 +52,7 @@ const FINAL_STATES = ["delivered", "cancelled"];
 async function loadOrder() {
   try {
     const res = await fetch(
-      `${API_BASE}/api/admin/orders/${orderId}`,
+      `${API_BASE}/admin/orders/${orderId}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
