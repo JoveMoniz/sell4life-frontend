@@ -342,17 +342,16 @@ document.addEventListener("click", (e) => {
 
 document.addEventListener("DOMContentLoaded", () => {
 
-  const searchInput  = document.getElementById("orderSearch");
+  const searchInput = document.getElementById("orderSearch");
   const statusSelect = document.getElementById("statusFilter");
-  const searchBtn    = document.getElementById("searchBtn");
-
-  if (!searchBtn) return; // safety
+  const searchBtn = document.getElementById("searchBtn");
 
   searchBtn.addEventListener("click", fetchOrders);
-
   searchInput.addEventListener("keydown", e => {
     if (e.key === "Enter") fetchOrders();
   });
+
+  fetchOrders(); // initial load
 
 });
 
