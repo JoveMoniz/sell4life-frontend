@@ -356,7 +356,7 @@ async function fetchOrders() {
 
   currentPage = 1;
 
-  let url = `${API_BASE}/api/admin/orders?page=1`;
+  let url = `${API_BASE}/admin/orders?page=1`;
 
   if (q) url += `&q=${encodeURIComponent(q)}`;
   if (status !== "all") url += `&status=${status}`;
