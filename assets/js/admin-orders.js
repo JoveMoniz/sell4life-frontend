@@ -340,15 +340,22 @@ document.addEventListener("click", (e) => {
    Order Search
 ================================ */
 
-const searchInput = document.getElementById("orderSearch");
-const statusSelect = document.getElementById("statusFilter");
-const searchBtn = document.getElementById("searchBtn");
+document.addEventListener("DOMContentLoaded", () => {
 
-searchBtn.addEventListener("click", fetchOrders);
+  const searchInput  = document.getElementById("orderSearch");
+  const statusSelect = document.getElementById("statusFilter");
+  const searchBtn    = document.getElementById("searchBtn");
 
-searchInput.addEventListener("keydown", e => {
-  if (e.key === "Enter") fetchOrders();
+  if (!searchBtn) return; // safety
+
+  searchBtn.addEventListener("click", fetchOrders);
+
+  searchInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") fetchOrders();
+  });
+
 });
+
 
 async function fetchOrders() {
   const q = searchInput.value.trim();
