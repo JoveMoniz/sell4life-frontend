@@ -358,12 +358,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 async function fetchOrders() {
-  const q = searchInput.value.trim();
-  const status = statusSelect.value;
+
+  const searchInput  = document.getElementById("orderSearch");
+  const statusSelect = document.getElementById("statusFilter");
+
+  const q = searchInput?.value.trim() || "";
+  const status = statusSelect?.value || "all";
 
   currentPage = 1;
 
-  // ✅ correct endpoint (no duplicate /api)
   let url = `${API_BASE}/admin/orders?page=1`;
 
   if (q) url += `&q=${encodeURIComponent(q)}`;
@@ -373,10 +376,7 @@ async function fetchOrders() {
     headers: { Authorization: `Bearer ${token}` }
   });
 
-  if (!res.ok) {
-    console.error("Search request failed");
-    return;
-  }
+  if (!res.ok) return;
 
   const data = await res.json();
 
@@ -384,11 +384,9 @@ async function fetchOrders() {
   tbody.innerHTML = "";
 
   data.orders.forEach(order => {
+    const id = order._id || order.id;
+
     const tr = document.createElement("tr");
-
-    // 🔥 IMPORTANT: use _id (Mongo) not id
-    const id = order._id;
-
     tr.innerHTML = `
       <td>S4L-${id.slice(0, 10).toUpperCase()}</td>
       <td>${order.user?.email || "-"}</td>
@@ -403,11 +401,11 @@ async function fetchOrders() {
         <button class="view-order" data-id="${id}">View</button>
       </td>
     `;
-
     tbody.appendChild(tr);
   });
 
   renderPagination(1, data.totalPages);
 }
+
 
 
