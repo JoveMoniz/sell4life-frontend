@@ -51,9 +51,15 @@ const STATUS_FLOW = ["Processing", "Shipped", "Delivered"];
 ================================ */
 async function loadOrders(page = 1, q = "", status = "all")
  {
-  const res = await fetch(`${API_BASE}/admin/orders?page=${page}`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+  let url = `${API_BASE}/admin/orders?page=${page}`;
+
+if (q) url += `&q=${encodeURIComponent(q)}`;
+if (status !== "all") url += `&status=${status}`;
+
+const res = await fetch(url, {
+  headers: { Authorization: `Bearer ${token}` }
+});
+
 
   if (res.status === 401 || res.status === 403) {
     window.location.href = "/account/admin/signin.html";
