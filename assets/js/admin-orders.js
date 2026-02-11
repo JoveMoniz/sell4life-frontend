@@ -17,9 +17,13 @@ if (!token || role !== "admin") {
    HELPERS
 ================================ */
 async function updateOrderStatus(orderId, status) {
-  const res = await fetch(
-    `${API_BASE}/admin/orders/${orderId}/status`,
-    {
+  let url = `${API_BASE}/admin/orders?page=${page}`;
+
+if (q) url += `&q=${encodeURIComponent(q)}`;
+if (status !== "all") url += `&status=${status}`;
+
+const res = await fetch(url, {
+
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -45,7 +49,8 @@ const STATUS_FLOW = ["Processing", "Shipped", "Delivered"];
 /* ================================
    LOAD ORDERS
 ================================ */
-async function loadOrders(page = 1) {
+async function loadOrders(page = 1, q = "", status = "all")
+ {
   const res = await fetch(`${API_BASE}/admin/orders?page=${page}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
@@ -336,3 +341,31 @@ document.addEventListener("click", (e) => {
 
 
 
+/* ================================
+   ADMIN SEARCH (FINAL)
+================================ */
+
+let currentQuery = "";
+let currentStatus = "all";
+
+document.addEventListener("DOMContentLoaded", () => {
+  const searchInput  = document.getElementById("orderSearch");
+  const statusSelect = document.getElementById("statusFilter");
+  const searchBtn    = document.getElementById("searchBtn");
+
+  if (!searchInput || !statusSelect || !searchBtn) return;
+
+  function runSearch() {
+    currentQuery  = searchInput.value.trim();
+    currentStatus = statusSelect.value;
+    currentPage   = 1;
+
+    loadOrders(1, currentQuery, currentStatus);
+  }
+
+  searchBtn.addEventListener("click", runSearch);
+
+  searchInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") runSearch();
+  });
+});

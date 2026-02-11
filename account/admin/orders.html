@@ -30,7 +30,7 @@
 
 
 <div class="admin-title">
-<h2 style="color:red">THIS IS NEW FILE</h2>
+
 
   <a href="/account/admin/index.html" class="admin-back">← back to dashboar</a>
 
@@ -48,11 +48,13 @@
     placeholder="Search Order ID or email"/>
 
   <select id="statusFilter">
-    <option value="all">All</option>
-    <option value="pending">Pending</option>
-    <option value="delivered">Delivered</option>
-    <option value="cancelled">Cancelled</option>
-  </select>
+  <option value="all">All</option>
+  <option value="Processing">Processing</option>
+  <option value="Shipped">Shipped</option>
+  <option value="Delivered">Delivered</option>
+  <option value="Cancelled">Cancelled</option>
+</select>
+
 
   <button id="searchBtn">Search</button>
 </div>
@@ -84,7 +86,6 @@
 
 
 <script type="module" src="/assets/js/config.js?v=20260211b"></script>
-<script type="module" src="/assets/js/admin-orders.js?v=20260211b"></script>
 <script type="module" src="/assets/js/admin-orders.js?v=20260211b"></script>
 
 
