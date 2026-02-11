@@ -336,74 +336,129 @@ document.addEventListener("click", (e) => {
 
 
 
-/* ================================
-   Order Search
-================================ */
+/* =========================================
+   ADMIN ORDERS – SEARCH + LOAD (FINAL)
+========================================= */
 
+let searchInput;
+let statusSelect;
+let searchBtn;
+
+/* ================================
+   INITIALIZE AFTER DOM LOAD
+================================ */
 document.addEventListener("DOMContentLoaded", () => {
 
-  const searchInput = document.getElementById("orderSearch");
-  const statusSelect = document.getElementById("statusFilter");
-  const searchBtn = document.getElementById("searchBtn");
+  searchInput  = document.getElementById("orderSearch");
+  statusSelect = document.getElementById("statusFilter");
+  searchBtn    = document.getElementById("searchBtn");
 
+  // Safety check so the universe doesn’t explode
+  if (!searchInput || !statusSelect || !searchBtn) {
+    console.error("❌ Admin search UI not found in DOM");
+    return;
+  }
+
+  /* --- EVENTS --- */
+
+  // Click search
   searchBtn.addEventListener("click", fetchOrders);
+
+  // Press ENTER in search box
   searchInput.addEventListener("keydown", e => {
     if (e.key === "Enter") fetchOrders();
   });
 
-  fetchOrders(); // initial load
-
+  // First load when page opens
+  fetchOrders();
 });
 
 
-async function fetchOrders() {
+/* ================================
+   FETCH + RENDER ORDERS
+================================ */
+async function fetchOrders(page = 1) {
 
-  const searchInput  = document.getElementById("orderSearch");
-  const statusSelect = document.getElementById("statusFilter");
+  try {
+    const q = searchInput.value.trim();
+    const status = statusSelect.value;
 
-  const q = searchInput?.value.trim() || "";
-  const status = statusSelect?.value || "all";
+    let url = `${API_BASE}/admin/orders?page=${page}`;
 
-  currentPage = 1;
+    if (q) url += `&q=${encodeURIComponent(q)}`;
+    if (status !== "all") url += `&status=${status}`;
 
-  let url = `${API_BASE}/admin/orders?page=1`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
 
-  if (q) url += `&q=${encodeURIComponent(q)}`;
-  if (status !== "all") url += `&status=${status}`;
+    if (!res.ok) {
+      console.error("❌ Failed to fetch orders:", res.status);
+      return;
+    }
 
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+    const data = await res.json();
 
-  if (!res.ok) return;
+    const tbody = document.getElementById("ordersTable");
+    tbody.innerHTML = "";
 
-  const data = await res.json();
+    /* --- BUILD TABLE --- */
+    data.orders.forEach(order => {
 
-  const tbody = document.getElementById("ordersTable");
-  tbody.innerHTML = "";
+      const id = order._id; // Mongo uses _id, not id
 
-  data.orders.forEach(order => {
-    const id = order._id || order.id;
+      const tr = document.createElement("tr");
 
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>S4L-${id.slice(0, 10).toUpperCase()}</td>
-      <td>${order.user?.email || "-"}</td>
-      <td>£${Number(order.total || 0).toFixed(2)}</td>
-      <td>
-        <span class="status status-${order.status.toLowerCase()}">
-          ${order.status}
-        </span>
-      </td>
-      <td>${new Date(order.createdAt).toLocaleString()}</td>
-      <td>
-        <button class="view-order" data-id="${id}">View</button>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
+      tr.innerHTML = `
+        <td>S4L-${id.slice(0, 10).toUpperCase()}</td>
+        <td>${order.user?.email || "-"}</td>
+        <td>£${Number(order.total || 0).toFixed(2)}</td>
+        <td>
+          <span class="status status-${order.status.toLowerCase()}">
+            ${order.status}
+          </span>
+        </td>
+        <td>${new Date(order.createdAt).toLocaleString()}</td>
+        <td>
+          <button class="view-order" data-id="${id}">View</button>
+        </td>
+      `;
 
-  renderPagination(1, data.totalPages);
+      tbody.appendChild(tr);
+    });
+
+    /* --- PAGINATION --- */
+    renderPagination(page, data.totalPages);
+
+  } catch (err) {
+    console.error("❌ fetchOrders crashed:", err);
+  }
+}
+
+
+/* ================================
+   PAGINATION RENDER
+================================ */
+function renderPagination(current, total) {
+
+  const container = document.getElementById("pagination");
+  container.innerHTML = "";
+
+  if (total <= 1) return;
+
+  for (let i = 1; i <= total; i++) {
+
+    const btn = document.createElement("button");
+    btn.textContent = i;
+
+    if (i === current) {
+      btn.classList.add("active");
+    }
+
+    btn.addEventListener("click", () => fetchOrders(i));
+
+    container.appendChild(btn);
+  }
 }
 
 
