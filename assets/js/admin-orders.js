@@ -337,15 +337,15 @@ document.addEventListener("click", (e) => {
 
 
 /* ================================
-   Order Search 
+   Order Search
 ================================ */
-
 
 const searchInput = document.getElementById("orderSearch");
 const statusSelect = document.getElementById("statusFilter");
 const searchBtn = document.getElementById("searchBtn");
 
 searchBtn.addEventListener("click", fetchOrders);
+
 searchInput.addEventListener("keydown", e => {
   if (e.key === "Enter") fetchOrders();
 });
@@ -356,6 +356,7 @@ async function fetchOrders() {
 
   currentPage = 1;
 
+  // ✅ correct endpoint (no duplicate /api)
   let url = `${API_BASE}/admin/orders?page=1`;
 
   if (q) url += `&q=${encodeURIComponent(q)}`;
@@ -365,7 +366,10 @@ async function fetchOrders() {
     headers: { Authorization: `Bearer ${token}` }
   });
 
-  if (!res.ok) return;
+  if (!res.ok) {
+    console.error("Search request failed");
+    return;
+  }
 
   const data = await res.json();
 
@@ -374,8 +378,12 @@ async function fetchOrders() {
 
   data.orders.forEach(order => {
     const tr = document.createElement("tr");
+
+    // 🔥 IMPORTANT: use _id (Mongo) not id
+    const id = order._id;
+
     tr.innerHTML = `
-      <td>S4L-${order.id.slice(0, 10).toUpperCase()}</td>
+      <td>S4L-${id.slice(0, 10).toUpperCase()}</td>
       <td>${order.user?.email || "-"}</td>
       <td>£${Number(order.total || 0).toFixed(2)}</td>
       <td>
@@ -385,9 +393,10 @@ async function fetchOrders() {
       </td>
       <td>${new Date(order.createdAt).toLocaleString()}</td>
       <td>
-        <button class="view-order" data-id="${order.id}">View</button>
+        <button class="view-order" data-id="${id}">View</button>
       </td>
     `;
+
     tbody.appendChild(tr);
   });
 
