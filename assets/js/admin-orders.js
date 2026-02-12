@@ -362,7 +362,19 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!searchInput || !statusSelect || !searchBtn) return;
 
   function runSearch() {
-    currentQuery  = searchInput.value.trim();
+let q = searchInput.value.trim();
+
+/* remove S4L- prefix */
+if (q.toUpperCase().startsWith("S4L-")) {
+  q = q.slice(4);
+}
+
+/* allow only 10-char hex OR email */
+if (!/^[0-9A-Fa-f]{10}$/.test(q) && !q.includes("@")) {
+  q = "__invalid__";
+}
+
+currentQuery = q;
     currentStatus = statusSelect.value;
     currentPage   = 1;
 
