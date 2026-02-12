@@ -17,27 +17,23 @@ if (!token || role !== "admin") {
    HELPERS
 ================================ */
 async function updateOrderStatus(orderId, status) {
-  let url = `${API_BASE}/admin/orders?page=${page}`;
+  const url = `${API_BASE}/admin/orders/${orderId}/status`;
 
-if (q) url += `&q=${encodeURIComponent(q)}`;
-if (status !== "all") url += `&status=${status}`;
-
-const res = await fetch(url, {
-
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({ status })
-    }
-  );
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ status })
+  });
 
   if (!res.ok) {
     const msg = await res.text();
     throw new Error(msg || "Status update failed");
   }
 }
+
 
 /* ================================
    STATE
