@@ -27,7 +27,7 @@ function logout() {
   try {
     // Prevent duplicate header injection
     if (!document.querySelector(".site-header")) {
-      const res = await fetch("/includes/header.html?v=20260206-dev", {
+      const res = await fetch("/includes/header.html", {
         cache: "no-store"
       });
 
@@ -45,7 +45,7 @@ function logout() {
   // ----- FOOTER -----
   try {
     if (!document.querySelector(".site-footer")) {
-      const res = await fetch("/includes/footer.html?v=20260206-dev", {
+      const res = await fetch("/includes/footer.html", {
         cache: "no-store"
       });
 
