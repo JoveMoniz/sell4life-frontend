@@ -83,7 +83,7 @@ document.addEventListener("headerLoaded", () => {
   if (window.__searchScriptLoaded) return;
 
   const script = document.createElement("script");
-  script.src = "/assets/js/search.?v=20260206-dev";
+  script.src = "/assets/js/search.js?v=20260206-dev";
   script.defer = true;
 
   document.body.appendChild(script);
