@@ -71,7 +71,8 @@ document.addEventListener("headerLoaded", async () => {
   let version;
 
   try {
-    const res = await fetch("/api/version");
+   const res = await fetch(`${API_BASE}/api/version`);
+
     const data = await res.json();
     version = data.version;
   } catch {
