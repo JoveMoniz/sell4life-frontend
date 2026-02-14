@@ -72,7 +72,8 @@ document.addEventListener("headerLoaded", async () => {
 
   try {
 const API_BASE = "https://sell4life-backend.onrender.com";
-const res = await fetch(`${API_BASE}/api/version`);
+const res = await fetch(`${API_BASE}/version`);
+
 
 
 
