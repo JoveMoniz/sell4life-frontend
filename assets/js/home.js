@@ -1,3 +1,8 @@
+
+console.log("home.js loaded");
+
+
+
 async function loadCategories() {
   try {
     const res = await fetch('../../data/category.json');
