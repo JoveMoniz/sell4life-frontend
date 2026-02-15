@@ -88,14 +88,15 @@
       document.body.appendChild(script);
     });
 
-    if (window.__pageScripts && Array.isArray(window.__pageScripts)) {
-      window.__pageScripts.forEach(path => {
-        const script = document.createElement("script");
-        script.src = `${path}?v=${version}`;
-        script.defer = true;
-        document.body.appendChild(script);
-      });
-    }
+if (window.__pageScripts && Array.isArray(window.__pageScripts)) {
+  window.__pageScripts.forEach(path => {
+    const script = document.createElement("script");
+    script.src = `${path}?v=${version}`;
+    script.type = "module";   // ← THIS is the fix
+    document.body.appendChild(script);
+  });
+}
+
 
     window.__layoutInitialized = true;
   });
