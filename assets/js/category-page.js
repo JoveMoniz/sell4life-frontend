@@ -1,7 +1,9 @@
 // /assets/js/category-page.js
 // Universal logic for ALL category pages
 
-document.addEventListener("DOMContentLoaded", async () => {
+(async function () {
+
+  console.log("category-page.js loaded");
 
   const CATEGORY_JSON_URL  = "/data/category.json";
   const PRODUCTS_JSON_URL  = "/data/products.json";
@@ -10,10 +12,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ---------------------------------------
   // Helpers
   // ---------------------------------------
-  const $  = (sel, root = document) => root.querySelector(sel);
-  const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+  const $ = (sel, root = document) => root.querySelector(sel);
 
-  // Featured card generator
   function featuredCardHtml(p) {
     return `
       <a class="featured-item" href="/product/product.html?id=${p.id}">
@@ -36,7 +36,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     return currency + value.toFixed(2);
   }
 
-  // Product Card
   function productCardHtml(p) {
     const imgFile = (p.images && p.images[0]) ? p.images[0] : "";
     const imgSrc  = imgFile ? (PRODUCT_IMAGE_BASE + imgFile) : "";
@@ -54,7 +53,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ---------------------------------------
-  // Resolve category from URL
+  // Resolve category
   // ---------------------------------------
   const categoryId = getCategoryIdFromPath();
   if (!categoryId) return;
@@ -70,20 +69,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     categories = await catRes.json();
     products   = await prodRes.json();
+
   } catch (err) {
     console.error("[category-page] Failed loading JSON:", err);
     return;
   }
 
-  const category = categories.find(c => (c.id || "").toLowerCase() === categoryId);
+  const category = categories.find(
+    c => (c.id || "").toLowerCase() === categoryId
+  );
 
-  // Filter all products for this category
   const catProducts = products.filter(
     p => (p.category || "").toLowerCase() === categoryId
   );
 
   // ---------------------------------------
-  // 1) FEATURED LIST
+  // FEATURED
   // ---------------------------------------
   const featuredWrap = $("#featured-list");
 
@@ -91,27 +92,30 @@ document.addEventListener("DOMContentLoaded", async () => {
     const featured = catProducts.slice(0, 2);
 
     if (!featured.length) {
-      featuredWrap.innerHTML = `<p class="empty-note">No featured products yet.</p>`;
+      featuredWrap.innerHTML =
+        `<p class="empty-note">No featured products yet.</p>`;
     } else {
       featuredWrap.innerHTML = featured.map(p =>
         featuredCardHtml({
           id: p.id,
           name: p.name,
-          price: p.price.toFixed(2),
-          image: PRODUCT_IMAGE_BASE + p.images[0]
+          price: Number(p.price).toFixed(2),
+          image: PRODUCT_IMAGE_BASE + (p.images?.[0] || "")
         })
       ).join("");
     }
   }
 
   // ---------------------------------------
-  // 2) SUBCATEGORY CARDS
+  // SUBCATEGORIES
   // ---------------------------------------
   const subcatWrap = $("#subcategory-cards");
 
   if (subcatWrap && category && Array.isArray(category.subcategories)) {
     subcatWrap.innerHTML = category.subcategories.map(sub => {
-      const href = `/shop/index.html?category=${encodeURIComponent(category.id)}&subcategory=${encodeURIComponent(sub.id)}`;
+
+      const href =
+        `/shop/index.html?category=${encodeURIComponent(category.id)}&subcategory=${encodeURIComponent(sub.id)}`;
 
       const imgSrc = sub.image
         ? sub.image
@@ -129,20 +133,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ---------------------------------------
-  // 3) ALL PRODUCTS LIST
+  // ALL PRODUCTS
   // ---------------------------------------
   const productsWrap = $("#category-product-grid");
 
   if (productsWrap) {
     if (!catProducts.length) {
-      productsWrap.innerHTML = `<p class="empty-note">No products found in this category yet.</p>`;
+      productsWrap.innerHTML =
+        `<p class="empty-note">No products found in this category yet.</p>`;
     } else {
-      productsWrap.innerHTML = catProducts.map(productCardHtml).join("");
+      productsWrap.innerHTML =
+        catProducts.map(productCardHtml).join("");
     }
   }
 
   // ---------------------------------------
-  // 4) Auto Titles
+  // Titles
   // ---------------------------------------
   if (category) {
     const allTitle = $(".category-products h2");
@@ -157,4 +163,5 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
     }
   }
-});
+
+})();
