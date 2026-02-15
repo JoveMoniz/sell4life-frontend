@@ -1,4 +1,5 @@
 // /frontend/assets/js/product.js
+
 document.addEventListener("DOMContentLoaded", async () => {
 
   const $ = sel => document.querySelector(sel);
@@ -29,29 +30,36 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ---------- RENDER PRODUCT ----------
-  $(".product-title") &&
-    ($(".product-title").textContent = product.name);
+  if ($(".product-title")) {
+    $(".product-title").textContent = product.name;
+  }
 
-  $(".product-category") &&
-    ($(".product-category").textContent =
-      `${product.category} / ${product.subcategory}`);
+  if ($(".product-category")) {
+    $(".product-category").textContent =
+      `${product.category} / ${product.subcategory}`;
+  }
 
-  $(".product-price") &&
-    ($(".product-price").textContent = `£${product.price.toFixed(2)}`);
+  if ($(".product-price")) {
+    $(".product-price").textContent =
+      `£${product.price.toFixed(2)}`;
+  }
 
-  $(".product-desc") &&
-    ($(".product-desc").textContent = product.description);
+  if ($(".product-desc")) {
+    $(".product-desc").textContent = product.description;
+  }
 
   // ---------- IMAGES ----------
   const hiddenGallery = document.getElementById("hidden-gallery");
   if (hiddenGallery) {
     hiddenGallery.innerHTML = "";
+
     product.images.forEach(imgFile => {
       const img = document.createElement("img");
       img.src = IMAGE_BASE + imgFile;
       img.alt = product.name;
       hiddenGallery.appendChild(img);
     });
+
     document.dispatchEvent(new Event("productImagesLoaded"));
   }
 
@@ -94,22 +102,25 @@ document.addEventListener("DOMContentLoaded", async () => {
           (sum, item) => sum + (item.quantity || 0),
           0
         );
+
         badge.textContent = totalQty;
         badge.classList.remove("hide");
         badge.classList.add("bump");
-        setTimeout(() => badge.classList.remove("bump"), 220);
+
+        setTimeout(() => {
+          badge.classList.remove("bump");
+        }, 220);
       }
 
-      console.log("✔ Added to basket:", product.name);
+      console.log("Added to basket:", product.name);
     });
   }
 
-  // ---------- BUY NOW (ISOLATED FLOW) ----------
+  // ---------- BUY NOW ----------
   const buyBtn = $(".btn-buy");
   if (buyBtn) {
     buyBtn.addEventListener("click", () => {
 
-      // ✅ Backup cart ONLY ONCE
       if (!localStorage.getItem("cart_backup")) {
         const existingCart =
           JSON.parse(localStorage.getItem("cart") || "[]");
@@ -122,7 +133,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       }
 
-      // Replace cart with ONLY this product
       const buyNowCart = [{
         id: product.id,
         name: product.name,
@@ -134,14 +144,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       }];
 
       localStorage.setItem("cart", JSON.stringify(buyNowCart));
-
-      // Set intent
       localStorage.setItem("buyNow", "true");
 
-      // Go straight to checkout
       window.location.href = "/cart/checkout.html";
     });
   }
 
   document.dispatchEvent(new Event("productLoaded"));
-})();
+
+});
