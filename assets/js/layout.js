@@ -1,9 +1,11 @@
 // layout.js
+(function () {
 
-if (window.__disableLayout) {
-  console.log("Layout disabled for this page.");
-  return;
-}
+  if (window.__disableLayout) {
+    console.log("Layout disabled for this page.");
+    return;
+  }
+
 
 
 // =====================================================
@@ -218,3 +220,5 @@ document.addEventListener("headerLoaded", () => {
   setupAccount("accountBtnMobile", "accountDropdownMobile");
 
 });
+
+})();
