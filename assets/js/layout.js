@@ -64,26 +64,21 @@ function logout() {
 // =====================================================
 // GLOBAL VERSIONED SCRIPT LOADER
 // =====================================================
-document.addEventListener("headerLoaded", async () => {
+const API_BASE = "https://sell4life-backend.onrender.com";
 
+document.addEventListener("DOMContentLoaded", async () => {
   if (window.__layoutInitialized) return;
 
   let version;
 
   try {
-const API_BASE = "https://sell4life-backend.onrender.com";
-const res = await fetch(`${API_BASE}/api/version`);
-
-
-
-
+    const res = await fetch(`${API_BASE}/api/version`);
     const data = await res.json();
     version = data.version;
   } catch {
     version = Date.now();
   }
 
-  // Core shared scripts
   const coreScripts = [
     "/assets/js/cart.js",
     "/assets/js/search.js"
@@ -96,7 +91,6 @@ const res = await fetch(`${API_BASE}/api/version`);
     document.body.appendChild(script);
   });
 
-  // Page-specific scripts (declared per page)
   if (window.__pageScripts && Array.isArray(window.__pageScripts)) {
     window.__pageScripts.forEach(path => {
       const script = document.createElement("script");
@@ -108,6 +102,7 @@ const res = await fetch(`${API_BASE}/api/version`);
 
   window.__layoutInitialized = true;
 });
+
 
 
 // =====================================================
