@@ -1,10 +1,16 @@
 // /frontend/assets/js/product.js
-document.addEventListener("DOMContentLoaded", async () => {
 
-  const $ = sel => document.querySelector(sel);
+console.log("product.js loaded");
+
+(async function () {
+
+  const $ = (sel) => document.querySelector(sel);
   const IMAGE_BASE = "/assets/images/products/";
 
-  const params = new URLSearchParams(location.search);
+  // ============================
+  // GET PRODUCT ID FROM URL
+  // ============================
+  const params = new URLSearchParams(window.location.search);
   const productId = params.get("id");
 
   if (!productId) {
@@ -12,51 +18,79 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  // ---------- LOAD PRODUCTS ----------
+  // ============================
+  // LOAD PRODUCTS DATA
+  // ============================
   let products = [];
+
   try {
-    const res = await fetch("/data/products.json", { cache: "no-store" });
+    const res = await fetch("/data/products.json", {
+      cache: "no-store"
+    });
+
     products = await res.json();
+
   } catch (err) {
     console.error("Failed to load /data/products.json", err);
     return;
   }
 
   const product = products.find(p => p.id === productId);
+
   if (!product) {
     console.error("Product not found:", productId);
     return;
   }
 
-  // ---------- RENDER PRODUCT ----------
-  $(".product-title") &&
-    ($(".product-title").textContent = product.name);
-
-  $(".product-category") &&
-    ($(".product-category").textContent =
-      `${product.category} / ${product.subcategory}`);
-
-  $(".product-price") &&
-    ($(".product-price").textContent = `£${product.price.toFixed(2)}`);
-
-  $(".product-desc") &&
-    ($(".product-desc").textContent = product.description);
-
-  // ---------- IMAGES ----------
-  const hiddenGallery = document.getElementById("hidden-gallery");
-  if (hiddenGallery) {
-    hiddenGallery.innerHTML = "";
-    product.images.forEach(imgFile => {
-      const img = document.createElement("img");
-      img.src = IMAGE_BASE + imgFile;
-      img.alt = product.name;
-      hiddenGallery.appendChild(img);
-    });
-    document.dispatchEvent(new Event("productImagesLoaded"));
+  // ============================
+  // RENDER PRODUCT INFO
+  // ============================
+  if ($(".product-title")) {
+    $(".product-title").textContent = product.name;
   }
 
-  // ---------- CART HELPER ----------
+  if ($(".product-category")) {
+    $(".product-category").textContent =
+      `${product.category} / ${product.subcategory}`;
+  }
+
+  if ($(".product-price")) {
+    $(".product-price").textContent =
+      `£${Number(product.price).toFixed(2)}`;
+  }
+
+  if ($(".product-desc")) {
+    $(".product-desc").textContent = product.description;
+  }
+
+  // ============================
+  // RENDER IMAGES
+  // ============================
+  const hiddenGallery = document.getElementById("hidden-gallery");
+
+  if (hiddenGallery) {
+
+    hiddenGallery.innerHTML = "";
+
+    if (Array.isArray(product.images)) {
+
+      product.images.forEach(imgFile => {
+        const img = document.createElement("img");
+        img.src = IMAGE_BASE + imgFile;
+        img.alt = product.name;
+        hiddenGallery.appendChild(img);
+      });
+
+      // Let slider/gallery know images are ready
+      document.dispatchEvent(new Event("productImagesLoaded"));
+    }
+  }
+
+  // ============================
+  // ADD TO CART
+  // ============================
   function addToCart() {
+
     let cart = JSON.parse(localStorage.getItem("cart") || "[]")
       .filter(i => i && i.id);
 
@@ -69,7 +103,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         id: product.id,
         name: product.name,
         price: product.price,
-        image: IMAGE_BASE + (product.images[0] || ""),
+        image: IMAGE_BASE + (product.images?.[0] || ""),
         quantity: 1,
         category: product.category,
         subcategory: product.subcategory
@@ -77,25 +111,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     localStorage.setItem("cart", JSON.stringify(cart));
+
     document.dispatchEvent(new Event("cartUpdated"));
 
     return cart;
   }
 
-  // ---------- ADD TO BASKET ----------
   const addBtn = $(".btn-add");
+
   if (addBtn) {
     addBtn.addEventListener("click", () => {
+
       const cart = addToCart();
 
       const badge = document.querySelector(".basket-qty");
+
       if (badge) {
+
         const totalQty = cart.reduce(
           (sum, item) => sum + (item.quantity || 0),
           0
         );
+
         badge.textContent = totalQty;
         badge.classList.remove("hide");
+
         badge.classList.add("bump");
         setTimeout(() => badge.classList.remove("bump"), 220);
       }
@@ -104,13 +144,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // ---------- BUY NOW (ISOLATED FLOW) ----------
+  // ============================
+  // BUY NOW
+  // ============================
   const buyBtn = $(".btn-buy");
+
   if (buyBtn) {
+
     buyBtn.addEventListener("click", () => {
 
-      // ✅ Backup cart ONLY ONCE
+      // Backup existing cart once
       if (!localStorage.getItem("cart_backup")) {
+
         const existingCart =
           JSON.parse(localStorage.getItem("cart") || "[]");
 
@@ -122,26 +167,24 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       }
 
-      // Replace cart with ONLY this product
       const buyNowCart = [{
         id: product.id,
         name: product.name,
         price: product.price,
-        image: IMAGE_BASE + (product.images[0] || ""),
+        image: IMAGE_BASE + (product.images?.[0] || ""),
         quantity: 1,
         category: product.category,
         subcategory: product.subcategory
       }];
 
       localStorage.setItem("cart", JSON.stringify(buyNowCart));
-
-      // Set intent
       localStorage.setItem("buyNow", "true");
 
-      // Go straight to checkout
       window.location.href = "/cart/checkout.html";
     });
   }
 
+  // Signal finished loading
   document.dispatchEvent(new Event("productLoaded"));
+
 })();
