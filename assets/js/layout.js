@@ -58,10 +58,9 @@
     })();
   }
 
-  // =====================================================
-  // GLOBAL VERSIONED SCRIPT LOADER (ALWAYS RUNS)
-  // =====================================================
-  const API_BASE = "https://sell4life-backend.onrender.com";
+// GLOBAL VERSIONED SCRIPT LOADER
+// Only load core scripts if layout is enabled
+if (!disableLayout) {
 
   document.addEventListener("DOMContentLoaded", async () => {
     if (window.__layoutInitialized) return;
@@ -88,18 +87,10 @@
       document.body.appendChild(script);
     });
 
-if (window.__pageScripts && Array.isArray(window.__pageScripts)) {
-  window.__pageScripts.forEach(path => {
-    const script = document.createElement("script");
-    script.src = `${path}?v=${version}`;
-    script.type = "module";   // ← THIS is the fix
-    document.body.appendChild(script);
-  });
-}
-
-
     window.__layoutInitialized = true;
   });
+
+}
 
   // =====================================================
   // MINI CART + ACCOUNT DROPDOWN
