@@ -1,5 +1,6 @@
 // /frontend/assets/js/product.js
-(async function () {
+document.addEventListener("DOMContentLoaded", async () => {
+
   const $ = sel => document.querySelector(sel);
   const IMAGE_BASE = "/assets/images/products/";
 
