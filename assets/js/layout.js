@@ -1,8 +1,9 @@
-// =====================================================
-// layout.js — SINGLE, DEFENSIVE SOURCE OF TRUTH
-// Header / Footer / Auth / Cart / Search
-// Cache-safe, idempotent, boring (the good kind)
-// =====================================================
+// layout.js
+
+if (window.__disableLayout) {
+  console.log("Layout disabled for this page.");
+  return;
+}
 
 
 // =====================================================
