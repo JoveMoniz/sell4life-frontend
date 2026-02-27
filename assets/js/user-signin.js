@@ -2,9 +2,7 @@
 // SIGN IN (intent-based, NOT role-based)
 // =====================================================
 
-import { API_BASE } from './config.js';
-
-console.log('signin.js loaded');
+console.log('user-signin.js loaded');
 
 // =====================================================
 // AUTO-REDIRECT IF ALREADY LOGGED IN
@@ -19,17 +17,15 @@ if (existingToken) {
 }
 
 // =====================================================
-//                   DOM READY
+// INITIALISE FORM (NO DOMContentLoaded WRAPPER)
 // =====================================================
-document.addEventListener('DOMContentLoaded', () => {
-  const form = document.getElementById('signinForm');
-  const msg = document.getElementById('msg');
 
-  if (!form || !msg) {
-    console.error('Signin DOM elements missing');
-    return;
-  }
+const form = document.getElementById('signinForm');
+const msg = document.getElementById('msg');
 
+if (!form || !msg) {
+  console.error('Signin DOM elements missing');
+} else {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -37,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const password = document.getElementById('password').value.trim();
 
     msg.textContent = 'Checking credentials…';
-    msg.style.color = '#e5e7eb'; // neutral
+    msg.style.color = '#e5e7eb';
 
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
@@ -51,7 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
       let data;
       try {
         data = JSON.parse(text);
-
         console.log('STATUS:', res.status);
         console.log('RESPONSE:', data);
       } catch {
@@ -66,34 +61,25 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // =====================================================
-      // STORE AUTH (TOKEN CREATED HERE ONLY)
-      // =====================================================
+      // STORE AUTH
       localStorage.setItem('s4l_token', data.token);
       localStorage.setItem('s4l_user', JSON.stringify(data.user));
 
       msg.textContent = 'Login successful';
       msg.style.color = 'lightgreen';
 
-      // =====================================================
-      // REDIRECT LOGIC (INTENT ONLY)
-      // =====================================================
       let redirect = localStorage.getItem('postLoginRedirect');
-
       localStorage.removeItem('postLoginRedirect');
 
-      // PUBLIC SIGN-IN ALWAYS GOES TO USER AREA
       if (!redirect) {
         redirect = '/account/orders.html';
       }
 
-      setTimeout(() => {
-        window.location.href = redirect;
-      }, 300);
+      window.location.replace(redirect);
     } catch (err) {
       console.error('LOGIN ERROR:', err);
       msg.textContent = 'Server error';
       msg.style.color = 'red';
     }
   });
-});
+}

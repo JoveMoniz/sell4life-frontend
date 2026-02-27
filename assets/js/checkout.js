@@ -2,57 +2,52 @@
 // Sell4Life Checkout – STABLE (Buy Now Restored)
 // ================================
 
+// ---------- DOM ----------
+const itemsWrap = document.getElementById('checkout-items');
+const subtotalEl = document.getElementById('checkout-subtotal');
+const shippingEl = document.getElementById('checkout-shipping');
+const totalEl = document.getElementById('checkout-total');
+const orderBtn = document.getElementById('place-order-btn');
 
-import { API_BASE } from "./config.js";
+if (!itemsWrap || !subtotalEl || !shippingEl || !totalEl || !orderBtn) {
+  console.error('Checkout DOM missing');
+}
 
-document.addEventListener("DOMContentLoaded", () => {
+// ---------- READ CART ----------
+function readCart() {
+  try {
+    const data = JSON.parse(localStorage.getItem('cart') || '[]');
+    return Array.isArray(data) ? data.filter((i) => i && i.id) : [];
+  } catch {
+    return [];
+  }
+}
 
-  // ---------- DOM ----------
-  const itemsWrap  = document.getElementById("checkout-items");
-  const subtotalEl = document.getElementById("checkout-subtotal");
-  const shippingEl = document.getElementById("checkout-shipping");
-  const totalEl    = document.getElementById("checkout-total");
-  const orderBtn   = document.getElementById("place-order-btn");
+let cart = readCart();
 
-  if (!itemsWrap || !subtotalEl || !shippingEl || !totalEl || !orderBtn) {
-    console.error("Checkout DOM missing");
+// ---------- BUY NOW FLAG ----------
+const buyNow = localStorage.getItem('buyNow') === 'true';
+
+// ---------- RENDER ----------
+function renderItems() {
+  if (!cart.length) {
+    itemsWrap.innerHTML = '<p>Your cart is empty.</p>';
+    subtotalEl.textContent = '£0.00';
+    shippingEl.textContent = '£0.00';
+    totalEl.textContent = '£0.00';
+    orderBtn.disabled = true;
     return;
   }
 
-  // ---------- READ CART ----------
-  function readCart() {
-    try {
-      const data = JSON.parse(localStorage.getItem("cart") || "[]");
-      return Array.isArray(data) ? data.filter(i => i && i.id) : [];
-    } catch {
-      return [];
-    }
-  }
+  orderBtn.disabled = false;
 
-  let cart = readCart();
+  let subtotal = 0;
 
-  // ---------- BUY NOW FLAG ----------
-  const buyNow = localStorage.getItem("buyNow") === "true";
-
-  // ---------- RENDER ----------
-  function renderItems() {
-    if (!cart.length) {
-      itemsWrap.innerHTML = "<p>Your cart is empty.</p>";
-      subtotalEl.textContent = "£0.00";
-      shippingEl.textContent = "£0.00";
-      totalEl.textContent = "£0.00";
-      orderBtn.disabled = true;
-      return;
-    }
-
-    orderBtn.disabled = false;
-
-    let subtotal = 0;
-
-    itemsWrap.innerHTML = cart.map(item => {
-      const qty   = Number(item.quantity || 1);
+  itemsWrap.innerHTML = cart
+    .map((item) => {
+      const qty = Number(item.quantity || 1);
       const price = Number(item.price || 0);
-      const line  = qty * price;
+      const line = qty * price;
 
       subtotal += line;
 
@@ -60,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="checkout-item">
           <img
             class="checkout-thumb"
-            src="${item.image || "/assets/images/placeholder.png"}"
+            src="${item.image || '/assets/images/placeholder.png'}"
             alt="${item.name}"
             width="60"
             height="60"
@@ -72,77 +67,73 @@ document.addEventListener("DOMContentLoaded", () => {
           <span class="checkout-price">£${line.toFixed(2)}</span>
         </div>
       `;
-    }).join("");
+    })
+    .join('');
 
-    subtotalEl.textContent = `£${subtotal.toFixed(2)}`;
-    shippingEl.textContent = "£0.00";
-    totalEl.textContent    = `£${subtotal.toFixed(2)}`;
+  subtotalEl.textContent = `£${subtotal.toFixed(2)}`;
+  shippingEl.textContent = '£0.00';
+  totalEl.textContent = `£${subtotal.toFixed(2)}`;
+}
+
+renderItems();
+
+// ---------- PLACE ORDER ----------
+orderBtn.addEventListener('click', async () => {
+  if (!cart.length) return;
+
+  const token = localStorage.getItem('s4l_token');
+  if (!token) {
+    localStorage.setItem('postLoginRedirect', '/cart/checkout.html');
+    window.location.href = '/account/signin.html';
+    return;
   }
 
-  renderItems();
+  const items = cart.map((item) => ({
+    productId: item.id,
+    name: item.name,
+    price: Number(item.price),
+    quantity: Number(item.quantity || 1),
+    image: item.image,
+  }));
 
-  // ---------- PLACE ORDER ----------
-  orderBtn.addEventListener("click", async () => {
-    if (!cart.length) return;
+  const total = Number(items.reduce((sum, i) => sum + i.price * i.quantity, 0).toFixed(2));
 
-    const token = localStorage.getItem("s4l_token");
-    if (!token) {
-      localStorage.setItem("postLoginRedirect", "/cart/checkout.html");
-      window.location.href = "/account/signin.html";
-      return;
+  try {
+    const res = await fetch(`${API_BASE}/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + token,
+      },
+      body: JSON.stringify({ items, total }),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(err || 'Order creation failed');
     }
 
-    const items = cart.map(item => ({
-      productId: item.id,
-      name: item.name,
-      price: Number(item.price),
-      quantity: Number(item.quantity || 1),
-      image: item.image
-    }));
+    const order = await res.json();
 
-    const total = Number(
-      items.reduce((sum, i) => sum + i.price * i.quantity, 0).toFixed(2)
-    );
+    // ---------- CART CLEANUP ----------
+    if (buyNow) {
+      const backup = localStorage.getItem('cart_backup');
 
-    try {
-      const res = await fetch(`${API_BASE}/orders`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + token
-        },
-        body: JSON.stringify({ items, total })
-      });
-
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(err || "Order creation failed");
-      }
-
-      const order = await res.json();
-
-      // ---------- CART CLEANUP ----------
-      if (buyNow) {
-        const backup = localStorage.getItem("cart_backup");
-
-        if (backup) {
-          localStorage.setItem("cart", backup);
-          localStorage.removeItem("cart_backup");
-        } else {
-          localStorage.removeItem("cart");
-        }
-
-        localStorage.removeItem("buyNow");
+      if (backup) {
+        localStorage.setItem('cart', backup);
+        localStorage.removeItem('cart_backup');
       } else {
-        localStorage.removeItem("cart");
+        localStorage.removeItem('cart');
       }
 
-      window.location.href = `/thankyou/thankyou.html?id=${order.id}`;
-
-    } catch (err) {
-      console.error("PLACE ORDER ERROR:", err);
-      alert("Failed to place order. Please try again.");
+      localStorage.removeItem('buyNow');
+    } else {
+      localStorage.removeItem('cart');
     }
-  });
 
+    window.location.href = `/thankyou/thankyou.html?id=${order.id}`;
+  } catch (err) {
+    console.error('PLACE ORDER ERROR:', err);
+    alert('Failed to place order. Please try again.');
+  }
 });
