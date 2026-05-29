@@ -8,27 +8,63 @@ else {
 window.__quickAddLoaded = true;
 (function () {
 
-  // ── Create modal DOM ──────────────────────────────────────
-  const modal = document.createElement('div');
-  modal.id = 'qa-modal';
-  modal.className = 'qa-modal';
-  modal.innerHTML = `
-    <div class="qa-backdrop"></div>
-    <div class="qa-box">
-      <button class="qa-close" aria-label="Close">&times;</button>
-      <div class="qa-header">
-        <img class="qa-img" src="" alt="">
-        <div class="qa-meta">
-          <div class="qa-name"></div>
-          <div class="qa-price"></div>
+  // ── Modal DOM — created lazily on first open() call ──────
+  // This prevents the unstyled modal from appearing on pages
+  // that don't load quick-add.css (e.g. signin, vendor pages).
+  let modal = null;
+
+  function ensureModal() {
+    if (modal) return;
+    modal = document.createElement('div');
+    modal.id = 'qa-modal';
+    modal.className = 'qa-modal';
+    modal.innerHTML = `
+      <div class="qa-backdrop"></div>
+      <div class="qa-box">
+        <button class="qa-close" aria-label="Close">&times;</button>
+        <div class="qa-header">
+          <img class="qa-img" src="" alt="">
+          <div class="qa-meta">
+            <div class="qa-name"></div>
+            <div class="qa-price"></div>
+          </div>
         </div>
+        <div class="qa-variants"></div>
+        <button class="qa-confirm" disabled>Select an option</button>
+        <button class="qa-clear-cart">🗑 Clear cart</button>
       </div>
-      <div class="qa-variants"></div>
-      <button class="qa-confirm" disabled>Select an option</button>
-      <button class="qa-clear-cart">🗑 Clear cart</button>
-    </div>
-  `;
-  document.body.appendChild(modal);
+    `;
+    document.body.appendChild(modal);
+
+    modal.addEventListener('click', (e) => {
+      if (e.target.classList.contains('qa-backdrop') ||
+          e.target.classList.contains('qa-close')) {
+        close(); return;
+      }
+      const vBtn = e.target.closest('.qa-v');
+      if (vBtn && !vBtn.disabled) {
+        modal.querySelectorAll('.qa-v').forEach(b => b.classList.remove('qa-v-sel'));
+        vBtn.classList.add('qa-v-sel');
+        const vi = +vBtn.dataset.vi;
+        _variant  = _product.variants[vi];
+        const price = Number(_variant.price || _product.price || 0);
+        setPrice(price);
+        const confirm = modal.querySelector('.qa-confirm');
+        confirm.disabled    = false;
+        confirm.textContent = 'Add to Basket';
+        return;
+      }
+      if (e.target.classList.contains('qa-confirm') && !e.target.disabled) {
+        addToCart(); return;
+      }
+      if (e.target.classList.contains('qa-clear-cart')) {
+        localStorage.setItem('cart', '[]');
+        document.dispatchEvent(new Event('cartUpdated'));
+        refreshBasketBtns();
+        close();
+      }
+    });
+  }
 
   let _product   = null;
   let _variant   = null;
@@ -47,6 +83,7 @@ window.__quickAddLoaded = true;
 
   // ── Open ──────────────────────────────────────────────────
   function open(product) {
+    ensureModal();
     _product = product;
     _variant = null;
 
@@ -96,44 +133,6 @@ window.__quickAddLoaded = true;
     document.body.style.overflow = '';
   }
 
-  // ── Interactions inside modal ─────────────────────────────
-  modal.addEventListener('click', (e) => {
-
-    // Close
-    if (e.target.classList.contains('qa-backdrop') ||
-        e.target.classList.contains('qa-close')) {
-      close(); return;
-    }
-
-    // Variant pick
-    const vBtn = e.target.closest('.qa-v');
-    if (vBtn && !vBtn.disabled) {
-      modal.querySelectorAll('.qa-v').forEach(b => b.classList.remove('qa-v-sel'));
-      vBtn.classList.add('qa-v-sel');
-      const vi = +vBtn.dataset.vi;
-      _variant  = _product.variants[vi];
-      const price = Number(_variant.price || _product.price || 0);
-      setPrice(price);
-      const confirm = modal.querySelector('.qa-confirm');
-      confirm.disabled    = false;
-      confirm.textContent = 'Add to Basket';
-      return;
-    }
-
-    // Confirm add
-    if (e.target.classList.contains('qa-confirm') && !e.target.disabled) {
-      addToCart(); return;
-    }
-
-    // Clear cart
-    if (e.target.classList.contains('qa-clear-cart')) {
-      localStorage.setItem('cart', '[]');
-      document.dispatchEvent(new Event('cartUpdated'));
-      refreshBasketBtns();
-      close();
-      return;
-    }
-  });
 
   // ── Add to localStorage cart ──────────────────────────────
   function addToCart() {
@@ -314,7 +313,7 @@ window.__quickAddLoaded = true;
 
   // ── Keyboard close ────────────────────────────────────────
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') close();
+    if (e.key === 'Escape' && modal) close();
   });
 
   // ── Sync on cart changes (cart page remove / clear) ───────

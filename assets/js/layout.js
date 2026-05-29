@@ -548,16 +548,16 @@ document.addEventListener('headerLoaded', () => {
     document.body.appendChild(s);
   }
 
-  initCookieBanner();
-
   if (!window.__coreLoaded) {
     window.__coreLoaded = true;
-    loadScript('/assets/js/quick-add.js');
-    loadScript('/assets/js/cart.js');
-    loadScript('/assets/js/search.js');
-    // Sticky bottom bar — skip on admin and vendor account pages
     const _p = location.pathname;
-    if (!_p.includes('/account/admin/') && !_p.includes('/account/vendor/')) {
+    const _isBackoffice = _p.includes('/account/admin/') || _p.includes('/account/vendor/');
+    // Buyer-facing scripts and cookie banner — skip on admin and vendor pages
+    if (!_isBackoffice) {
+      initCookieBanner();
+      loadScript('/assets/js/quick-add.js');
+      loadScript('/assets/js/cart.js');
+      loadScript('/assets/js/search.js');
       loadScript('/assets/js/sticky-bar.js');
     }
   }
@@ -672,6 +672,9 @@ function initEmailVerificationBanner() {
 
 function initCookieBanner() {
   if (localStorage.getItem('s4l_cookies') === 'accepted') return;
+  // No cookie consent prompt needed on internal vendor/admin pages
+  const _cp = location.pathname;
+  if (_cp.includes('/account/vendor/') || _cp.includes('/account/admin/')) return;
 
   const style = document.createElement('style');
   style.id = 's4l-cookie-styles';
@@ -680,14 +683,14 @@ function initCookieBanner() {
       position: fixed;
       bottom: 0; left: 0; right: 0;
       z-index: 9999;
-      background: #094f4e;
+      background: #0b6b6a;
       border-top: none;
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 12px;
-      padding: 14px 24px;
+      gap: 10px;
+      padding: 12px 20px;
       box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
       transform: translateY(100%);
       transition: transform 0.35s ease;
@@ -699,15 +702,15 @@ function initCookieBanner() {
       margin: 0;
       font-size: 13px;
       flex: 1;
-      min-width: 200px;
-      line-height: 1.5;
+      min-width: 180px;
+      line-height: 1.4;
       color: #fff;
       font-family: inherit;
     }
     .s4l-cookie-actions {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
       flex-shrink: 0;
     }
     .s4l-cookie-btn {
@@ -715,7 +718,7 @@ function initCookieBanner() {
       color: #fff !important;
       border: none !important;
       border-radius: 6px !important;
-      padding: 8px 20px !important;
+      padding: 7px 18px !important;
       font-size: 13px !important;
       font-weight: 600 !important;
       cursor: pointer !important;
@@ -730,6 +733,24 @@ function initCookieBanner() {
       font-size: 12px;
       text-decoration: underline;
       white-space: nowrap;
+    }
+    @media (max-width: 600px) {
+      .s4l-cookie-banner {
+        padding: 8px 14px;
+        gap: 8px;
+      }
+      .s4l-cookie-text {
+        font-size: 11px;
+        min-width: 0;
+        line-height: 1.3;
+      }
+      .s4l-cookie-btn {
+        padding: 6px 14px !important;
+        font-size: 12px !important;
+      }
+      .s4l-cookie-link {
+        font-size: 11px;
+      }
     }
   `;
   document.head.appendChild(style);

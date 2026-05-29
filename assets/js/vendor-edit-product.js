@@ -1013,7 +1013,12 @@ function addVariantRow(data) {
     </td>
     <td class="ao-img-cell">
       <div class="ao-img-wrap">
-        <img class="ao-img-preview vr-img-preview" src="${imgSrc}" alt="" style="${imgSrc ? '' : 'display:none'}" />
+        <div class="vr-thumb-wrap${imgSrc ? ' has-img' : ''}">
+          <img class="vr-img-preview" src="${imgSrc}" alt="" />
+          <div class="vr-thumb-overlay">
+            <button type="button" class="vr-img-clear">CLR</button>
+          </div>
+        </div>
         <input type="text" class="vb-input ao-img-url vr-img-url" name="vr-image" value="${imgSrc}" placeholder="Paste image URL…" />
       </div>
     </td>
@@ -1024,6 +1029,14 @@ function addVariantRow(data) {
   `;
   tbody.appendChild(tr);
   setRowMode(tr, rowMode);
+
+  // Auto-sample dominant colour from image when no colour is stored yet
+  if (imgSrc && !data.color) {
+    sampleDominantColor(imgSrc, (hex) => {
+      const picker = tr.querySelector('[name="vr-color"]');
+      if (picker) { picker.value = hex; picker.dataset.userSet = 'true'; }
+    });
+  }
 }
 
 function getVariants() {
@@ -1094,27 +1107,54 @@ function loadVariants(variants) {
 function sampleDominantColor(src, onColor) {
   const img = new Image();
   img.crossOrigin = 'anonymous';
+  // Append cache-bust so the browser makes a fresh CORS request instead of
+  // reusing a cached non-CORS response (which would taint the canvas).
+  img.src = src + (src.includes('?') ? '&' : '?') + '_s4l=1';
   img.onload = () => {
     try {
-      const size = 60;
+      const SIZE = 80;
       const canvas = document.createElement('canvas');
-      canvas.width = size; canvas.height = size;
+      canvas.width = SIZE; canvas.height = SIZE;
       const ctx = canvas.getContext('2d');
-      const sx = Math.max(0, (img.naturalWidth  - size) / 2);
-      const sy = Math.max(0, (img.naturalHeight - size) / 2);
-      ctx.drawImage(img, sx, sy, size, size, 0, 0, size, size);
-      const data = ctx.getImageData(0, 0, size, size).data;
-      let r = 0, g = 0, b = 0, n = 0;
+      ctx.drawImage(img, 0, 0, SIZE, SIZE);
+      const data = ctx.getImageData(0, 0, SIZE, SIZE).data;
+
+      // Bucket pixels by 4-bit quantised RGB (16×16×16 = 4 096 buckets).
+      // Each bucket stores [rSum, gSum, bSum, count] so we can average
+      // within the winning bucket for accuracy.
+      const buckets = new Map();
+
       for (let i = 0; i < data.length; i += 4) {
-        if (data[i + 3] < 128) continue;
-        r += data[i]; g += data[i + 1]; b += data[i + 2]; n++;
+        if (data[i + 3] < 128) continue;           // skip transparent
+        const r = data[i], g = data[i + 1], b = data[i + 2];
+        // Skip near-white backgrounds (lum > 235) and near-black shadows (lum < 20)
+        const lum = (r * 299 + g * 587 + b * 114) / 1000;
+        if (lum > 235 || lum < 20) continue;
+
+        // Quantise: keep top 4 bits of each channel
+        const key = ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
+        const e = buckets.get(key);
+        if (e) { e[0] += r; e[1] += g; e[2] += b; e[3]++; }
+        else    { buckets.set(key, [r, g, b, 1]); }
       }
-      if (!n) return;
-      const hex = (v) => Math.round(v / n).toString(16).padStart(2, '0');
+
+      if (!buckets.size) return;
+
+      // Find the bucket with the most pixels — that is the dominant colour by area
+      let best = 0, winner = null;
+      for (const e of buckets.values()) {
+        if (e[3] > best) { best = e[3]; winner = e; }
+      }
+
+      // Average within the winning bucket gives the true representative colour
+      const r = Math.round(winner[0] / winner[3]);
+      const g = Math.round(winner[1] / winner[3]);
+      const b = Math.round(winner[2] / winner[3]);
+
+      const hex = (v) => v.toString(16).padStart(2, '0');
       onColor(`#${hex(r)}${hex(g)}${hex(b)}`);
     } catch { /* CORS blocked — leave picker as-is */ }
   };
-  img.src = src;
 }
 
 function bindVariants() {
@@ -1216,10 +1256,38 @@ function bindVariants() {
   const variantRows = document.getElementById('variant-rows');
   variantRows?.addEventListener('click', (e) => {
     if (e.target.classList.contains('vr-mode-btn')) {
-      setRowMode(e.target.closest('tr'), e.target.dataset.pick);
+      const tr = e.target.closest('tr');
+      setRowMode(tr, e.target.dataset.pick);
+      if (e.target.dataset.pick === 'color') {
+        const picker = tr.querySelector('[name="vr-color"]');
+        const imgUrl = tr.querySelector('[name="vr-image"]')?.value.trim();
+        if (picker && picker.dataset.userSet !== 'true' && imgUrl) {
+          sampleDominantColor(imgUrl, (hex) => {
+            picker.value = hex;
+            picker.dataset.userSet = 'true';
+          });
+        }
+      }
     }
     if (e.target.classList.contains('vb-remove-btn')) {
       e.target.closest('tr').remove();
+    }
+    // Clear just the thumbnail — confirm before wiping
+    if (e.target.classList.contains('vr-img-clear')) {
+      const td   = e.target.closest('td');
+      const wrap = td.querySelector('.vr-thumb-wrap');
+      const img  = td.querySelector('.vr-img-preview');
+      const url  = td.querySelector('[name="vr-image"]');
+      const doIt = async () => {
+        const ok = window.confirmAction
+          ? await window.confirmAction('Clear this variant image? The colour swatch will remain.')
+          : confirm('Clear this variant image?');
+        if (!ok) return;
+        if (img)  img.src = '';
+        if (url)  url.value = '';
+        if (wrap) wrap.classList.remove('has-img');
+      };
+      doIt();
     }
   });
   variantRows?.addEventListener('input', (e) => {
@@ -1227,9 +1295,12 @@ function bindVariants() {
       e.target.dataset.userSet = 'true';
     }
     if (e.target.classList.contains('vr-img-url')) {
-      const url = e.target.value.trim();
-      const preview = e.target.closest('td').querySelector('.vr-img-preview');
-      if (preview) { preview.src = url; preview.style.display = url ? '' : 'none'; }
+      const url     = e.target.value.trim();
+      const td      = e.target.closest('td');
+      const preview = td.querySelector('.vr-img-preview');
+      const wrap    = td.querySelector('.vr-thumb-wrap');
+      if (preview) preview.src = url;
+      if (wrap)    wrap.classList.toggle('has-img', !!url);
       if (url) sampleDominantColor(url, (hex) => {
         const picker = e.target.closest('tr')?.querySelector('[name="vr-color"]');
         if (picker) { picker.value = hex; picker.dataset.userSet = 'true'; }

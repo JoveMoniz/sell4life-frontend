@@ -439,6 +439,12 @@ Vendor Products
 
 /* ── Bulk selection ── */
 
+/* CSS display rules override the HTML hidden attribute — restore correct behaviour */
+.vp-bulk-bar[hidden],
+.vp-toolbar[hidden] {
+  display: none !important;
+}
+
 .vp-bulk-bar {
   display: flex;
   align-items: center;
@@ -2562,8 +2568,11 @@ Vendor Products
 
   .vendor-container {
     max-width: 100%;
+    width: 100%;
     margin: 0;
     padding: 16px;
+    box-sizing: border-box;
+    overflow-x: hidden;
   }
 
   .vendor-title {
@@ -3253,22 +3262,26 @@ Vendor Products
     text-align: center;
   }
 
+  /* Toolbar: wrap rows — search and filters each get their own row,
+     sort and view-toggle share the last row */
   .vp-toolbar {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
     padding: 10px 12px;
     gap: 8px;
   }
 
-  /* Search full width */
+  /* Search spans full row */
   .vp-search {
+    flex: 0 0 100%;
     height: 42px;
     font-size: 1rem; /* prevents iOS zoom */
   }
 
-  /* Filter row: equal-width buttons */
+  /* Filters span full row */
   .vp-filter-btns {
-    width: 100%;
+    flex: 0 0 100%;
   }
 
   .vp-filter-btn {
@@ -3277,17 +3290,15 @@ Vendor Products
     height: 38px;
   }
 
-  /* Sort + view toggle on same row */
+  /* Sort grows, view-toggle natural width — both on same row */
   .vp-sort {
-    flex: 1;
+    flex: 1 1 auto;
     height: 38px;
     font-size: 0.9rem;
   }
 
-  /* keep sort + toggle side-by-side */
-  .vp-toolbar > .vp-sort,
-  .vp-toolbar > .vp-view-toggle {
-    display: inline-flex;
+  .vp-view-toggle {
+    flex: 0 0 auto;
   }
 
   /* Product card action buttons: smaller on narrow cards */
@@ -3304,50 +3315,39 @@ Vendor Products
   }
 }
 
-/* Mobile phones (≤600px) — 1 column, horizontal card */
+/* Mobile phones (≤600px) — 1 column, card stays vertical */
 @media (max-width: 600px) {
   .vendor-products-grid:not(.vp-list) {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 14px;
+    width: 100%;
   }
 
-  /* Horizontal card: image left, info right */
+  /* Keep the card vertical — image on top, body + actions below */
   .vendor-product-card {
-    display: grid;
-    grid-template-columns: 90px 1fr;
-    grid-template-rows: auto auto;
-    column-gap: 12px;
-    padding: 12px;
-    align-items: start;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
   }
 
   .vp-img-wrap {
-    grid-column: 1;
-    grid-row: 1;
-    width: 90px;
-    height: 90px;
-    margin-bottom: 0;
-  }
-
-  .vp-card-body {
-    grid-column: 2;
-    grid-row: 1;
-    padding: 0;
+    width: 100%;
+    height: 200px;
+    flex-shrink: 0;
   }
 
   .vendor-product-actions {
-    grid-column: 1 / 3;
-    grid-row: 2;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid #f0f0f0;
+    flex-wrap: wrap;
     gap: 6px;
   }
 
   .vendor-product-actions a,
   .vendor-product-actions button {
     padding: 6px 10px;
-    font-size: 0.75rem;
+    font-size: 0.78rem;
   }
 
   /* List row: compact */
@@ -4187,6 +4187,23 @@ Vendor Products
   margin-top: 4px;
 }
 
+.vb-add-btn {
+  padding: 8px 16px;
+  border: 1px dashed #0b6b6a;
+  border-radius: 7px;
+  background: transparent;
+  color: #0b6b6a;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.vb-add-btn:hover {
+  background: #0b6b6a;
+  color: #fff;
+}
+
 .btn-variant-imgs {
   border-color: #a5b4fc;
   color: #4f46e5;
@@ -4232,6 +4249,61 @@ Vendor Products
   border-radius: 6px;
   border: 1px solid #e5e7eb;
   background: #f9fafb;
+}
+
+/* Variant thumbnail hover-to-clear */
+.vr-thumb-wrap {
+  display: none;
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.vr-thumb-wrap.has-img {
+  display: block;
+}
+
+.vr-thumb-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.vr-thumb-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.52);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.vr-thumb-wrap:hover .vr-thumb-overlay {
+  opacity: 1;
+}
+
+.vr-img-clear {
+  background: rgba(255, 255, 255, 0.92);
+  color: #b91c1c;
+  border: none;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+}
+
+.vr-img-clear:hover {
+  background: #fff;
 }
 
 .ao-img-url {
