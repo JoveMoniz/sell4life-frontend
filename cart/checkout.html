@@ -7,10 +7,15 @@
 
     <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png" />
     <link rel="stylesheet" href="/assets/css/layout.css?v=20260125" />
-    <link rel="stylesheet" href="/assets/css/checkout.css?v=20260125" />
+    <link rel="stylesheet" href="/assets/css/checkout.css?v=20260301" />
+
+    <!-- 🔐 Stripe -->
+    <script src="https://js.stripe.com/v3/"></script>
+    <link rel="stylesheet" href="/assets/css/quick-add.css" />
+    <style id="s4l-fouc">html{visibility:hidden}</style>
   </head>
 
-  <body>
+  <body class="s4l-loading">
     <div class="desktop-header-wrapper"></div>
 
     <div class="mobile-header-wrapper">
@@ -21,14 +26,16 @@
       <h1>Checkout</h1>
 
       <div class="checkout-grid">
-        <!-- LEFT SIDE: CUSTOMER DETAILS -->
+        <!-- LEFT SIDE -->
         <div class="checkout-left">
+          <!-- Contact -->
           <div class="checkout-section">
             <h2>Contact Information</h2>
             <label>Email</label>
             <input type="email" id="checkout-email" placeholder="your@email.com" />
           </div>
 
+          <!-- Shipping -->
           <div class="checkout-section">
             <h2>Shipping Address</h2>
 
@@ -48,60 +55,68 @@
             <input type="text" id="checkout-country" value="United Kingdom" />
           </div>
 
+          <!-- Payment -->
           <div class="checkout-section">
             <h2>Payment</h2>
 
-            <p style="opacity: 0.7">(No real payments yet. This is a preview checkout.)</p>
+            <!-- Stripe mounts securely here -->
+            <div id="payment-element"></div>
 
-            <label>Cardholder Name</label>
-            <input type="text" placeholder="Name on card" />
-
-            <label>Card Number</label>
-            <input type="text" placeholder="1234 5678 9012 3456" />
-
-            <div class="inline-fields">
-              <div>
-                <label>Expiry</label>
-                <input type="text" placeholder="MM/YY" />
-              </div>
-              <div>
-                <label>CVC</label>
-                <input type="text" placeholder="123" />
-              </div>
-            </div>
+            <div id="payment-message" class="hidden"></div>
           </div>
         </div>
 
-        <!-- RIGHT SIDE: ORDER SUMMARY -->
+        <!-- RIGHT SIDE -->
         <div class="checkout-right">
           <div class="checkout-summary">
             <h2>Your Order</h2>
+
             <div id="checkout-items"></div>
 
             <div class="checkout-totals">
-              <div><span>Subtotal</span><span id="checkout-subtotal">£0.00</span></div>
-              <div><span>Shipping</span><span id="checkout-shipping">£0.00</span></div>
-              <div class="total-line"><span>Total</span><span id="checkout-total">£0.00</span></div>
+              <div>
+                <span>Subtotal</span>
+                <span id="checkout-subtotal">£0.00</span>
+              </div>
+              <div>
+                <span>Shipping</span>
+                <span id="checkout-shipping">£0.00</span>
+              </div>
+              <div class="total-line">
+                <span>Total</span>
+                <span id="checkout-total">£0.00</span>
+              </div>
             </div>
 
-            <button id="place-order-btn" class="checkout-btn">Place Order</button>
+            <button id="place-order-btn" class="checkout-btn">Pay Now</button>
+          </div>
+
+          <div class="checkout-exit">
+            <a href="/cart/cart.html" class="btn-back">← Back to Basket</a>
+            <a href="/shop/index.html" class="btn-shop">Continue Shopping →</a>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Global config -->
     <script src="/assets/js/config-global.js"></script>
+
+    <!-- Layout -->
     <script src="/assets/js/layout.js"></script>
+
+    <!-- Checkout logic -->
     <script>
-      window.__pageScripts = ['/assets/js/checkout.js'];
+      window.__pageScripts = ['/assets/js/checkout.js?v=20260301'];
     </script>
 
+    <!-- Prevent back navigation after completed checkout -->
     <script>
       (function () {
         window.addEventListener('pageshow', function (event) {
           const completed = localStorage.getItem('checkout_completed') === 'true';
           const cart = JSON.parse(localStorage.getItem('cart') || '[]');
 
-          // Only block BACK navigation after a completed checkout
           if (completed && cart.length === 0) {
             window.location.replace('/index.html');
           }

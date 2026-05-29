@@ -1,23 +1,57 @@
 // =====================================================
-// SIGN IN (intent-based, NOT role-based)
+// SIGN IN (intent-based, upgraded with vendor check)
 // =====================================================
 
 console.log('user-signin.js loaded');
 
 // =====================================================
-// AUTO-REDIRECT IF ALREADY LOGGED IN
+// AUTO-REDIRECT IF ALREADY LOGGED IN (INTENT AWARE)
 // =====================================================
+
 const existingToken = localStorage.getItem('s4l_token');
+const existingUser = localStorage.getItem('s4l_user');
 
-if (existingToken) {
-  const redirect = localStorage.getItem('postLoginRedirect') || '/account/orders.html';
+if (existingToken && existingUser) {
+  const intent = localStorage.getItem('s4l_intent');
 
-  localStorage.removeItem('postLoginRedirect');
-  window.location.href = redirect;
+  // 🔥 ONLY go vendor flow if user intended it
+  if (intent === 'sell') {
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/vendor/me`, {
+          headers: {
+            Authorization: `Bearer ${existingToken}`,
+          },
+        });
+
+        const data = await res.json();
+
+        localStorage.removeItem('s4l_intent');
+
+        if (data.isVendor) {
+          window.location.href = '/account/vendor/dashboard.html';
+        } else {
+          window.location.href = '/account/vendor/create.html';
+        }
+      } catch {
+        const redirect = localStorage.getItem('postLoginRedirect');
+        localStorage.removeItem('postLoginRedirect');
+
+        window.location.href = redirect || '/index.html';
+      }
+    })();
+  } else {
+    // 🧠 USE SAVED REDIRECT OR DEFAULT
+    const redirect = localStorage.getItem('postLoginRedirect');
+
+    localStorage.removeItem('postLoginRedirect');
+
+    window.location.href = redirect || '/index.html';
+  }
 }
 
 // =====================================================
-// INITIALISE FORM (NO DOMContentLoaded WRAPPER)
+// INITIALISE FORM
 // =====================================================
 
 const form = document.getElementById('signinForm');
@@ -68,12 +102,38 @@ if (!form || !msg) {
       msg.textContent = 'Login successful';
       msg.style.color = 'lightgreen';
 
-      let redirect = localStorage.getItem('postLoginRedirect');
-      localStorage.removeItem('postLoginRedirect');
+      // =====================================================
+      // POST-LOGIN REDIRECT WITH VENDOR CHECK
+      // =====================================================
 
-      if (!redirect) {
-        redirect = '/account/orders.html';
+      const intent = localStorage.getItem('s4l_intent');
+      localStorage.removeItem('s4l_intent');
+
+      let redirect = localStorage.getItem('postLoginRedirect');
+
+      if (intent === 'sell') {
+        try {
+          const vendorRes = await fetch(`${API_BASE}/vendor/me`, {
+            headers: {
+              Authorization: `Bearer ${data.token}`,
+            },
+          });
+
+          const vendorData = await vendorRes.json();
+
+          if (vendorData.isVendor) {
+            redirect = '/account/vendor/dashboard.html';
+          } else {
+            redirect = '/account/vendor/create.html';
+          }
+        } catch {
+          redirect = '/index.html';
+        }
+      } else {
+        // 🧠 USE SAVED REDIRECT OR DEFAULT
+        redirect = redirect || '/index.html';
       }
+      localStorage.removeItem('postLoginRedirect');
 
       window.location.replace(redirect);
     } catch (err) {

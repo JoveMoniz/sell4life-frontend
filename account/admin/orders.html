@@ -10,7 +10,8 @@
     <title>Admin Orders | Sell4Life</title>
 
     <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png" />
-    <link rel="stylesheet" href="/assets/css/admin.css?v=20260211c" />
+    <link rel="stylesheet" href="/assets/css/admin.css" />
+    <style>#logoutBtn { padding: 5px 10px; font-size: 12px; font-weight: 500; }</style>
   </head>
 
   <body class="admin admin-orders">
@@ -27,8 +28,8 @@
         </header>
 
         <div class="admin-title">
-          <a href="/account/admin/index.html" class="admin-back">← back to dashboard</a>
-          <h1>Admin – Orders</h1>
+          <a href="/account/admin/index.html" class="admin-back">← dashboard</a>
+          <h1>Orders</h1>
         </div>
 
         <button id="logoutBtn">Log out</button>
@@ -48,7 +49,14 @@
 
         <div class="admin-status-filters">
           <button class="filter-btn active" data-status="all">All</button>
+
+          <!-- ACTION REQUIRED (the real battlefield) -->
+          <button class="filter-btn" data-status="Pending">Pending</button>
           <button class="filter-btn" data-status="Processing">Processing</button>
+          <button class="filter-btn danger" data-status="Cancel Requested">Cancel Req</button>
+          <button class="filter-btn danger" data-status="Refund Requested">Refund Req</button>
+
+          <!-- LOWER PRIORITY -->
           <button class="filter-btn" data-status="Shipped">Shipped</button>
           <button class="filter-btn" data-status="Delivered">Delivered</button>
           <button class="filter-btn" data-status="Cancelled">Cancelled</button>
@@ -65,7 +73,8 @@
               <th>Order ID</th>
               <th>User</th>
               <th>Total</th>
-              <th>Status</th>
+              <th>Fulfillment</th>
+              <th>Payment</th>
               <th>Created</th>
               <th>Action</th>
             </tr>
@@ -77,8 +86,10 @@
       <div id="pagination"></div>
     </div>
 
-    <script type="module" src="/assets/js/config.js?v=20260211"></script>
-    <script type="module" src="/assets/js/admin-orders.js?v=20260211"></script>
+    <script src="/assets/js/config-global.js"></script>
+    <script src="/assets/js/live-updates.js"></script>
+    <script src="/assets/js/require-admin.js"></script>
+    <script type="module" src="/assets/js/admin-orders.js?v=20260521"></script>
     <script type="module" src="/assets/js/admin-logout.js"></script>
   </body>
 </html>

@@ -1,15 +1,13 @@
-const FINAL_STATES = ['delivered', 'cancelled'];
-
-import { API_BASE } from './config.js';
+const API = window.API_BASE;
 
 /* =================================
-   AUTH GUARD
+   AUTH FETCH — cookie + Authorization header (fallback)
 ================================= */
-const token = localStorage.getItem('s4l_token');
-const role = localStorage.getItem('s4l_role');
-
-if (!token || role !== 'admin') {
-  window.location.href = '/account/admin/signin.html';
+function authFetch(url, opts = {}) {
+  const token = localStorage.getItem('s4l_token');
+  const headers = { ...(opts.headers || {}) };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return fetch(url, { ...opts, credentials: 'include', headers });
 }
 
 /* =================================
@@ -19,82 +17,172 @@ let currentPage = 1;
 let currentQuery = '';
 let currentStatus = 'all';
 
+let searchInput;
+let searchTimer;
+let searchController;
+
 /* =================================
    HELPERS
 ================================= */
-async function updateOrderStatus(orderId, status) {
-  const res = await fetch(`${API_BASE}/admin/orders/${orderId}/status`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ status }),
-  });
 
-  if (!res.ok) {
-    const msg = await res.text();
-    throw new Error(msg || 'Status update failed');
-  }
-}
+function getAdminLabel(status) {
+  const labels = {
+    Cancelled: 'Force Cancel',
 
-function getAllowedTransitions(currentStatus) {
-  const map = {
-    Processing: ['Shipped', 'Cancelled'],
-    Shipped: ['Delivered'],
-    Delivered: [],
-    Cancelled: [],
+    'Return Approved': 'Override Approve Return',
+
+    'Return Rejected': 'Override Reject Return',
   };
 
-  return map[currentStatus] || [];
+  return labels[status] || status;
+}
+
+/* =================================
+   SEARCH HANDLER (ONLY ONE SOURCE)
+================================= */
+function attachSearchHandlers() {
+  searchInput.addEventListener('input', (e) => {
+    let raw = e.target.value;
+
+    const isEmail = /[a-z]/i.test(raw);
+
+    if (isEmail) {
+      currentQuery = raw.replace(/^S4L-/i, '');
+    } else {
+      // ID MODE — auto-prefix with S4L-
+      let clean = raw.replace(/^S4L-/i, '').toUpperCase();
+      currentQuery = clean;
+
+      const cursorPos = searchInput.selectionStart;
+      const newValue = clean ? `S4L-${clean}` : '';
+      searchInput.value = newValue;
+      const offset = newValue.length - raw.length;
+      searchInput.setSelectionRange(cursorPos + offset, cursorPos + offset);
+    }
+
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      currentPage = 1;
+      loadOrders(1, currentQuery, currentStatus);
+    }, 300);
+  });
+
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      clearTimeout(searchTimer);
+      currentPage = 1;
+      loadOrders(1, currentQuery, currentStatus);
+    }
+  });
 }
 
 /* =================================
    LOAD ORDERS
 ================================= */
 async function loadOrders(page = 1, q = '', status = 'all') {
-  let url = `${API_BASE}/admin/orders?page=${page}`;
+  if (searchController) searchController.abort();
+  searchController = new AbortController();
 
+  let url = `${API}/admin/orders?page=${page}`;
   if (q) url += `&q=${encodeURIComponent(q)}`;
   if (status !== 'all') url += `&status=${status}`;
 
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  if (res.status === 401 || res.status === 403) {
-    window.location.href = '/account/admin/signin.html';
-    return;
-  }
-
-  const data = await res.json();
   const tbody = document.getElementById('ordersTable');
-  tbody.innerHTML = '';
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#6b7280">Loading…</td></tr>';
+
+  try {
+    const res = await authFetch(url, { signal: searchController.signal });
+
+    if (res.status === 401 || res.status === 403) {
+      window.location.href = '/account/admin/signin.html';
+      return;
+    }
+
+    const data = await res.json();
+    tbody.innerHTML = '';
 
   data.orders.forEach((order) => {
     const tr = document.createElement('tr');
+    tr.dataset.order = JSON.stringify(order);
+
+    const paymentStatus = order.paymentStatus || 'pending';
+
+    const paymentLabelMap = {
+      paid: 'Paid',
+      refund_scheduled: 'Refund Scheduled',
+      refunded: 'Refunded',
+      partially_refunded: 'Partially Refunded',
+      failed: 'Failed',
+    };
+
+    const paymentLabel = paymentLabelMap[paymentStatus] || 'Unpaid';
+
+    const realId = order._id;
+
+    let displayId =
+      order.displayId ||
+      (order.shortId
+        ? `S4L-${order.shortId}`
+        : `S4L-${(order._id || order.id).slice(0, 10).toUpperCase()}`);
+
+    const cleanId = displayId.replace('S4L-', '');
+
+    const activeDisputes = (order.disputes || []).filter(d =>
+      d.status !== 'won' && d.status !== 'charge_refunded' && d.status !== 'warning_closed'
+    );
+    const disputeBadge = activeDisputes.length
+      ? `<span class="dispute-badge" title="Chargeback: ${activeDisputes[0].status}">⚠ dispute</span>`
+      : '';
 
     tr.innerHTML = `
-      <td>S4L-${order.id.slice(0, 10).toUpperCase()}</td>
-      <td>${order.user?.email || '-'}</td>
-      <td>£${Number(order.total || 0).toFixed(2)}</td>
-      <td>
-        <span class="status status-${order.status.toLowerCase()}">
-          ${order.status}
-        </span>
-      </td>
-      <td>${new Date(order.createdAt).toLocaleString()}</td>
-      <td>
-        <button class="view-order" data-id="${order.id}">
-          View
-        </button>
-      </td>
-    `;
+<td>
+  <button class="quick-search-id" data-id="${cleanId}">
+    ${displayId}
+  </button>
+  ${disputeBadge}
+</td>
+
+<td>
+  ${
+    order.user?.email
+      ? `<button class="quick-search-email" data-email="${order.user.email}">
+           ${order.user.email}
+         </button>`
+      : '-'
+  }
+</td>
+
+<td>£${Number(order.total || 0).toFixed(2)}</td>
+
+<td>
+  <span class="status status-${order.status.toLowerCase()}">
+    ${order.status}
+  </span>
+</td>
+
+<td>
+  <span class="payment-status ${paymentStatus}">
+    ${paymentLabel}
+  </span>
+</td>
+
+<td>${new Date(order.createdAt).toLocaleString()}</td>
+
+<td>
+  <button class="view-order" data-id="${realId}">
+    View
+  </button>
+</td>
+`;
 
     tbody.appendChild(tr);
   });
 
-  renderPagination(data.page, data.totalPages);
+    renderPagination(data.page, data.totalPages);
+  } catch (err) {
+    if (err.name === 'AbortError') return;
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#e53e3e">Failed to load orders.</td></tr>';
+  }
 }
 
 /* =================================
@@ -122,393 +210,253 @@ function renderPagination(current, total) {
 }
 
 /* =================================
-   TABLE CLICK HANDLER
+   TABLE CLICK HANDLER (FINAL CLEAN)
 ================================= */
-document.getElementById('ordersTable').addEventListener('click', async (e) => {
-  /* OPEN INLINE DETAILS */
-  const viewBtn = e.target.closest('.view-order');
-  if (viewBtn) {
-    const row = viewBtn.closest('tr');
-    const orderId = viewBtn.dataset.id;
-
-    const backendStatus = row.children[3].textContent.trim();
-    const isFinal = FINAL_STATES.includes(backendStatus.toLowerCase());
-
-    let detailsRow = row.nextElementSibling;
-    if (detailsRow && detailsRow.classList.contains('order-details-row')) {
-      detailsRow.classList.remove('open');
-
-      setTimeout(() => {
-        detailsRow.remove();
-      }, 350); // match CSS duration
-
-      return;
-    }
-
-    document.querySelectorAll('.order-details-row').forEach((r) => r.remove());
-
-    const allowedStatuses = getAllowedTransitions(backendStatus);
-
-    detailsRow = document.createElement('tr');
-    detailsRow.className = 'order-details-row';
-
-    const cell = document.createElement('td');
-    cell.colSpan = 6;
-
-    cell.innerHTML = `
-  <div class="inline-order-wrapper">
-    <div class="inline-order-content">
-
-      <div class="inline-status-line">
-        <strong>Status</strong>
-        <span class="status status-${backendStatus.toLowerCase()}">
-          ${backendStatus}
-        </span>
-      </div>
-
-      ${
-        isFinal
-          ? `
-            <div class="inline-final-message">
-              Final state – no further changes
-            </div>
-          `
-          : `
-            <div class="inline-status-buttons">
-              ${allowedStatuses
-                .map(
-                  (status) => `
-                  <button
-                    class="status-btn ${status === backendStatus ? 'active' : ''}"
-                    data-id="${orderId}"
-                    data-status="${status}">
-                    ${status}
-                  </button>
-                `
-                )
-                .join('')}
-            </div>
-          `
-      }
-
-      <a class="inline-details-link"
-         href="/account/admin/order-details.html?id=${orderId}">
-        View full details →
-      </a>
-
-    </div>
-  </div>
-`;
-
-    detailsRow.appendChild(cell);
-    row.after(detailsRow);
-    // trigger animation
-    requestAnimationFrame(() => {
-      detailsRow.classList.add('open');
-    });
+document.getElementById('ordersTable').addEventListener('click', (e) => {
+  // ===============================
+  // LET LINKS WORK
+  // ===============================
+  if (e.target.closest('.inline-details-link')) {
     return;
   }
 
-  /* STATUS BUTTON CLICK */
+  // ===============================
+  // STATUS BUTTON CLICK
+  // ===============================
   const statusBtn = e.target.closest('.status-btn');
-  if (!statusBtn) return;
+  if (statusBtn) {
+    const orderId = statusBtn.dataset.id;
+    const newStatus = statusBtn.dataset.status;
 
-  const orderId = statusBtn.dataset.id;
-  const newStatus = statusBtn.dataset.status;
+    updateOrderStatus(orderId, newStatus);
+    return;
+  }
+  const viewBtn = e.target.closest('.view-order');
+  if (!viewBtn) return;
 
-  statusBtn.disabled = true;
-  statusBtn.textContent = 'Saving…';
+  const row = viewBtn.closest('tr');
+  const orderId = viewBtn.dataset.id;
 
-  try {
-    await updateOrderStatus(orderId, newStatus);
+  let detailsRow = row.nextElementSibling;
 
-    const detailsRow = statusBtn.closest('tr');
-    const mainRow = detailsRow.previousElementSibling;
-    const statusCell = mainRow.children[3];
+  // ===============================
+  // CLOSE
+  // ===============================
+  if (detailsRow && detailsRow.classList.contains('order-details-row')) {
+    const wrapper = detailsRow.querySelector('.inline-order-wrapper');
 
-    // Update main table badge
-    statusCell.innerHTML = `
-    <span class="status status-${newStatus.toLowerCase()}">
-      ${newStatus}
-    </span>
-  `;
+    if (wrapper) {
+      // lock current height
+      wrapper.style.height = wrapper.scrollHeight + 'px';
 
-    const content = detailsRow.querySelector('.inline-order-content');
+      requestAnimationFrame(() => {
+        wrapper.style.height = '0px';
+      });
 
-    // Update inline badge
-    const inlineStatus = content.querySelector('.inline-status-line span');
-    if (inlineStatus) {
-      inlineStatus.className = `status status-${newStatus.toLowerCase()}`;
-      inlineStatus.textContent = newStatus;
+      setTimeout(() => {
+        detailsRow.remove();
+      }, 450);
     }
 
-    // Get new transitions
-    const allowedStatuses = getAllowedTransitions(newStatus);
+    return;
+  }
 
-    const buttonsContainer = content.querySelector('.inline-status-buttons');
+  // ===============================
+  // CLOSE ANY OPEN ROW (SMOOTH, NOT INSTANT)
+  // ===============================
+  const openRow = document.querySelector('.order-details-row');
 
-    // If no transitions → final state
-    if (!allowedStatuses.length) {
-      buttonsContainer?.remove();
+  if (openRow && openRow !== detailsRow) {
+    const openWrapper = openRow.querySelector('.inline-order-wrapper');
 
-      // Avoid duplicating final message
-      if (!content.querySelector('.inline-final-message')) {
-        const msg = document.createElement('div');
-        msg.className = 'inline-final-message';
-        msg.textContent = 'Final state – no further changes';
+    if (openWrapper) {
+      // lock current height
+      openWrapper.style.height = openWrapper.scrollHeight + 'px';
 
-        content.insertBefore(msg, content.querySelector('.inline-details-link'));
-      }
+      requestAnimationFrame(() => {
+        openWrapper.style.height = '0px';
+      });
 
+      // remove AFTER animation
+      setTimeout(() => {
+        openRow.remove();
+      }, 450);
+    }
+  }
+
+  const backendStatus = row.children[3].innerText.trim();
+  const order = JSON.parse(row.dataset.order);
+
+  const allowedStatuses = Array.isArray(order.allowedActions) ? order.allowedActions : [];
+  const paymentState = row.querySelector('.payment-status')?.textContent.trim().toLowerCase();
+
+  const isFinalState = Boolean(order.isFinal);
+  // ===============================
+  // CREATE ROW
+  // ===============================
+  detailsRow = document.createElement('tr');
+  detailsRow.className = 'order-details-row';
+
+  const cell = document.createElement('td');
+  cell.colSpan = 7;
+
+  const vendorOrders = Array.isArray(order.vendorOrders) ? order.vendorOrders : [];
+
+  const vendorChips = vendorOrders.map(vo => {
+    const name     = vo.vendorStoreName || vo.vendorName || '';
+    const shortVId = '...' + String(vo.vendorId || '').slice(-6).toUpperCase();
+    const nameHtml = name
+      ? `<strong>${name}</strong> <strong style="font-family:monospace;font-size:0.72rem;color:#6b7280">${shortVId}</strong>`
+      : `<strong style="font-family:monospace;font-size:0.78rem">${shortVId}</strong>`;
+    const status = vo.status || 'Pending';
+    const total  = Number(vo.total || 0).toFixed(2);
+    return `
+      <div style="display:inline-flex;align-items:center;gap:6px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:4px 10px;font-size:0.78rem;margin:2px 4px 2px 0">
+        ${nameHtml}
+        <span class="status status-${status.toLowerCase().replace(/\s+/g, '-')}" style="font-size:0.72rem">${status}</span>
+        <span style="color:#6b7280">£${total}</span>
+      </div>`;
+  }).join('');
+
+  cell.innerHTML = `
+<div class="inline-order-wrapper">
+  <div class="inline-order-content">
+
+    <div class="inline-status-line">
+      <strong>Status</strong>
+      <span class="status status-${backendStatus.toLowerCase()}">
+        ${backendStatus}
+      </span>
+    </div>
+
+    ${vendorChips ? `<div style="margin:6px 0 4px"><strong style="font-size:0.8rem;color:#6b7280">Sellers</strong><div style="margin-top:4px">${vendorChips}</div></div>` : ''}
+
+<div class="inline-status-buttons">
+  ${
+    isFinalState
+      ? `<div class="final-state-message">Order is finalized</div>`
+      : allowedStatuses
+          .map(
+            (status) => `
+        <button class="status-btn" data-id="${orderId}" data-status="${status}">
+          ${getAdminLabel(status)}
+        </button>
+      `
+          )
+          .join('')
+  }
+    </div>
+
+    <a class="inline-details-link"
+       href="/account/admin/order-details.html?id=${orderId}">
+      View full details →
+    </a>
+
+  </div>
+</div>
+`;
+
+  detailsRow.appendChild(cell);
+  row.after(detailsRow);
+
+  // ===============================
+  // OPEN (SMOOTH + FULL HEIGHT)
+  // ===============================
+  const wrapper = detailsRow.querySelector('.inline-order-wrapper');
+
+  // measure real height
+  wrapper.style.height = 'auto';
+  const fullHeight = wrapper.scrollHeight + 'px';
+
+  // collapse
+  wrapper.style.height = '0px';
+  wrapper.offsetHeight;
+
+  // animate open
+  requestAnimationFrame(() => {
+    wrapper.style.height = fullHeight;
+  });
+});
+
+async function updateOrderStatus(orderId, status) {
+  try {
+    const res = await authFetch(`${API_BASE}/admin/orders/${orderId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.error || 'Update failed');
       return;
     }
 
-    // Otherwise rebuild buttons
-    buttonsContainer.innerHTML = allowedStatuses
-      .map(
-        (status) => `
-        <button
-          class="status-btn"
-          data-id="${orderId}"
-          data-status="${status}">
-          ${status}
-        </button>
-      `
-      )
-      .join('');
+    // reload updated data
+    loadOrders(currentPage, currentQuery, currentStatus);
   } catch (err) {
     console.error(err);
-    statusBtn.textContent = 'Error';
+    alert('Something went wrong');
   }
-
-  setTimeout(() => {
-    statusBtn.textContent = newStatus;
-    statusBtn.disabled = false;
-  }, 800);
-});
-
+}
 /* =================================
-   STATUS FILTER BUTTONS
+   FILTERS
 ================================= */
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('.filter-btn');
   if (!btn) return;
 
-  document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
-
-  btn.classList.add('active');
-
   currentStatus = btn.dataset.status;
   currentPage = 1;
 
-  loadOrders(1, currentQuery, currentStatus);
+  document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  loadOrders(currentPage, currentQuery, currentStatus);
 });
 
 /* =================================
-   SEARCH + AUTOCOMPLETE (S4L PREFIX)
+   QUICK SEARCH
 ================================= */
-
-document.addEventListener('DOMContentLoaded', () => {
-  let autoTimer;
-  let autoController;
-  let activeIndex = -1;
-
-  const searchInput = document.getElementById('orderSearch');
-  const resultsBox = document.getElementById('autocompleteResults');
-
-  if (!searchInput || !resultsBox) return;
-
-  /* DEFAULT PREFIX */
-  if (!searchInput.value) {
-    searchInput.value = 'S4L-';
+document.addEventListener('click', (e) => {
+  const idBtn = e.target.closest('.quick-search-id');
+  if (idBtn) {
+    currentQuery = idBtn.dataset.id;
+    currentPage = 1;
+    loadOrders(currentPage, currentQuery, currentStatus);
+    return;
   }
 
-  function getCleanQuery() {
-    let value = searchInput.value.trim();
-
-    if (value.toUpperCase().startsWith('S4L-')) {
-      const afterPrefix = value.slice(4);
-
-      if (afterPrefix && !/^[0-9A-Fa-f]/.test(afterPrefix)) {
-        searchInput.value = afterPrefix;
-        return afterPrefix;
-      }
-
-      return afterPrefix;
-    }
-
-    if (/^[0-9A-Fa-f]/.test(value)) {
-      searchInput.value = 'S4L-' + value;
-      return value;
-    }
-
-    return value;
+  const emailBtn = e.target.closest('.quick-search-email');
+  if (emailBtn) {
+    currentQuery = emailBtn.dataset.email;
+    currentPage = 1;
+    loadOrders(currentPage, currentQuery, currentStatus);
   }
-
-  /* ENTER SEARCH */
-  searchInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && activeIndex === -1) {
-      const q = getCleanQuery();
-
-      currentQuery = q;
-      currentPage = 1;
-
-      resultsBox.style.display = 'none';
-      loadOrders(1, currentQuery, currentStatus);
-    }
-  });
-
-  /* AUTOCOMPLETE INPUT (FASTER + CACHED + LOADING UI) */
-  const acCache = new Map(); // key: q -> { ts, data }
-  const CACHE_TTL = 30_000; // 30s
-
-  function showResultsBox() {
-    resultsBox.style.display = 'block';
-  }
-
-  function hideResultsBox() {
-    resultsBox.style.display = 'none';
-    resultsBox.innerHTML = '';
-    activeIndex = -1;
-  }
-
-  function renderAutocomplete(data) {
-    resultsBox.innerHTML = '';
-    activeIndex = -1;
-
-    if (!data || !data.length) {
-      hideResultsBox();
-      return;
-    }
-
-    data.forEach((order) => {
-      const item = document.createElement('div');
-      if (order.email) {
-        item.innerHTML = `<strong>${order.email}</strong>`;
-      } else {
-        item.innerHTML = `<strong>S4L-${order.shortId}</strong>`;
-      }
-
-      item.addEventListener('click', () => {
-        hideResultsBox();
-
-        if (order.shortId) {
-          searchInput.value = `S4L-${order.shortId}`;
-          currentQuery = order.shortId;
-        } else if (order.email) {
-          searchInput.value = order.email;
-          currentQuery = order.email;
-        } else {
-          return; // nothing usable
-        }
-
-        currentPage = 1;
-        loadOrders(1, currentQuery, currentStatus);
-      });
-
-      resultsBox.appendChild(item);
-    });
-
-    showResultsBox();
-  }
-
-  function renderLoadingRow(q) {
-    resultsBox.innerHTML = `<div><small>Searching “${q}”…</small></div>`;
-    showResultsBox();
-  }
-
-  async function fetchAutocomplete(q) {
-    autoController = new AbortController();
-
-    const res = await fetch(`${API_BASE}/admin/orders/autocomplete?q=${encodeURIComponent(q)}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: autoController.signal,
-    });
-
-    if (!res.ok) return [];
-
-    return await res.json();
-  }
-
-  searchInput.addEventListener('input', () => {
-    const q = getCleanQuery();
-
-    clearTimeout(autoTimer);
-    if (autoController) autoController.abort();
-
-    // If user is basically at prefix only, don't spam server
-    if (!q || q.length < 1) {
-      hideResultsBox();
-      return;
-    }
-
-    // Instant UI reaction
-    renderLoadingRow(q);
-
-    // Serve cached immediately if available
-    const cached = acCache.get(q);
-    if (cached && Date.now() - cached.ts < CACHE_TTL) {
-      renderAutocomplete(cached.data);
-      // Still refresh quietly in background if you want:
-      // (comment out the fetch below if you don't want refresh)
-    }
-
-    // Small debounce so typing doesn't fire 20 requests per second
-    autoTimer = setTimeout(async () => {
-      try {
-        const data = await fetchAutocomplete(q);
-
-        acCache.set(q, { ts: Date.now(), data });
-        renderAutocomplete(data);
-      } catch (err) {
-        if (err.name !== 'AbortError') console.error(err);
-      }
-    }, 80); // 🔥 80ms feels instant
-  });
-
-  /* KEYBOARD NAVIGATION */
-  searchInput.addEventListener('keydown', (e) => {
-    const items = resultsBox.querySelectorAll('div');
-    if (!items.length) return;
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      activeIndex++;
-      if (activeIndex >= items.length) activeIndex = 0;
-      updateActive(items);
-    }
-
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      activeIndex--;
-      if (activeIndex < 0) activeIndex = items.length - 1;
-      updateActive(items);
-    }
-
-    if (e.key === 'Enter' && activeIndex >= 0) {
-      e.preventDefault();
-      items[activeIndex].click();
-      activeIndex = -1;
-    }
-  });
-
-  function updateActive(items) {
-    items.forEach((item) => item.classList.remove('active'));
-
-    if (activeIndex >= 0) {
-      items[activeIndex].classList.add('active');
-      items[activeIndex].scrollIntoView({ block: 'nearest' });
-    }
-  }
-
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.autocomplete-wrapper')) {
-      resultsBox.style.display = 'none';
-      activeIndex = -1;
-    }
-  });
 });
+
 /* =================================
    INIT
 ================================= */
-loadOrders();
+document.addEventListener('DOMContentLoaded', () => {
+  searchInput = document.getElementById('orderSearch');
+
+  if (!searchInput) {
+    console.error('❌ Search input not found');
+    return;
+  }
+
+  attachSearchHandlers();
+  loadOrders();
+});
+
+/* =================================
+   LIVE UPDATES
+================================= */
+startLiveUpdates(() => {
+  const openRow = document.querySelector('.order-details-row');
+  if (openRow) return;
+
+  loadOrders(currentPage, currentQuery, currentStatus);
+});

@@ -1,7 +1,9 @@
 // ======================================================================
 // SELL4LIFE CART.JS — CLEAN MERGED VERSION (hybrid-safe)
 // SINGLE TOAST SYSTEM
-// ======================================================================
+// ======================================================================//
+
+const toast = (msg) => window.showToast && window.showToast(msg);
 
 (async function () {
   // ---------------------------------------------------------
@@ -10,7 +12,7 @@
   function readCart() {
     try {
       const arr = JSON.parse(localStorage.getItem('cart') || '[]');
-      return Array.isArray(arr) ? arr.filter((x) => x && x.id) : [];
+      return Array.isArray(arr) ? arr.filter((x) => x && (x.productId || x.id)) : [];
     } catch {
       return [];
     }
@@ -23,20 +25,36 @@
   let cart = readCart();
 
   // ---------------------------------------------------------
-  // 1B. SINGLE TOAST SYSTEM
+  // 🔥 SYNC CART WITH BACKEND (REAL STOCK + PRICE)
   // ---------------------------------------------------------
-  let s4lToast = document.getElementById('s4l-toast');
-  if (!s4lToast) {
-    s4lToast = document.createElement('div');
-    s4lToast.id = 's4l-toast';
-    s4lToast.textContent = 'Added to cart';
-    document.body.appendChild(s4lToast);
-  }
+  async function syncCartWithBackend() {
+    try {
+      const res = await fetch(`${window.API_BASE}/products`, {
+        cache: 'no-store',
+      });
 
-  function s4lShowToast(text = 'Added to cart') {
-    s4lToast.textContent = text;
-    s4lToast.classList.add('show');
-    setTimeout(() => s4lToast.classList.remove('show'), 1200);
+      const data = await res.json();
+      const products = data.products || [];
+
+      cart.forEach((item) => {
+        const fresh = products.find((p) => p._id == item.productId);
+
+        if (fresh) {
+          item.stock = fresh.stock;
+          item.price = fresh.price;
+          item.shippingCost = fresh.shippingCost ?? 0;
+
+          if (fresh.trackInventory && item.quantity > fresh.stock) {
+            item.quantity = fresh.stock;
+            toast(`${fresh.name} stock adjusted`);
+          }
+        }
+      });
+
+      saveCart();
+    } catch (err) {
+      console.error('Cart sync failed:', err);
+    }
   }
 
   // ---------------------------------------------------------
@@ -91,18 +109,29 @@
 
     let total = 0;
 
-    cart.forEach((item) => {
+    cart.forEach((item, i) => {
       const price = Number(item.price);
       const qty = Number(item.quantity);
       const sub = price * qty;
       total += sub;
 
+      const variantLabel = item.variant?.attributes
+        ? Object.entries(item.variant.attributes).map(([k, v]) => `${k}: ${v}`).join(' / ')
+        : '';
+      const addOnLabel = item.addOns?.length
+        ? item.addOns.map((ao) => ao.name).join(', ')
+        : '';
+
       const li = document.createElement('li');
       li.innerHTML = `
                 <div class="mini-cart-item">
-                    <img src="${item.image}" class="mini-cart-thumb">
+                    <div class="mini-cart-thumb-col">
+                        <img src="${item.image || '/assets/images/products/sell4life-placeholder.png'}" class="mini-cart-thumb">
+                        <button class="mini-cart-remove" data-index="${i}" title="Remove item">&times;</button>
+                    </div>
                     <div class="mini-cart-info">
-                        <div class="mini-cart-name">${item.name}</div>
+                        <div class="mini-cart-name">${item.name}${variantLabel ? `<span class="mini-cart-variant"> — ${variantLabel}</span>` : ''}</div>
+                        ${addOnLabel ? `<div class="mini-cart-variant">+ ${addOnLabel}</div>` : ''}
                         <div class="mini-cart-meta">£${price.toFixed(2)} × ${qty}</div>
                     </div>
                     <div class="mini-cart-sub">£${sub.toFixed(2)}</div>
@@ -113,8 +142,13 @@
 
     miniCartTotal.innerHTML = `
             <div class="mini-cart-total-line">
-                <span class="mini-cart-total-label">Total:</span>
-                <span class="mini-cart-total-value">£${total.toFixed(2)}</span>
+                <div class="mini-cart-total-left">
+                    ${cart.length > 1 ? '<button class="mini-cart-clear-all">CLR</button>' : ''}
+                </div>
+                <div class="mini-cart-total-right">
+                    <span class="mini-cart-total-label">Total:</span>
+                    <span class="mini-cart-total-value">£${total.toFixed(2)}</span>
+                </div>
             </div>
         `;
   }
@@ -128,83 +162,122 @@
     cartRows.innerHTML = '';
     if (!cart.length) {
       totalSpan.textContent = '£0.00';
+      cartRows.innerHTML = `
+        <div class="cart-empty">
+          <p>Your basket is empty.</p>
+          <a href="/shop/" class="btn-shop-now">Browse products →</a>
+        </div>`;
       return;
     }
 
     let total = 0;
 
     cart.forEach((item, i) => {
-      const price = Number(item.price);
-      const qty = Number(item.quantity);
+      const price = Number(item.price || 0);
+      const qty = Number(item.quantity || 0);
+
+      // If stock is missing or invalid, treat it as unknown/high
+      const hasRealStock =
+        item.stock !== undefined &&
+        item.stock !== null &&
+        item.stock !== '' &&
+        !Number.isNaN(Number(item.stock));
+
+      const stock = hasRealStock ? Number(item.stock) : 999;
+
       const sub = price * qty;
       total += sub;
+
+      let stockClass = '';
+      let stockText = '';
+
+      if (hasRealStock) {
+        if (stock <= 0) {
+          stockClass = 'out';
+          stockText = 'Out of stock';
+        } else if (stock <= 2) {
+          stockClass = 'critical';
+          stockText = `Only ${stock} left`;
+        } else if (stock <= 5) {
+          stockClass = 'low';
+          stockText = `Low stock (${stock})`;
+        }
+      }
+
+      const disablePlus = hasRealStock && qty >= stock ? 'disabled' : '';
 
       const row = document.createElement('div');
       row.classList.add('cart-row');
 
+      const cartVariantLabel = item.variant?.attributes
+        ? Object.entries(item.variant.attributes).map(([k, v]) => `${k}: ${v}`).join(' / ')
+        : '';
+      const cartAddOnLabel = item.addOns?.length
+        ? item.addOns.map((ao) => `${ao.name} (+£${Number(ao.price).toFixed(2)})`).join(', ')
+        : '';
+
       row.innerHTML = `
-                <div class="col-product cart-product-info">
-                    <img class="cart-thumb" src="${item.image}">
-                    <a class="cart-product-link"
-                       href="/${item.category}/${item.subcategory}/?id=${item.id}">
-                       ${item.name}
-                    </a>
-                </div>
+  <div class="col-product cart-product-info">
+      <img class="cart-thumb" src="${item.image || '/assets/images/products/sell4life-placeholder.png'}">
+      <div class="cart-product-text">
+        <a class="cart-product-link"
+           href="/product/product.html?id=${item.id || item.productId}"
+           title="${item.name}">
+          <span>${item.name}</span>
+        </a>
+        ${cartVariantLabel ? `<div class="cart-variant-label">${cartVariantLabel}</div>` : ''}
+        ${cartAddOnLabel ? `<div class="cart-variant-label">+ ${cartAddOnLabel}</div>` : ''}
+        ${stockText ? `<div class="stock-warning ${stockClass}">${stockText}</div>` : ''}
+      </div>
+  </div>
 
-                <div class="col-qty qty-control">
-                    <button class="qty-minus" data-index="${i}">−</button>
-                    <span>${qty}</span>
-                    <button class="qty-plus" data-index="${i}">+</button>
-                    <button class="remove-item" data-index="${i}">×</button>
-                </div>
+  <div class="col-qty qty-control">
+      <button class="qty-minus" data-index="${i}">−</button>
+      <span>${qty}</span>
+      <button class="qty-plus" data-index="${i}" ${disablePlus}>+</button>
+      <button class="remove-item" data-index="${i}">×</button>
+  </div>
 
-                <div class="col-price">£${price.toFixed(2)}</div>
-                <div class="col-subtotal">£${sub.toFixed(2)}</div>
+  <div class="col-price">£${price.toFixed(2)}</div>
+  <div class="col-subtotal">£${sub.toFixed(2)}</div>
 
-                <div class="m-price-line">
-                    £${price.toFixed(2)} × ${qty} =
-                    <span class="m-subtotal">£${sub.toFixed(2)}</span>
-                </div>
-            `;
+  <div class="m-price-line">
+      £${price.toFixed(2)} × ${qty} =
+      <span class="m-subtotal">£${sub.toFixed(2)}</span>
+  </div>
+`;
 
       cartRows.appendChild(row);
     });
 
     totalSpan.textContent = `£${total.toFixed(2)}`;
-  }
 
-  // ---------------------------------------------------------
-  // 7. MOBILE PRICE LINE
-  // ---------------------------------------------------------
-  function isRealTouchDevice() {
-    return 'ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
-  }
-
-  function updateMPriceLine() {
-    const width = window.innerWidth;
-    const portrait = window.matchMedia('(orientation: portrait)').matches;
-    const touch = isRealTouchDevice();
-
-    const show = width <= 480 && portrait && touch;
-
-    document.querySelectorAll('.m-price-line').forEach((el) => {
-      el.style.display = show ? 'flex' : 'none';
+    // Mark names that actually overflow — only those get the scroll animation
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.cart-product-link').forEach((link) => {
+        const span = link.querySelector('span');
+        if (span && span.scrollWidth > link.offsetWidth + 2) {
+          span.classList.add('scrollable');
+        }
+      });
     });
   }
 
   // ---------------------------------------------------------
   // 8. FULL REFRESH
   // ---------------------------------------------------------
-  function refreshAll() {
+  async function refreshAll() {
     cart = readCart();
+
+    await syncCartWithBackend(); // 🔥 THIS IS THE FIX
+
     renderMiniCart();
     updateBadge();
     updateBasketState();
     renderCartPage();
-    updateMPriceLine();
   }
 
-  refreshAll();
+  await refreshAll();
   document.addEventListener('cartUpdated', refreshAll);
 
   // =====================================================================
@@ -252,7 +325,17 @@
 
     if (btn.classList.contains('qty-plus')) {
       const i = +btn.dataset.index;
-      cart[i].quantity++;
+
+      const maxStock = Number(cart[i].stock || 999);
+      const currentQty = Number(cart[i].quantity || 0);
+
+      if (currentQty >= maxStock) {
+        window.showToast && window.showToast('Max stock reached');
+        return;
+      }
+
+      cart[i].quantity = currentQty + 1;
+
       saveCart();
       refreshAll();
       return;
@@ -320,32 +403,48 @@
     }
 
     if (btn.classList.contains('btn-add')) {
+      if (btn.disabled) return; // 🚫 stop if button disabled
+
       const productId = btn.dataset.id;
       const productName = btn.dataset.name;
       const productPrice = btn.dataset.price;
       const productImage = btn.dataset.image;
       const category = btn.dataset.category;
       const subcategory = btn.dataset.subcategory;
-
-      let item = cart.find((p) => p.id == productId);
-
+      const rawStock = btn.dataset.stock;
+      const hasRealStock = rawStock !== undefined && rawStock !== null && rawStock !== '';
+      const stock = hasRealStock ? Number(rawStock) : 999;
+      let item = cart.find((p) => p.productId == productId);
       if (item) {
+        const maxStock = Number(item.stock || stock || 999);
+
+        if (stock <= 0) {
+          toast('This product is out of stock');
+          return;
+        }
+
+        if (item.quantity >= maxStock) {
+          window.showToast && window.showToast('Max stock reached');
+          return;
+        }
+
         item.quantity++;
       } else {
         cart.push({
-          id: productId,
+          productId: productId,
           name: productName,
-          price: productPrice,
+          price: Number(productPrice),
           image: productImage,
           category,
           subcategory,
           quantity: 1,
+          stock: stock, // ← THIS LINE
         });
       }
 
       saveCart();
       refreshAll();
-      s4lShowToast('Added to cart');
+      toast('Added to cart');
     }
   });
 
@@ -366,6 +465,76 @@
 
     if (e.target.classList.contains('cancel-clear')) {
       document.querySelector('.clear-cart-modal')?.classList.remove('show');
+    }
+  });
+
+  // =====================================================================
+  // 10b. MINI CART — REMOVE ITEM + CLEAR ALL
+  // =====================================================================
+  document.addEventListener('click', (e) => {
+    // ── Single item remove ──────────────────────────────────────
+    if (e.target.classList.contains('mini-cart-remove')) {
+      const i   = +e.target.dataset.index;
+      const li  = e.target.closest('li');
+
+      if (!li) { cart.splice(i, 1); saveCart(); refreshAll(); return; }
+
+      // Lock current height so it can collapse
+      li.style.maxHeight  = li.offsetHeight + 'px';
+      li.style.overflow   = 'hidden';
+
+      requestAnimationFrame(() => {
+        li.style.transition = 'opacity 0.22s ease, transform 0.22s ease, max-height 0.35s ease 0.15s, padding 0.35s ease 0.15s';
+        li.style.opacity    = '0';
+        li.style.transform  = 'translateX(-24px)';
+
+        // After fade, collapse height
+        setTimeout(() => {
+          li.style.maxHeight  = '0';
+          li.style.paddingTop = '0';
+          li.style.paddingBottom = '0';
+        }, 160);
+      });
+
+      setTimeout(() => {
+        cart.splice(i, 1);
+        saveCart();
+        refreshAll();
+      }, 500);
+      return;
+    }
+
+    // ── Clear all — staggered cascade ───────────────────────────
+    if (e.target.classList.contains('mini-cart-clear-all')) {
+      const items = [...document.querySelectorAll('.mini-cart-items li')];
+
+      items.forEach((li, idx) => {
+        const delay = idx * 70; // 70 ms stagger per item
+
+        li.style.maxHeight = li.offsetHeight + 'px';
+        li.style.overflow  = 'hidden';
+
+        setTimeout(() => {
+          li.style.transition = 'opacity 0.2s ease, transform 0.2s ease, max-height 0.3s ease 0.15s';
+          li.style.opacity    = '0';
+          li.style.transform  = 'translateX(-24px)';
+
+          setTimeout(() => {
+            li.style.maxHeight     = '0';
+            li.style.paddingTop    = '0';
+            li.style.paddingBottom = '0';
+          }, 160);
+        }, delay);
+      });
+
+      // Wait for last item to finish before clearing
+      const totalDelay = items.length * 70 + 500;
+      setTimeout(() => {
+        cart = [];
+        saveCart();
+        refreshAll();
+      }, totalDelay);
+      return;
     }
   });
 
@@ -433,12 +602,6 @@
     );
   }
 
-  // =====================================================================
-  // 13. SCREEN & ORIENTATION
-  // =====================================================================
-  window.addEventListener('resize', updateMPriceLine);
-  window.matchMedia('(orientation: portrait)').addEventListener('change', updateMPriceLine);
-  window.matchMedia('(orientation: landscape)').addEventListener('change', updateMPriceLine);
 })(); // END wrapper
 
 // ======================================================================
