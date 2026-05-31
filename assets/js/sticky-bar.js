@@ -18,9 +18,23 @@
       align-items: center;
       justify-content: center;
       height: 58px;
-      background: rgba(11,107,106,0.10);
+      background: transparent;
       transform: translateY(110%);
       pointer-events: none;
+      padding-bottom: 4px;
+    }
+    /* Frosted pill — only the button group gets a background */
+    .s4l-bar-inner {
+      display: flex;
+      align-items: center;
+      height: 46px;
+      padding: 0 6px;
+      border-radius: 30px;
+      background: rgba(255, 255, 255, 0.88);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(11, 107, 106, 0.18);
+      box-shadow: 0 2px 16px rgba(0, 0, 0, 0.13);
     }
     /* ── Separator divs ─────────────────────────────── */
     .s4l-sep {
@@ -37,7 +51,7 @@
     /* ── Shared button base ─────────────────────────── */
     .s4l-sticky-btn,
     .s4l-pill {
-      width: 68px; height: 58px;
+      width: 58px; height: 46px;
       display: flex; align-items: center; justify-content: center;
       background: none; border: none;
       cursor: pointer; padding: 0; color: #0b6b6a;
@@ -70,9 +84,11 @@
       font-size: 12px; font-weight: 800; color: #0b6b6a;
       line-height: 1; font-family: inherit;
     }
-    .s4l-basket-circle.s4l-has               { border-color: #0b6b6a; }
-    .s4l-basket-circle.s4l-has svg           { opacity: 0; }
-    .s4l-basket-circle.s4l-has .s4l-basket-n { display: flex; }
+    .s4l-basket-circle.s4l-has                           { border-color: #0b6b6a; }
+    /* Fill only the basket body path (last path = body), leave handle as stroke */
+    .s4l-basket-circle.s4l-has svg path:last-child       { fill: #0b6b6a; stroke: #0b6b6a; }
+    .s4l-basket-circle.s4l-has svg                       { opacity: 1; }
+    .s4l-basket-circle.s4l-has .s4l-basket-n             { display: flex; color: #fff; font-size: 10px; font-weight: 900; transform: translateY(3px); }
     /* ── Pill inner boxes (visual only) ─────────────── */
     /* vendor: square, teal */
     .s4l-pill-vendor .s4l-pill-inner {
@@ -93,15 +109,15 @@
     /* ── Mobile ──────────────────────────────────────── */
     @media (max-width: 768px) {
       .s4l-sticky-btn,
-      .s4l-pill          { width: 58px; }
-      .s4l-sep           { height: 28px; width: 2px; }
-      .s4l-arrow-up      { font-size: 26px; -webkit-text-stroke: 0.6px #0b6b6a; transform: scaleY(1.5); display: inline-block; }
-      .s4l-sticky-btn svg { stroke-width: 3; }
-      .s4l-basket-circle { width: 40px; height: 40px; border-width: 2.5px; border-color: rgba(11,107,106,0.85); }
-      .s4l-basket-circle svg { opacity: 1; stroke-width: 2.4; }
-      .s4l-basket-n      { font-size: 16px; font-weight: 900; }
-      .s4l-pill-vendor .s4l-pill-inner { width: 40px; height: 40px; border-width: 2.5px; font-size: 16px; font-weight: 900; }
-      .s4l-pill-buyer  .s4l-pill-inner { min-width: 40px; height: 40px; border-width: 2.5px; font-size: 16px; font-weight: 900; }
+      .s4l-pill          { width: 52px; }
+      .s4l-sep           { height: 24px; width: 1.5px; }
+      .s4l-arrow-up      { font-size: 24px; -webkit-text-stroke: 0.6px #0b6b6a; transform: scaleY(1.4); display: inline-block; }
+      .s4l-sticky-btn svg { stroke-width: 2.6; }
+      .s4l-basket-circle { width: 36px; height: 36px; border-width: 2px; border-color: rgba(11,107,106,0.85); }
+      .s4l-basket-circle svg { opacity: 1; stroke-width: 2.2; }
+      .s4l-basket-n      { font-size: 14px; font-weight: 900; }
+      .s4l-pill-vendor .s4l-pill-inner { width: 36px; height: 36px; border-width: 2px; font-size: 14px; font-weight: 900; }
+      .s4l-pill-buyer  .s4l-pill-inner { min-width: 36px; height: 36px; border-width: 2px; font-size: 14px; font-weight: 900; }
     }
   `;
   document.head.appendChild(css);
@@ -111,51 +127,65 @@
     const bar = document.createElement('div');
     bar.className = 's4l-sticky-bar';
     bar.innerHTML = `
-      <button class="s4l-pill s4l-pill-vendor" aria-label="Vendor orders">
-        <span class="s4l-pill-inner"></span>
-      </button>
-      <div class="s4l-sep s4l-sep-v"></div>
+      <div class="s4l-bar-inner">
+        <button class="s4l-pill s4l-pill-vendor" aria-label="Vendor orders">
+          <span class="s4l-pill-inner"></span>
+        </button>
+        <div class="s4l-sep s4l-sep-v"></div>
 
-      <button class="s4l-sticky-btn s4l-top-btn" aria-label="Back to top">
-        <span class="s4l-arrow-up">&#8593;</span>
-      </button>
-      <div class="s4l-sep"></div>
+        <button class="s4l-sticky-btn s4l-top-btn" aria-label="Back to top">
+          <span class="s4l-arrow-up">&#8593;</span>
+        </button>
+        <div class="s4l-sep"></div>
 
-      <button class="s4l-sticky-btn s4l-account-btn" aria-label="My account">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="2.2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="8" r="4"/>
-          <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-        </svg>
-      </button>
-      <div class="s4l-sep"></div>
-
-      <button class="s4l-sticky-btn s4l-cart-btn" aria-label="View basket" disabled>
-        <div class="s4l-basket-circle">
-          <svg width="18" height="20" viewBox="0 0 24 28" fill="none"
-            stroke="currentColor" stroke-width="1.8"
+        <button class="s4l-sticky-btn s4l-account-btn" aria-label="My account">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.2"
             stroke-linecap="round" stroke-linejoin="round">
-            <path d="M7 13C7 5 17 5 17 13"/>
-            <path d="M1 12H23V23Q23 27 19 27H5Q1 27 1 23V12Z"/>
+            <circle cx="12" cy="8" r="4"/>
+            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
           </svg>
-          <span class="s4l-basket-n"></span>
-        </div>
-      </button>
-      <div class="s4l-sep s4l-sep-b"></div>
+        </button>
+        <div class="s4l-sep"></div>
 
-      <button class="s4l-pill s4l-pill-buyer" aria-label="Your orders">
-        <span class="s4l-pill-inner"></span>
-      </button>
+        <button class="s4l-sticky-btn s4l-cart-btn" aria-label="View basket" disabled>
+          <div class="s4l-basket-circle">
+            <svg width="18" height="20" viewBox="0 0 24 28" fill="none"
+              stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7 13C7 5 17 5 17 13"/>
+              <path d="M1 12H23V23Q23 27 19 27H5Q1 27 1 23V12Z"/>
+            </svg>
+            <span class="s4l-basket-n"></span>
+          </div>
+        </button>
+        <div class="s4l-sep s4l-sep-b"></div>
+
+        <button class="s4l-pill s4l-pill-buyer" aria-label="Your orders">
+          <span class="s4l-pill-inner"></span>
+        </button>
+      </div>
     `;
     document.body.appendChild(bar);
 
     // ── Scroll-linked reveal ──────────────────────────────────
     function initVisibility() {
-      // Mobile: always show the bar immediately
+      // Mobile: show only when header has scrolled off screen
       if (window.innerWidth <= 1280) {
-        bar.style.transform = 'none';
-        bar.style.pointerEvents = 'auto';
+        const mobileHeader = document.querySelector('.s4l-header-mobile');
+        let footerVisible = false;
+
+        function setBar(show) {
+          bar.style.transform    = show ? 'none' : 'translateY(110%)';
+          bar.style.pointerEvents = show ? 'auto' : 'none';
+        }
+
+        if (mobileHeader) {
+          new IntersectionObserver(([e]) => {
+            if (!footerVisible) setBar(!e.isIntersecting);
+          }, { threshold: 0 }).observe(mobileHeader);
+        }
+
         let footerObserved = false;
         function tryObserveFooterMobile() {
           if (footerObserved) return;
@@ -163,8 +193,8 @@
           if (!btn) return;
           footerObserved = true;
           new IntersectionObserver(([e]) => {
-            bar.style.transform    = e.isIntersecting ? 'translateY(110%)' : 'none';
-            bar.style.pointerEvents = e.isIntersecting ? 'none' : 'auto';
+            footerVisible = e.isIntersecting;
+            setBar(!e.isIntersecting && window.scrollY > (mobileHeader ? mobileHeader.offsetHeight : 0));
           }, { threshold: 0 }).observe(btn);
         }
         setTimeout(tryObserveFooterMobile, 1000);

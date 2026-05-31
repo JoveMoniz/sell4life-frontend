@@ -261,6 +261,7 @@ function renderBrowseMode() {
   browse.innerHTML = html;
   browse.style.display = 'block';
   grid.style.display = 'none';
+  window.s4l_markOwnListings?.();
 
   // Arrow click handlers
   browse.querySelectorAll('.shop-row').forEach(row => {
@@ -316,6 +317,7 @@ function renderProducts(list) {
          <strong>No products found</strong>
          Try a different category or clear the filter.
        </div>`;
+  window.s4l_markOwnListings?.();
 }
 
 // ── Load ───────────────────────────────────────────────────

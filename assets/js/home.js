@@ -196,6 +196,7 @@ async function loadFeaturedProducts() {
         </div>
       </div>`;
   }).join('');
+  window.s4l_markOwnListings?.();
 }
 
 // ── Init ───────────────────────────────────────────────────

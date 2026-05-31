@@ -103,9 +103,14 @@ async function initVendorButtons() {
 
     if (data.isVendor && data.vendor) {
       const status = data.vendor.status;
+      const vid    = data.vendor._id || data.vendor.id || '';
 
       localStorage.setItem('s4l_isVendor', 'true');
       localStorage.setItem('s4l_vendorStatus', status);
+      if (vid) {
+        localStorage.setItem('s4l_vendorId', String(vid));
+        window.s4l_markOwnListings?.();   // grey out own listings already on page
+      }
 
       buttons.forEach((btn) => {
         btn.dataset.isVendor = 'true';

@@ -7,6 +7,7 @@ const path = location.pathname.toLowerCase();
 const noLayoutPages = [
   '/cart.html',
   '/checkout.html',
+  '/thankyou/thankyou.html',
   '/account/orders.html',
   '/account/orders-details.html',
   '/account/signin.html',
@@ -17,6 +18,23 @@ const noLayoutPages = [
 ];
 
 const shouldInjectLayout = !noLayoutPages.some((route) => path.includes(route));
+
+function drawLogoUnderline(svgId, txtId, yLine, sw) {
+  document.fonts.ready.then(() => {
+    const svg = document.getElementById(svgId);
+    const txt = document.getElementById(txtId);
+    if (!svg || !txt) return;
+    const w = txt.getBBox().width;
+    svg.setAttribute('width', (w + 4) + 'px');
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', '0');  line.setAttribute('y1', yLine);
+    line.setAttribute('x2', w);   line.setAttribute('y2', yLine);
+    line.setAttribute('stroke', '#f18c28');
+    line.setAttribute('stroke-width', sw);
+    line.setAttribute('stroke-linecap', 'square');
+    svg.appendChild(line);
+  });
+}
 
 // =====================================================
 // GLOBAL FUNCTIONS
@@ -100,6 +118,8 @@ async function loadLayout() {
         const res = await fetch('/includes/header.html', { cache: 'no-store' });
         const html = await res.text();
         document.body.insertAdjacentHTML('afterbegin', html);
+        drawLogoUnderline('s4l-logo-desktop', 's4l-logo-txt-d', 44, '3');
+        drawLogoUnderline('s4l-logo-mobile',  's4l-logo-txt-m', 38, '2.5');
       }
 
       // ⚠️ delay to ensure DOM ready
@@ -115,6 +135,7 @@ async function loadLayout() {
         const res = await fetch('/includes/footer.html', { cache: 'no-store' });
         const html = await res.text();
         document.body.insertAdjacentHTML('beforeend', html);
+        drawLogoUnderline('s4l-logo-footer', 's4l-logo-txt-f', 28, '1.5');
       }
     } catch (err) {
       console.warn('Footer skipped', err);
@@ -288,6 +309,7 @@ function injectMobileBar() {
     { href: '/account/vendor/add-product.html', label: 'Add Product' },
     { href: '/account/vendor/orders.html', label: 'Orders' },
     { href: '/account/vendor/transactions.html', label: 'Transactions' },
+    { href: '/account/vendor/tools.html', label: 'Tools' },
     { href: '/account/signin.html', label: 'Logout', cls: 'vendor-logout' },
   ];
 

@@ -25,13 +25,11 @@ window.__quickAddLoaded = true;
         <div class="qa-header">
           <img class="qa-img" src="" alt="">
           <div class="qa-meta">
-            <div class="qa-name"></div>
             <div class="qa-price"></div>
           </div>
         </div>
         <div class="qa-variants"></div>
         <button class="qa-confirm" disabled>Select an option</button>
-        <button class="qa-clear-cart">🗑 Clear cart</button>
       </div>
     `;
     document.body.appendChild(modal);
@@ -57,12 +55,6 @@ window.__quickAddLoaded = true;
       if (e.target.classList.contains('qa-confirm') && !e.target.disabled) {
         addToCart(); return;
       }
-      if (e.target.classList.contains('qa-clear-cart')) {
-        localStorage.setItem('cart', '[]');
-        document.dispatchEvent(new Event('cartUpdated'));
-        refreshBasketBtns();
-        close();
-      }
     });
   }
 
@@ -71,14 +63,37 @@ window.__quickAddLoaded = true;
   let _sourceBtn = null;   // the card button that triggered the popup
 
   // ── Helpers ───────────────────────────────────────────────
-  // A variant is "real" only if it has a visible label (non-empty colour or attributes)
+  // Human-readable label from attributes (preferred) or fall back to color hex
   function variantLabel(v) {
-    if (v.color && v.color.trim()) return v.color.trim();
     if (v.attributes && typeof v.attributes === 'object') {
       const vals = Object.values(v.attributes).map(x => String(x || '').trim()).filter(Boolean);
       if (vals.length) return vals.join(' / ');
     }
+    if (v.color && v.color.trim()) return v.color.trim();
     return '';
+  }
+
+  // Build the HTML for one variant button — swatch, thumbnail, or plain text
+  function variantBtn(v, i) {
+    const label   = variantLabel(v);
+    const soldOut = v.stock !== undefined && Number(v.stock) <= 0;
+    const base    = `qa-v${soldOut ? ' qa-v-out' : ''}`;
+    const dis     = soldOut ? ' disabled' : '';
+    const tip     = label ? ` title="${label}"` : '';
+
+    if (v.displayMode === 'image' && v.image) {
+      return `<button class="${base} qa-v-img" data-vi="${i}"${dis}${tip}>
+        <img src="${v.image}" alt="${label}" />
+      </button>`;
+    }
+    const hex = v.color && v.color.trim();
+    if (hex && hex !== '#ffffff' && hex !== '#fff') {
+      return `<button class="${base} qa-v-swatch" data-vi="${i}"${dis}${tip}>
+        <span class="qa-swatch-dot" style="background:${hex}"></span>
+        <span class="qa-swatch-lbl">${label}</span>
+      </button>`;
+    }
+    return `<button class="${base}" data-vi="${i}"${dis}>${label}</button>`;
   }
 
   // ── Open ──────────────────────────────────────────────────
@@ -87,8 +102,8 @@ window.__quickAddLoaded = true;
     _product = product;
     _variant = null;
 
-    // Filter to variants that actually have something to show
-    const realVariants = (product.variants || []).filter(v => variantLabel(v));
+    // Keep variants that have a label, a colour, or an image
+    const realVariants = (product.variants || []).filter(v => variantLabel(v) || v.image);
 
     // No real options → skip the popup entirely, add directly
     if (!realVariants.length) {
@@ -101,17 +116,12 @@ window.__quickAddLoaded = true;
       ? (product.images[0].startsWith('http') ? product.images[0] : `/assets/images/products/${product.images[0]}`)
       : (product.image || '/assets/images/products/sell4life-placeholder.png');
 
-    modal.querySelector('.qa-img').src    = img;
-    modal.querySelector('.qa-name').textContent = product.name;
+    modal.querySelector('.qa-img').src = img;
 
     const confirmBtn = modal.querySelector('.qa-confirm');
     const variantsEl = modal.querySelector('.qa-variants');
 
-    variantsEl.innerHTML = realVariants.map((v, i) => {
-      const label   = variantLabel(v);
-      const soldOut = v.stock !== undefined && Number(v.stock) <= 0;
-      return `<button class="qa-v${soldOut ? ' qa-v-out' : ''}" data-vi="${i}"${soldOut ? ' disabled' : ''}>${label}</button>`;
-    }).join('');
+    variantsEl.innerHTML = realVariants.map((v, i) => variantBtn(v, i)).join('');
 
     // Store only the real variants so addToCart picks the right one
     _product = { ...product, variants: realVariants };
@@ -264,6 +274,67 @@ window.__quickAddLoaded = true;
   // ── Global open hook (called by card buttons) ─────────────
   window.openQuickAdd = open;
 
+  // ── Disable basket buttons for own products + out-of-stock ─
+  // Called after products render OR after vendorId becomes known.
+  window.s4l_markOwnListings = function () {
+    const myVid = localStorage.getItem('s4l_vendorId');
+    if (!window._qaProducts) return;
+
+    document.querySelectorAll(
+      '.sp-quick-add-btn[data-id], .cp-quick-add-btn[data-id]'
+    ).forEach((btn) => {
+      // Skip already-disabled buttons (OOS etc.) but re-check for own-vendor
+      if (btn.dataset.oos) return;
+
+      const p = window._qaProducts[btn.dataset.id];
+      if (!p) return;
+
+      // Own vendor listing — check every time (vendorId may arrive late)
+      if (myVid) {
+        const pvid = typeof p.vendor === 'object'
+          ? (p.vendor?._id || p.vendor?.id)
+          : p.vendor;
+        if (pvid && String(pvid) === myVid) {
+          btn.disabled = true;
+          btn.style.opacity = '0.35';
+          btn.style.cursor  = 'not-allowed';
+          btn.title = 'Your listing';
+          return;
+        }
+      }
+
+      // Out of stock (product-level, no variants) — permanent, mark to skip next time
+      const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
+      const stockNum    = p.stock !== undefined && p.stock !== null ? Number(p.stock) : null;
+      if (!hasVariants && stockNum !== null && stockNum <= 0) {
+        btn.disabled = true;
+        btn.style.opacity = '0.35';
+        btn.style.cursor  = 'not-allowed';
+        btn.title = 'Out of stock';
+        btn.dataset.oos = '1';   // permanent — no need to re-check
+      }
+    });
+  };
+
+  // ── Lazy-fetch vendorId for vendors whose ID wasn't cached at login ─
+  (async function ensureVendorId() {
+    const token    = localStorage.getItem('s4l_token');
+    const isVendor = localStorage.getItem('s4l_isVendor') === 'true';
+    const hasId    = localStorage.getItem('s4l_vendorId');
+    if (!token || !isVendor || hasId) return;
+    try {
+      const r = await fetch(`${window.API_BASE}/vendor/me`,
+        { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) return;
+      const d   = await r.json();
+      const vid = d.vendor?._id || d.vendor?.id;
+      if (vid) {
+        localStorage.setItem('s4l_vendorId', String(vid));
+        window.s4l_markOwnListings();   // now mark own listings
+      }
+    } catch {}
+  })();
+
   // ── Delegate clicks from card buttons ────────────────────
   document.addEventListener('click', (e) => {
 
@@ -304,6 +375,19 @@ window.__quickAddLoaded = true;
     _sourceBtn = btn;
     const product = (window._qaProducts || {})[btn.dataset.id];
     if (!product) return;
+
+    // Block vendor's own products
+    const _myVid = localStorage.getItem('s4l_vendorId');
+    const _pvid  = typeof product.vendor === 'object'
+      ? (product.vendor?._id || product.vendor?.id)
+      : product.vendor;
+    if (_myVid && _pvid && _myVid === String(_pvid)) return;
+
+    // Block out-of-stock products (no variants)
+    const _hasVar = Array.isArray(product.variants) && product.variants.length > 0;
+    const _stock  = product.stock !== undefined && product.stock !== null ? Number(product.stock) : null;
+    if (!_hasVar && _stock !== null && _stock <= 0) return;
+
     if (product.variants && product.variants.length > 0) {
       open(product);            // open() filters blank rows; falls to directAddToCart if none real
     } else {

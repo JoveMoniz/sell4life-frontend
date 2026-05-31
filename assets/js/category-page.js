@@ -182,6 +182,7 @@
     featuredWrap.innerHTML = featured.length
       ? featured.map(featuredCardHtml).join('')
       : `<p class="empty-note">No featured products yet.</p>`;
+    window.s4l_markOwnListings?.();
   }
 
   // ======================================================
@@ -218,6 +219,7 @@
     productsWrap.innerHTML = catProducts.length
       ? catProducts.map(productCardHtml).join('')
       : `<p class="empty-note">No products found in this category yet.</p>`;
+    window.s4l_markOwnListings?.();
   }
 
   // ======================================================
