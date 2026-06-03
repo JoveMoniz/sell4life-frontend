@@ -102,6 +102,11 @@ function renderCards(s) {
       <div class="fin-card-value">${s.vendorCount || 0}</div>
       <div class="fin-card-sub">with paid orders</div>
     </div>
+    <div class="fin-card">
+      <div class="fin-card-label">Funds in Reserve</div>
+      <div class="fin-card-value" style="color:#f59e0b">${fmt(s.totalReserved)}</div>
+      <div class="fin-card-sub">10% held · releases at 90 days</div>
+    </div>
   `;
 }
 
@@ -114,7 +119,7 @@ function renderVendorTable(vendors) {
 
   if (!vendors.length) {
     tbody.innerHTML =
-      '<tr><td colspan="8" class="fin-loading">No vendor data for this period</td></tr>';
+      '<tr><td colspan="9" class="fin-loading">No vendor data for this period</td></tr>';
     return;
   }
 
@@ -125,9 +130,16 @@ function renderVendorTable(vendors) {
       const vatBadge = v.vatRegistered
         ? '<span style="font-size:10px;background:#dbeafe;color:#1d4ed8;padding:1px 5px;border-radius:8px;margin-left:4px">VAT</span>'
         : '';
+      const tierColors = { casual:'#6b7280', refurbished:'#0369a1', professional:'#e07b00', enterprise:'#7c3aed' };
+      const tierBg     = { casual:'#f3f4f6', refurbished:'#e0f2fe', professional:'#fff3e0', enterprise:'#ede9fe' };
+      const tier = v.type || 'casual';
+      const tierBadge = `<span style="font-size:10px;background:${tierBg[tier]||'#f3f4f6'};color:${tierColors[tier]||'#6b7280'};padding:1px 6px;border-radius:8px;margin-left:4px;text-transform:capitalize">${tier}</span>`;
+      const reserveCell = v.reservedBalance > 0
+        ? `<span style="color:#f59e0b;font-weight:600">${fmt(v.reservedBalance)}</span>`
+        : `<span style="color:#9ca3af">${fmt(0)}</span>`;
       return `<tr>
       <td>
-        <strong>${v.storeName}</strong>${vatBadge}
+        <strong>${v.storeName}</strong>${vatBadge}${tierBadge}
         ${v.storeSlug ? `<div style="font-size:11px;color:#9ca3af">@${v.storeSlug}</div>` : ''}
       </td>
       <td style="color:#6b7280;font-size:12px">${v.email}</td>
@@ -137,6 +149,7 @@ function renderVendorTable(vendors) {
       <td class="fin-num" style="color:#b91c1c">${fmt(v.refunds)}</td>
       <td class="fin-num">${fmt(v.netToVendor)}</td>
       <td class="fin-num fin-commission">${fmt(v.commission)}</td>
+      <td class="fin-num">${reserveCell}</td>
     </tr>`;
     })
     .join('');
@@ -160,7 +173,7 @@ document.addEventListener('click', (e) => {
 document.addEventListener('click', (e) => {
   if (!e.target.closest('#btn-export-csv')) return;
   if (!lastVendors.length) {
-    alert('No data to export.');
+    showAlert('No data to export.');
     return;
   }
 
@@ -174,6 +187,7 @@ document.addEventListener('click', (e) => {
     'Refunds (£)',
     'Net to Vendor (£)',
     'Commission (£)',
+    'In Reserve (£)',
   ];
   const rows = lastVendors.map((v) =>
     [
@@ -186,6 +200,7 @@ document.addEventListener('click', (e) => {
       Number(v.refunds).toFixed(2),
       Number(v.netToVendor).toFixed(2),
       Number(v.commission).toFixed(2),
+      Number(v.reservedBalance || 0).toFixed(2),
     ].join(',')
   );
 
