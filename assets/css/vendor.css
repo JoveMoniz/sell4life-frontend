@@ -1902,6 +1902,20 @@ Vendor Products
   vertical-align: middle;
 }
 
+.txn-item {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.txn-desc {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .txn-table tbody tr:hover {
   background: #fafafa;
 }
@@ -1995,6 +2009,22 @@ Vendor Products
 .txn-stripe-amount {
   color: #7c3aed;
   font-size: 0.82rem;
+}
+
+.txn-row-shipping {
+  background: #f0fdf4;
+}
+
+.txn-shipping-label {
+  color: #166534;
+  font-size: 0.82rem;
+  padding-left: 24px !important;
+}
+
+.txn-shipping-amount {
+  color: #16a34a;
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
 .txn-row-reserve {
@@ -2732,22 +2762,37 @@ Vendor Products
   /* Sticky payout bar: full width */
   .payout-sticky-bar {
     left: 0;
-    gap: 8px 12px;
-    padding: 10px 16px;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
     padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   }
 
+  .payout-sticky-left {
+    flex: 1;
+    min-width: 0;
+  }
+
   .payout-sticky-amount {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
+  }
+
+  /* Hide secondary info on small screens — keeps bar one line tall */
+  #payout-reserved,
+  .payout-sticky-note {
+    display: none !important;
   }
 
   .btn-payout-sticky {
+    flex-shrink: 0;
     margin-left: 0;
-    padding: 8px 16px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
   }
 
   .page-transactions .vendor-container {
-    padding-bottom: 90px;
+    padding-bottom: 70px;
   }
 
   /* Vendor products grid: 2 columns */

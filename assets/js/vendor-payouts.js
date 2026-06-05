@@ -30,15 +30,15 @@ function buildScheduleSection(schedule) {
   if (!schedule || !schedule.length) return '';
   const rows = schedule.map(r => {
     const label = new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-    return '<div class="reserve-schedule-row">'
-      + '<span class="reserve-schedule-date">' + label + '</span>'
-      + '<span class="reserve-schedule-amount">+' + fmt(r.amount) + '</span>'
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#fff;border-radius:6px;border:1px solid #fef3c7;font-size:0.88rem;margin-bottom:4px">'
+      + '<span style="color:#374151;font-weight:500">' + label + '</span>'
+      + '<span style="color:#059669;font-weight:700">+' + fmt(r.amount) + '</span>'
       + '</div>';
   }).join('');
-  return '<div class="reserve-schedule">'
-    + '<div class="reserve-schedule-title">Upcoming Reserve Releases</div>'
-    + '<p class="reserve-schedule-note">Your 10% reserve releases automatically — here\'s exactly when each amount becomes available:</p>'
-    + '<div class="reserve-schedule-list">' + rows + '</div>'
+  return '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:16px 20px;margin-bottom:24px">'
+    + '<div style="font-size:0.9rem;font-weight:700;color:#92400e;margin-bottom:4px">Upcoming Reserve Releases</div>'
+    + '<p style="font-size:0.78rem;color:#b45309;margin:0 0 12px">Your 10% reserve releases automatically — here\'s exactly when each amount becomes available:</p>'
+    + rows
     + '</div>';
 }
 

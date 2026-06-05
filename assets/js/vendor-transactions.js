@@ -64,6 +64,17 @@ async function loadTransactions() {
     const stripeEl = document.getElementById('txn-stripe');
     if (stripeEl) stripeEl.textContent = '£' + Number(summary.totalStripeFees || 0).toFixed(2);
 
+    const shippingCard = document.getElementById('txn-shipping-card');
+    const shippingEl   = document.getElementById('txn-shipping');
+    if (shippingCard && shippingEl) {
+      if (summary.totalShipping > 0) {
+        shippingEl.textContent = '£' + Number(summary.totalShipping).toFixed(2);
+        shippingCard.hidden = false;
+      } else {
+        shippingCard.hidden = true;
+      }
+    }
+
     const vatCard = document.getElementById('txn-vat-card');
     const vatEl   = document.getElementById('txn-vat');
     if (vatCard && vatEl) {
@@ -156,6 +167,26 @@ async function loadTransactions() {
   <td class="txn-order"></td>
   <td class="txn-desc txn-reserve-label" colspan="3">Reserve held (${reservePct}%) <span class="txn-reserve-note">releases at 90 days</span></td>
   <td class="txn-amount txn-reserve-amount">-£${reserveAmt.toFixed(2)}</td>
+</tr>`);
+      }
+
+      if (!isSale && Number(t.shippingKept) > 0) {
+        txnRows.push(`
+<tr class="txn-row txn-row-shipping">
+  <td class="txn-date"></td>
+  <td class="txn-order"></td>
+  <td class="txn-desc txn-shipping-label" colspan="3">Shipping collected <span class="txn-stripe-note">non-refundable</span></td>
+  <td class="txn-amount txn-shipping-amount">+£${Number(t.shippingKept).toFixed(2)}</td>
+</tr>`);
+      }
+
+      if (isSale && Number(t.shippingAmount) > 0) {
+        txnRows.push(`
+<tr class="txn-row txn-row-shipping">
+  <td class="txn-date"></td>
+  <td class="txn-order"></td>
+  <td class="txn-desc txn-shipping-label" colspan="3">Shipping collected</td>
+  <td class="txn-amount txn-shipping-amount">+£${Number(t.shippingAmount).toFixed(2)}</td>
 </tr>`);
       }
 

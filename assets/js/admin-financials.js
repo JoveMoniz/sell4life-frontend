@@ -65,7 +65,12 @@ function renderCards(s) {
     <div class="fin-card">
       <div class="fin-card-label">Gross Sales</div>
       <div class="fin-card-value">${fmt(s.totalGross)}</div>
-      <div class="fin-card-sub">${s.orderCount || 0} paid orders</div>
+      <div class="fin-card-sub">${s.orderCount || 0} paid orders · products only</div>
+    </div>
+    <div class="fin-card">
+      <div class="fin-card-label">Total Shipping</div>
+      <div class="fin-card-value">${fmt(s.totalShipping)}</div>
+      <div class="fin-card-sub">paid by buyers · passes to vendors</div>
     </div>
     <div class="fin-card">
       <div class="fin-card-label">Total Refunds</div>

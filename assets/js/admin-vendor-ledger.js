@@ -135,6 +135,11 @@ function renderCards(s, v, b) {
       <div class="vl-card-sub">before refunds</div>
     </div>
     <div class="vl-card">
+      <div class="vl-card-label">Total Shipping</div>
+      <div class="vl-card-value">${fmt(s.totalShipping)}</div>
+      <div class="vl-card-sub">paid by buyers</div>
+    </div>
+    <div class="vl-card">
       <div class="vl-card-label">Refunds</div>
       <div class="vl-card-value negative">${fmt(s.totalRefunds)}</div>
       <div class="vl-card-sub">returned to buyers</div>
@@ -198,10 +203,18 @@ function renderTable(transactions, summary) {
           ? `<span class="vl-amount-pos">${fmt(t.amount)}</span>`
           : `<span class="vl-amount-neg">${fmt(t.amount)}</span>`;
 
+      const desc = t.description || '—';
+      const shortName = t.itemName
+        ? (t.itemName.length > 30 ? t.itemName.slice(0, 30) + '…' : t.itemName)
+        : '';
+      const itemNote = shortName
+        ? `<div style="font-size:10px;color:#9ca3af">${shortName}${t.qty ? ` ×${t.qty}` : ''}</div>`
+        : '';
+
       const commission =
         t.type === 'sale' && t.commission != null
           ? `<span class="vl-amount-neg">−${fmt(t.commission)}</span>`
-          : '—';
+          : '<span style="color:#9ca3af">£0.00</span>';
 
       const netToVendor =
         t.type === 'sale' && t.commission != null
@@ -211,11 +224,19 @@ function renderTable(transactions, summary) {
                 ? `<span class="vl-amount-pos">${fmt(n)}</span>`
                 : `<span class="vl-amount-neg">${fmt(n)}</span>`;
             })()
-          : '—';
+          : '<span style="color:#9ca3af">£0.00</span>';
 
-      const desc = t.description || '—';
-      const itemNote = t.itemName
-        ? `<div style="font-size:10px;color:#9ca3af">${t.itemName}${t.qty ? ` ×${t.qty}` : ''}</div>`
+      const shippingRow = (t.type === 'sale' && Number(t.shippingAmount) > 0)
+        ? `<tr style="background:#f0fdf4">
+            <td></td><td></td><td></td><td></td>
+            <td style="font-size:11px;color:#15803d;padding-top:2px;padding-bottom:4px">
+              ↳ Shipping collected
+            </td>
+            <td class="vl-num" style="font-size:11px;color:#15803d;padding-top:2px;padding-bottom:4px">
+              +${fmt(t.shippingAmount)}
+            </td>
+            <td></td><td></td>
+          </tr>`
         : '';
 
       return `<tr>
@@ -227,7 +248,7 @@ function renderTable(transactions, summary) {
       <td class="vl-num">${amountFormatted}</td>
       <td class="vl-num">${commission}</td>
       <td class="vl-num">${netToVendor}</td>
-    </tr>`;
+    </tr>${shippingRow}`;
     })
     .join('');
 }
