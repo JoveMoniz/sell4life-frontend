@@ -65,7 +65,8 @@ function renderVendorsTable(vendors) {
     tr.dataset.vendor = JSON.stringify(v);
 
     const created = v.createdAt ? new Date(v.createdAt).toLocaleDateString('en-GB') : '—';
-    const commission = ((v.grossRevenue || 0) * 0.08).toFixed(2);
+    const commissionRate = v.commissionRate || 0.08;
+    const commission = Number(v.commission || 0).toFixed(2);
     const shortVId =
       '...' +
       String(v._id || '')
@@ -82,7 +83,7 @@ function renderVendorsTable(vendors) {
       <td>£${(v.grossRevenue || 0).toFixed(2)}</td>
       <td>£${(v.refunds || 0).toFixed(2)}</td>
       <td style="color:#1d4ed8;font-weight:600">£${commission}</td>
-      <td>£${(v.netRevenue || 0).toFixed(2)}</td>
+      <td>£${Number(v.netAfterCommission || 0).toFixed(2)}</td>
       <td>${created}</td>
       <td>
         ${renderVendorActions(v)}
@@ -98,7 +99,8 @@ function renderVendorsTable(vendors) {
 
 function renderVendorActions(v) {
   if (v.status === 'pending')
-    return `<button class="action-btn" data-id="${v._id}" data-action="approve">Approve</button>`;
+    return `<button class="action-btn" data-id="${v._id}" data-action="approve">Approve</button>
+            <button class="action-btn" data-id="${v._id}" data-action="reject" style="background:#fee2e2;color:#b91c1c;border-color:#fca5a5;margin-left:4px">Reject</button>`;
   if (v.status === 'approved')
     return `<button class="action-btn" data-id="${v._id}" data-action="suspend">Suspend</button>`;
   if (v.status === 'suspended')
@@ -156,8 +158,8 @@ function buildVendorPanel(v) {
           <div><strong>Orders:</strong> ${v.orders || 0}</div>
           <div><strong>Gross:</strong> £${(v.grossRevenue || 0).toFixed(2)}</div>
           <div><strong>Refunds:</strong> £${(v.refunds || 0).toFixed(2)}</div>
-          <div><strong>Commission (8%):</strong> <span style="color:#1d4ed8;font-weight:600">£${((v.grossRevenue || 0) * 0.08).toFixed(2)}</span></div>
-          <div><strong>Net to Vendor:</strong> £${(v.netRevenue || 0).toFixed(2)}</div>
+          <div><strong>Commission (${Math.round((v.commissionRate || 0.08) * 100)}%):</strong> <span style="color:#1d4ed8;font-weight:600">£${Number(v.commission || 0).toFixed(2)}</span></div>
+          <div><strong>Net to Vendor:</strong> £${Number(v.netAfterCommission || 0).toFixed(2)}</div>
           <div><strong>VAT:</strong> ${v.vatRegistered ? `Registered${v.vatNumber ? ` · <code style="font-size:0.78rem">${v.vatNumber}</code>` : ''}` : 'Not registered'}</div>
         </div>
 
@@ -224,6 +226,7 @@ document.getElementById('vendorsTable').addEventListener('click', async (e) => {
   if (actionBtn) {
     const id = actionBtn.dataset.id;
     const action = actionBtn.dataset.action;
+    if (action === 'reject' && !confirm('Reject this vendor application? They will be notified by email.')) return;
     try {
       const res = await authFetch(`${API}/admin/vendors/${id}/${action}`, { method: 'PATCH' });
       if (!res.ok) {
@@ -520,7 +523,8 @@ document.addEventListener('click', (e) => {
       String(v._id || '')
         .slice(-6)
         .toUpperCase();
-    const commission = ((v.grossRevenue || 0) * 0.08).toFixed(2);
+    const commission = Number(v.commission || 0).toFixed(2);
+    const netToVendor = Number(v.netAfterCommission || 0).toFixed(2);
     const created = v.createdAt ? new Date(v.createdAt).toLocaleDateString('en-GB') : '';
     return [
       `"${(v.storeName || '').replace(/"/g, '""')}"`,
@@ -531,7 +535,7 @@ document.addEventListener('click', (e) => {
       Number(v.grossRevenue || 0).toFixed(2),
       Number(v.refunds || 0).toFixed(2),
       commission,
-      Number(v.netRevenue || 0).toFixed(2),
+      netToVendor,
       created,
     ].join(',');
   });

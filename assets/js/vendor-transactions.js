@@ -42,6 +42,11 @@ async function loadTransactions() {
     const txns = data.transactions || [];
     const summary = data.summary || {};
     const reserveRate = Number(summary.reserveRate || 0.10);
+    const commissionRate = Number(summary.commissionRate || 0.08);
+    const commissionPct = Math.round(commissionRate * 100);
+
+    const commissionLabelEl = document.getElementById('txn-commission-label');
+    if (commissionLabelEl) commissionLabelEl.textContent = `Platform Fee (${commissionPct}%)`;
 
     lastTransactions = txns;
 
@@ -57,6 +62,11 @@ async function loadTransactions() {
 
     document.getElementById('txn-sales').textContent = '£' + Number(summary.totalSales || 0).toFixed(2);
     document.getElementById('txn-refunds').textContent = '£' + Number(summary.totalRefunds || 0).toFixed(2);
+
+    const rateEl = document.getElementById('txn-commission-rate');
+    if (rateEl) rateEl.textContent = Math.round((summary.commissionRate || commissionRate) * 100) + '%';
+    const resRateEl = document.getElementById('txn-reserve-rate');
+    if (resRateEl) resRateEl.textContent = Math.round((summary.reserveRate || reserveRate) * 100) + '%';
 
     const feeEl = document.getElementById('txn-commission');
     if (feeEl) feeEl.textContent = '£' + Number(summary.totalCommission || 0).toFixed(2);
@@ -149,18 +159,20 @@ async function loadTransactions() {
 </tr>`);
 
       if (isSale && Number(t.commission) > 0) {
+        const rowPct = t.commissionRate != null ? Math.round(t.commissionRate * 100) : commissionPct;
         txnRows.push(`
 <tr class="txn-row txn-row-commission">
   <td class="txn-date"></td>
   <td class="txn-order"></td>
-  <td class="txn-desc txn-commission-label" colspan="3">Platform fee (8%)</td>
+  <td class="txn-desc txn-commission-label" colspan="3">Platform fee (${rowPct}%)</td>
   <td class="txn-amount txn-commission-amount">-£${Number(t.commission).toFixed(2)}</td>
 </tr>`);
       }
 
       if (isSale && Number(t.amount) > 0) {
-        const reserveAmt = Number((Math.abs(t.amount) * reserveRate).toFixed(2));
-        const reservePct = Math.round(reserveRate * 100);
+        const rowReserveRate = t.reserveRate != null ? t.reserveRate : reserveRate;
+        const reserveAmt = Number((Math.abs(t.amount) * rowReserveRate).toFixed(2));
+        const reservePct = Math.round(rowReserveRate * 100);
         txnRows.push(`
 <tr class="txn-row txn-row-reserve">
   <td class="txn-date"></td>
@@ -334,7 +346,7 @@ document.addEventListener('click', (e) => {
         date,
         t.displayId || t.orderId,
         'commission',
-        '"Platform fee (8%)"',
+        `"Platform fee (${commissionPct}%)"`,
         '',
         '',
         `-${Number(t.commission).toFixed(2)}`,

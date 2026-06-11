@@ -1,5 +1,5 @@
 (() => {
-  const BASE = window.API_BASE || 'https://sell4life-backend.onrender.com/api';
+  const BASE = window.API_BASE;
   const grid = document.getElementById('stores-grid');
   const searchInput = document.getElementById('stores-search');
   const countEl = document.getElementById('stores-count');
@@ -67,7 +67,7 @@
           ${s.storeDescription ? `<div class="store-card-desc">${s.storeDescription}</div>` : ''}
           <div class="store-card-meta">${s.productCount} product${s.productCount === 1 ? '' : 's'}</div>
         </div>
-        <a class="store-card-btn" href="/shop/?vendorId=${s._id}&storeName=${encodeURIComponent(s.storeName)}">Browse Products →</a>
+        <a class="store-card-btn" href="/stores/store.html?slug=${encodeURIComponent(s.storeSlug)}">Visit Store →</a>
       </div>`
       )
       .join('');

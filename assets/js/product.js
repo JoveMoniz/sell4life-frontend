@@ -3,7 +3,7 @@ console.log('product.js loaded');
 (async function () {
   const $ = (sel) => document.querySelector(sel);
 
-  const API = window.API_BASE || '';
+  const API = window.API_BASE;
   const IMAGE_BASE = '/assets/images/products/';
 
   // ── Get product ID ─────────────────────────────────────────

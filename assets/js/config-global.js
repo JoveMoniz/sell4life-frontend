@@ -16,14 +16,14 @@
 
   window.API_BASE = isLocal
     ? 'http://localhost:5000/api'
-    : 'https://sell4life-backend.onrender.com/api';
+    : 'https://sell4life-backend-prod.onrender.com/api';
 
   // --------------------------------------------------
   // Stripe publishable key
   // --------------------------------------------------
 
   window.STRIPE_PUBLISHABLE_KEY =
-    'pk_test_51T5d67A1Mw7MF8uC9jIxvbO2ryqXdag6Og5z6r8sAUPGsEMYM5Tn9ymJOpTBaGYvndAApYvVEig5KQjNJf2KXW2k00ZLHNXPaM';
+    'pk_live_51T5d4uPSg7d2gQiCtuvr2HioMqXscCfkD5Yr38rKahOrgnUyowqAJm2qNXkPcRZ5JUCJkDldpfdMxgRcZDeCIBmd005NXY0Nyv';
 
   // --------------------------------------------------
   // Inject layout.js with cache-busting on every load
@@ -33,7 +33,8 @@
   const _v = Date.now();
 
   const isAdminPage = location.pathname.includes('/account/admin/');
-  if (!isAdminPage) {
+  const isVendorPage = location.pathname.includes('/account/vendor/');
+  if (!isAdminPage && !isVendorPage) {
     // Hide body until layout.js injects the header — prevents unstyled flash
     document.body.classList.add('s4l-loading');
 

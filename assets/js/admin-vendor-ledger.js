@@ -150,7 +150,7 @@ function renderCards(s, v, b) {
       <div class="vl-card-sub">gross − refunds</div>
     </div>
     <div class="vl-card">
-      <div class="vl-card-label">Commission (8%)</div>
+      <div class="vl-card-label">Commission (${Math.round((s.commissionRate || 0.08) * 100)}%)</div>
       <div class="vl-card-value blue">${fmt(s.totalCommission)}</div>
       <div class="vl-card-sub">platform fee</div>
     </div>

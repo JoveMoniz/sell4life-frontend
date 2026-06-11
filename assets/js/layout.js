@@ -689,7 +689,7 @@ document.addEventListener('headerLoaded', () => {
   let version;
 
   try {
-    const res = await fetch('https://sell4life-backend.onrender.com/api/version');
+    const res = await fetch(`${window.API_BASE}/version`);
     const data = await res.json();
     version = data.version;
   } catch {

@@ -60,6 +60,9 @@ function renderCards(s) {
 
   const profit = Number(s.netProfit || 0);
   const profitClass = profit >= 0 ? 'positive' : 'negative';
+  const effectiveRate = s.totalGross > 0
+    ? (Number(s.totalCommission) / Number(s.totalGross) * 100).toFixed(1).replace(/\.0$/, '')
+    : 0;
 
   el.innerHTML = `
     <div class="fin-card">
@@ -80,7 +83,7 @@ function renderCards(s) {
     <div class="fin-card">
       <div class="fin-card-label">Platform Revenue</div>
       <div class="fin-card-value positive">${fmt(s.totalCommission)}</div>
-      <div class="fin-card-sub">8% commission</div>
+      <div class="fin-card-sub">${effectiveRate}% effective commission</div>
     </div>
     <div class="fin-card">
       <div class="fin-card-label">Stripe Costs</div>

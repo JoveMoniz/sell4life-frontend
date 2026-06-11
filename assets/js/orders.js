@@ -4,7 +4,7 @@
 
 console.log('orders.js running');
 
-const API = window.API_BASE || '';
+const API = window.API_BASE;
 
 async function initOrders() {
   localStorage.setItem('s4l_orders_seen', Date.now());

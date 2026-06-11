@@ -142,13 +142,7 @@ async function loadFeaturedProducts() {
     const res = await fetch(`${window.API_BASE}/products`);
     const data = await res.json();
     products = Array.isArray(data.products) ? data.products : [];
-    if (!products.length) throw new Error('empty');
-  } catch {
-    try {
-      const res = await fetch('/data/products.json');
-      products = await res.json();
-    } catch (e) {}
-  }
+  } catch (e) {}
 
   const featured = products.slice(0, 8);
 

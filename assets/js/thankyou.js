@@ -53,7 +53,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🔥 Thankyou started');
 
-  const API = window.API_BASE || '';
+  const API = window.API_BASE;
 
   const params = new URLSearchParams(window.location.search);
   const paymentIntentId = params.get('payment_intent');

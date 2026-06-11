@@ -1,8 +1,17 @@
 // ======================================================
-// VENDOR PAYOUTS
+// VENDOR PAYOUTS — v3
 // ======================================================
 
 const API = window.API_BASE;
+
+const PERIOD_LABELS = {
+  all: 'All Time', today: 'Today', week: 'This Week',
+  month: 'This Month', rolling12: 'Last 12 Months', year: 'Year to Date',
+};
+const PERIOD_SUBLABELS = {
+  all: 'all time', today: 'today', week: 'this week',
+  month: 'this month', rolling12: 'last 12 months', year: 'year to date',
+};
 
 function authFetch(url, opts = {}) {
   const token = localStorage.getItem('s4l_token');
@@ -13,16 +22,25 @@ function authFetch(url, opts = {}) {
 
 function fmt(n) { return '£' + Number(n || 0).toFixed(2); }
 
-async function load() {
+async function load(period = 'all') {
   const wrap = document.getElementById('payouts-wrap');
+  if (!wrap) return;
+  const url = period && period !== 'all'
+    ? `${API}/vendor/payouts?period=${encodeURIComponent(period)}`
+    : `${API}/vendor/payouts`;
   try {
-    const res = await authFetch(`${API}/vendor/payouts`);
+    const res = await authFetch(url);
     if (res.status === 401) { window.location.href = '/account/signin.html'; return; }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      wrap.innerHTML = `<p style="color:#b91c1c">${err.error || 'Failed to load payouts.'}</p>`;
+      return;
+    }
     const data = await res.json();
     render(data, wrap);
   } catch (err) {
     console.error('Payouts load error:', err);
-    wrap.innerHTML = '<p style="color:#b91c1c">Failed to load payouts.</p>';
+    if (wrap) wrap.innerHTML = '<p style="color:#b91c1c">Failed to load payouts.</p>';
   }
 }
 
@@ -45,6 +63,9 @@ function buildScheduleSection(schedule) {
 function render(data, wrap) {
   const b = data;
   const payouts = data.payouts || [];
+  const period = data.period || 'all';
+  const ps = data.periodStats;
+  const subLabel = PERIOD_SUBLABELS[period] || 'all time';
 
   const holdDays = data.holdDays || 30;
   const holdLabel = holdDays < 1/24
@@ -100,6 +121,10 @@ function render(data, wrap) {
       }).join('')
     : `<tr><td colspan="5" class="payout-empty">No payout history yet.</td></tr>`;
 
+  // Net sales + commission are period-sensitive; stripe fees + reserve are always all-time totals
+  const netSalesVal   = ps ? ps.netAfterFees   : b.netAfterFeesAllTime;
+  const commissionVal = ps ? ps.commissionPaid : b.commissionAllTime;
+
   wrap.innerHTML = `
     <div class="payout-cards">
       <div class="payout-card">
@@ -109,8 +134,13 @@ function render(data, wrap) {
       </div>
       <div class="payout-card">
         <div class="payout-card-label">Net Sales</div>
-        <div class="payout-card-value">${fmt(b.netAfterFeesAllTime)}</div>
-        <div class="payout-card-sub">all time, after commission</div>
+        <div class="payout-card-value">${fmt(netSalesVal)}</div>
+        <div class="payout-card-sub">${subLabel}, after commission</div>
+      </div>
+      <div class="payout-card">
+        <div class="payout-card-label">Shipping Collected</div>
+        <div class="payout-card-value">${fmt(b.shippingAllTime || 0)}</div>
+        <div class="payout-card-sub">all time, passes through to you</div>
       </div>
       <div class="payout-card">
         <div class="payout-card-label">Total Paid Out</div>
@@ -118,20 +148,32 @@ function render(data, wrap) {
         <div class="payout-card-sub">received so far</div>
       </div>
       <div class="payout-card">
-        <div class="payout-card-label">Commission</div>
-        <div class="payout-card-value negative">${fmt(b.commissionAllTime)}</div>
-        <div class="payout-card-sub">8% platform fee, all time</div>
+        <div class="payout-card-label">Commission Paid</div>
+        <div class="payout-card-value negative">${fmt(commissionVal)}</div>
+        <div class="payout-card-sub">platform fee, ${subLabel}</div>
       </div>
+      ${b.vendorType === 'casual' ? `
+      <div class="payout-card">
+        <div class="payout-card-label">Your Rate</div>
+        <div class="payout-card-value">${Math.round((b.commissionRate || 0.08) * 100)}%</div>
+        <div class="payout-card-sub">current platform fee</div>
+      </div>` : ''}
       <div class="payout-card">
         <div class="payout-card-label">Stripe Fees</div>
         <div class="payout-card-value" style="color:#1d4ed8">${fmt(b.totalStripeFees)}</div>
-        <div class="payout-card-sub">covered by platform</div>
+        <div class="payout-card-sub">all time, covered by platform</div>
       </div>
       <div class="payout-card">
         <div class="payout-card-label">In Reserve</div>
         <div class="payout-card-value" style="color:#f59e0b">${fmt(b.reservedBalance)}</div>
-        <div class="payout-card-sub">${Math.round((b.reserveRate || 0.10) * 100)}% held · releases at 90 days${b.trustedSeller ? ' · ✓ Trusted' : ''}</div>
+        <div class="payout-card-sub">current total · releases at 90 days</div>
       </div>
+      ${b.vendorType === 'casual' ? `
+      <div class="payout-card">
+        <div class="payout-card-label">Reserve Rate</div>
+        <div class="payout-card-value">${Math.round((b.reserveRate || 0.10) * 100)}%</div>
+        <div class="payout-card-sub">current reserve hold${b.trustedSeller ? ' · ✓ Trusted' : ''}</div>
+      </div>` : ''}
     </div>
 
     ${requestSection}
@@ -171,7 +213,8 @@ function render(data, wrap) {
         } else {
           msgEl.textContent = 'Payout request submitted. Admin will process it shortly.';
           msgEl.className = 'payout-msg success';
-          setTimeout(() => load(), 1500);
+          const activePeriod = document.querySelector('.period-btn.active')?.dataset.period || 'all';
+          setTimeout(() => load(activePeriod), 1500);
         }
       } catch {
         msgEl.textContent = 'Network error.';
@@ -181,6 +224,18 @@ function render(data, wrap) {
       }
     });
   }
+}
+
+// Wire up period filter buttons (module is deferred — DOM already ready)
+const _filter = document.getElementById('payout-period-filter');
+if (_filter) {
+  _filter.addEventListener('click', e => {
+    const btn = e.target.closest('.period-btn');
+    if (!btn) return;
+    _filter.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    load(btn.dataset.period);
+  });
 }
 
 load();

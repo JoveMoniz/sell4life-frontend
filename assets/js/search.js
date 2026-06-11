@@ -6,7 +6,7 @@
     await new Promise((r) => setTimeout(r, 20));
   }
 
-  const API = window.API_BASE || '';
+  const API = window.API_BASE;
   const cache = new Map();
 
   const desktop = {

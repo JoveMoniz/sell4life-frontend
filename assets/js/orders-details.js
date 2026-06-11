@@ -4,7 +4,7 @@
 
 console.log('orders-details.js running');
 
-const API = window.API_BASE || '';
+const API = window.API_BASE;
 
 /* ======================================================
    AUTH FETCH

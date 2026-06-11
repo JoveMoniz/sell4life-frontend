@@ -135,6 +135,17 @@
           <a href="/account/vendor/dashboard.html" class="vendor-back-link">← Back to Dashboard</a>
           <h1 class="vendor-title">Payouts</h1>
 
+          <div class="txn-filter-sticky">
+            <div class="period-filter" id="payout-period-filter">
+              <button type="button" class="period-btn active" data-period="all">All Time</button>
+              <button type="button" class="period-btn" data-period="today">Today</button>
+              <button type="button" class="period-btn" data-period="week">This Week</button>
+              <button type="button" class="period-btn" data-period="month">This Month</button>
+              <button type="button" class="period-btn" data-period="rolling12">Last 12 Months</button>
+              <button type="button" class="period-btn" data-period="year">Year to Date</button>
+            </div>
+          </div>
+
           <div class="payouts-wrap" id="payouts-wrap">
             <p style="color:#9ca3af">Loading…</p>
           </div>
@@ -143,7 +154,7 @@
     </div>
 
     <script src="/assets/js/config-global.js"></script>
-    <script src="/assets/js/layout.js?v=20260603"></script>
-    <script type="module" src="/assets/js/vendor-payouts.js?v=20260604a"></script>
+    <script src="/assets/js/layout.js?v=20260606"></script>
+    <script type="module" src="/assets/js/vendor-payouts.js?v=20260607c"></script>
   </body>
 </html>

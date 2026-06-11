@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Store | Sell4Life</title>
+    <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png" />
+    <link rel="stylesheet" href="/assets/css/layout.css?v=20260532" />
+    <style>
+      .store-profile-hero {
+        background: #0b6b6a;
+        padding: 36px 20px 28px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+      .store-profile-logo {
+        width: 72px;
+        height: 72px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        font-weight: 700;
+        flex-shrink: 0;
+        overflow: hidden;
+      }
+      .store-profile-logo img { width: 100%; height: 100%; object-fit: cover; }
+      .store-profile-info { flex: 1; min-width: 0; }
+      .store-profile-name { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+      .store-profile-slug { font-size: 13px; color: rgba(255,255,255,0.65); margin: 0 0 6px; }
+      .store-profile-desc { font-size: 14px; color: rgba(255,255,255,0.8); margin: 0; }
+      .store-profile-meta {
+        font-size: 12px;
+        color: rgba(255,255,255,0.55);
+        margin-top: 6px;
+        display: flex;
+        gap: 14px;
+      }
+
+      .store-profile-body {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 28px 20px 60px;
+      }
+      .store-profile-heading {
+        font-size: 17px;
+        font-weight: 700;
+        color: #111827;
+        margin: 0 0 16px;
+      }
+
+      .store-products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
+      }
+      .store-product-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        overflow: hidden;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        transition: box-shadow 0.15s;
+      }
+      .store-product-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+      .store-product-img {
+        height: 160px;
+        background: #f9fafb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+      .store-product-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .store-product-img .no-img {
+        font-size: 36px;
+        color: #d1d5db;
+      }
+      .store-product-body {
+        padding: 10px 12px 12px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .store-product-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #111827;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        flex: 1;
+      }
+      .store-product-price {
+        font-size: 15px;
+        font-weight: 700;
+        color: #0b6b6a;
+        margin-top: 4px;
+      }
+      .store-product-shipping {
+        font-size: 11px;
+        color: #9ca3af;
+      }
+
+      .store-empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: #9ca3af;
+        font-size: 15px;
+      }
+      .store-back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        font-size: 13px;
+        color: #0b6b6a;
+        text-decoration: none;
+      }
+      .store-back-link:hover { text-decoration: underline; }
+
+      #store-error {
+        text-align: center;
+        padding: 80px 20px;
+        color: #6b7280;
+        font-size: 15px;
+      }
+    </style>
+    <style id="s4l-fouc">html{visibility:hidden}</style>
+  </head>
+  <body class="s4l-loading">
+    <div id="store-hero" style="display:none">
+      <div class="store-profile-hero">
+        <div class="store-profile-logo" id="store-logo"></div>
+        <div class="store-profile-info">
+          <div class="store-profile-name" id="store-name">Loading…</div>
+          <div class="store-profile-slug" id="store-slug"></div>
+          <div class="store-profile-desc" id="store-desc"></div>
+          <div class="store-profile-meta">
+            <span id="store-product-count"></span>
+            <span id="store-joined"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="store-error" style="display:none">Store not found.</div>
+
+    <div class="store-profile-body">
+      <a href="/stores/" class="store-back-link">← Back to all stores</a>
+      <div id="store-products-section" style="display:none">
+        <div class="store-profile-heading" id="products-heading">Products</div>
+        <div class="store-products-grid" id="store-products-grid"></div>
+      </div>
+    </div>
+
+    <script src="/assets/js/config-global.js"></script>
+    <script src="/assets/js/layout.js?v=20260603"></script>
+    <script src="/assets/js/store.js?v=20260607"></script>
+  </body>
+</html>

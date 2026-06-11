@@ -404,7 +404,7 @@ document.getElementById('btn-bulk-price')?.addEventListener('click', () => {
   if (input) { input.type = 'number'; input.value = ''; }
   if (panel) panel.hidden = false;
   if (input) input.focus();
-  panel?.dataset.mode = 'price';
+  if (panel) panel.dataset.mode = 'price';
 });
 
 document.getElementById('btn-bulk-stock')?.addEventListener('click', () => {
@@ -415,7 +415,7 @@ document.getElementById('btn-bulk-stock')?.addEventListener('click', () => {
   if (input) { input.type = 'number'; input.value = ''; input.step = '1'; }
   if (panel) panel.hidden = false;
   if (input) input.focus();
-  panel?.dataset.mode = 'stock';
+  if (panel) panel.dataset.mode = 'stock';
 });
 
 document.getElementById('btn-bulk-edit-cancel')?.addEventListener('click', () => {

@@ -8,7 +8,7 @@
   // ======================================================
   // CONFIG
   // ======================================================
-  const API_URL = 'https://sell4life-backend.onrender.com/api/products';
+  const API_URL = `${window.API_BASE}/products`;
   const CATEGORY_JSON_URL = '/data/category.json';
   const IMAGE_BASE = '/assets/images/products/';
   const FALLBACK_IMAGE = '/assets/images/products/sell4life-placeholder.png';
