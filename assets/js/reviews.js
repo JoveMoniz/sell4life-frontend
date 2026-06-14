@@ -35,7 +35,7 @@
   /* ── auth check ────────────────────────────────────────── */
 
   function getToken() {
-    try { return localStorage.getItem('token') || null; } catch { return null; }
+    try { return localStorage.getItem('s4l_token') || null; } catch { return null; }
   }
 
   /* ── build inline stars for the product page header ───── */

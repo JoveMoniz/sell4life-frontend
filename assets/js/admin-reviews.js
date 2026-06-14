@@ -1,6 +1,6 @@
 /* admin-reviews.js — Reviews & Ratings management page */
 const API   = window.API_BASE;
-const token = () => localStorage.getItem('token') || '';
+const token = () => localStorage.getItem('s4l_token') || '';
 
 /* ── toast helper ────────────────────────────────────────── */
 function toast(msg, ok = true) {
