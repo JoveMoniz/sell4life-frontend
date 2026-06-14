@@ -466,25 +466,15 @@
               </div>
 
               <div id="variant-builder" style="display:none;margin-top:18px">
-                <div class="vb-attr-names">
-                  <div class="form-group">
-                    <label>Attribute 1 name <span class="ap-hint">e.g. Colour, Size</span></label>
-                    <input type="text" id="attr-name-1" class="vb-input" placeholder="e.g. Colour" value="Colour" />
-                  </div>
-                  <div class="form-group">
-                    <label>Attribute 2 name <span class="ap-hint">Optional — leave blank if not needed</span></label>
-                    <input type="text" id="attr-name-2" class="vb-input" placeholder="e.g. Size (optional)" />
-                  </div>
-                </div>
+                <div id="attr-names-wrap"></div>
+                <button type="button" id="btn-add-attr" class="vb-add-attr-btn">+ Add attribute</button>
 
                 <div class="vb-table-wrap">
                   <table class="vb-table">
                     <thead>
-                      <tr>
-                        <th id="vb-th-1">Colour</th>
-                        <th id="vb-th-2" class="vb-th-hidden">Attribute 2</th>
-                        <th>Swatch / Mode</th>
-                        <th>Image URL</th>
+                      <tr id="vb-header-row">
+                        <th class="vb-swatch-th">Swatch / Mode</th>
+                        <th>Image</th>
                         <th>Price (£)</th>
                         <th>Stock</th>
                         <th>SKU</th>
@@ -497,6 +487,7 @@
 
                 <div class="vb-btn-row">
                   <button type="button" id="btn-add-variant" class="vb-add-btn">+ Add variant</button>
+                  <button type="button" id="btn-gen-variants" class="vb-gen-btn">&#9889; Generate combinations</button>
                 </div>
               </div>
             </div>

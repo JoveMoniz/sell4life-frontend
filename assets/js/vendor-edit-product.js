@@ -731,6 +731,8 @@ async function handleFile(n, file) {
     uploadedUrls[n] = cdnUrl;
     preview.src = cdnUrl;
     URL.revokeObjectURL(blobUrl);
+    const cbEl = zone?.querySelector('.img-slot-check');
+    if (cbEl) cbEl.style.display = '';
   } catch (err) {
     console.error('Cloudinary upload error:', err);
     clearSlot(n);
@@ -751,6 +753,8 @@ function clearSlot(n) {
   if (overlay) overlay.style.display = 'none';
   if (input)   input.value = '';
   uploadedUrls[n] = null;
+  const cb = zone?.querySelector('.img-slot-check');
+  if (cb) { cb.checked = false; cb.style.display = 'none'; }
 }
 
 function preloadSlot(n, url) {
@@ -761,6 +765,8 @@ function preloadSlot(n, url) {
   uploadedUrls[n] = url;
   preview.src = url;
   zone.classList.add('has-image');
+  const cb = zone.querySelector('.img-slot-check');
+  if (cb) cb.style.display = '';
 }
 
 function bindSlot(n) {
@@ -768,6 +774,16 @@ function bindSlot(n) {
   const input     = document.getElementById(`img-input-${n}`);
   const removeBtn = document.querySelector(`.ap-remove-btn[data-slot="${n}"]`);
   if (!zone || !input) return;
+
+  if (!zone.querySelector('.img-slot-check')) {
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'img-slot-check';
+    cb.dataset.slot = n;
+    cb.style.cssText = 'position:absolute;top:5px;left:5px;z-index:15;width:16px;height:16px;cursor:pointer;accent-color:#14b8a6;display:' + (uploadedUrls[n] ? '' : 'none');
+    cb.addEventListener('click', e => e.stopPropagation());
+    zone.appendChild(cb);
+  }
 
   zone.addEventListener('click', (e) => {
     if (e.target.closest('.ap-remove-btn')) return;
@@ -932,6 +948,35 @@ function bindVideoSlots() {
 function bindImageUploads() {
   Array.from({ length: 20 }, (_, i) => i + 1).forEach(bindSlot);
 
+  // Inject "Select All" / "Clear Selected" buttons for image slots
+  const uploadBtn = document.getElementById('ap-select-all-btn');
+  const imgBtnRow = uploadBtn?.parentNode;
+  if (imgBtnRow && !document.getElementById('img-sel-all-btn')) {
+    const selAllBtn = document.createElement('button');
+    selAllBtn.type = 'button';
+    selAllBtn.id = 'img-sel-all-btn';
+    selAllBtn.textContent = '☑ Select All';
+    selAllBtn.style.cssText = 'font-size:0.82rem;padding:5px 12px;background:#f0f9f8;border:1px solid #0b6b6a;color:#0b6b6a;border-radius:6px;cursor:pointer;font-weight:600';
+    const clearSelBtn = document.createElement('button');
+    clearSelBtn.type = 'button';
+    clearSelBtn.id = 'img-clear-sel-btn';
+    clearSelBtn.textContent = '✕ Clear Selected';
+    clearSelBtn.style.cssText = 'font-size:0.82rem;padding:5px 12px;background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;cursor:pointer;font-weight:600';
+    selAllBtn.addEventListener('click', () => {
+      const filledCbs = Array.from(document.querySelectorAll('.img-slot-check')).filter(c => c.style.display !== 'none');
+      const allChecked = filledCbs.length > 0 && filledCbs.every(c => c.checked);
+      filledCbs.forEach(c => c.checked = !allChecked);
+    });
+    clearSelBtn.addEventListener('click', () => {
+      const checked = Array.from(document.querySelectorAll('.img-slot-check:checked'));
+      if (!checked.length) { window.showToast?.('No images selected', 'error'); return; }
+      if (!confirm(`Clear ${checked.length} selected image(s)?`)) return;
+      checked.forEach(cb => clearSlot(parseInt(cb.dataset.slot)));
+    });
+    imgBtnRow.appendChild(selAllBtn);
+    imgBtnRow.appendChild(clearSelBtn);
+  }
+
   const showMoreBtn = document.getElementById('ap-show-more');
   const extraSlots  = document.getElementById('ap-extra-slots');
   if (showMoreBtn && extraSlots) {
@@ -967,19 +1012,66 @@ function bindImageUploads() {
 let _variantRowId = 0;
 let _variantGlobalMode = 'color';
 
-function syncVariantHeaders() {
-  const n1 = document.getElementById('attr-name-1')?.value.trim() || 'Attribute 1';
-  const n2 = document.getElementById('attr-name-2')?.value.trim() || '';
-  const th1 = document.getElementById('vb-th-1');
-  const th2 = document.getElementById('vb-th-2');
-  if (th1) th1.textContent = n1;
-  if (th2) {
-    th2.textContent = n2 || 'Attribute 2';
-    th2.classList.toggle('vb-th-hidden', !n2);
-    document.querySelectorAll('.vb-attr2-cell').forEach((cell) => {
-      cell.classList.toggle('vb-th-hidden', !n2);
+function getAttrNames() {
+  return Array.from(document.querySelectorAll('#attr-names-wrap .attr-name-input'))
+    .map(el => el.value.trim());
+}
+
+function addAttrInput(name, addColToRows) {
+  const wrap = document.getElementById('attr-names-wrap');
+  if (!wrap) return;
+  const isFirst = wrap.querySelectorAll('.attr-name-input').length === 0;
+  const idx = wrap.querySelectorAll('.attr-group').length;
+  const div = document.createElement('div');
+  div.className = 'attr-group';
+  div.innerHTML = `<span class="attr-group-label">Attribute ${idx + 1}</span><div class="attr-group-row"><input type="text" class="vb-input attr-name-input" value="${name || ''}" placeholder="${isFirst ? 'e.g. Colour' : 'e.g. Model, Size'}" />${!isFirst ? '<button type="button" class="attr-remove-btn" title="Remove attribute">&times;</button>' : ''}</div>`;
+  wrap.appendChild(div);
+  div.querySelector('.attr-name-input').addEventListener('input', syncVariantHeaders);
+  if (!isFirst) {
+    div.querySelector('.attr-remove-btn').addEventListener('click', () => {
+      const attrIdx = Array.from(wrap.querySelectorAll('.attr-group')).indexOf(div);
+      document.querySelectorAll('#variant-rows tr').forEach(tr => {
+        const cells = tr.querySelectorAll('.vb-dyn-attr-td');
+        if (cells[attrIdx]) cells[attrIdx].remove();
+      });
+      div.remove();
+      wrap.querySelectorAll('.attr-group').forEach((g, i) => {
+        const lbl = g.querySelector('.attr-group-label');
+        if (lbl) lbl.textContent = `Attribute ${i + 1}`;
+      });
+      syncVariantHeaders();
     });
   }
+  if (addColToRows) {
+    document.querySelectorAll('#variant-rows tr').forEach(tr => {
+      const swatchTd = tr.querySelector('.vb-color-cell');
+      if (!swatchTd) return;
+      const td = document.createElement('td');
+      td.className = 'vb-dyn-attr-td';
+      td.innerHTML = '<input type="text" class="vb-input" name="vr-attr" placeholder="" />';
+      tr.insertBefore(td, swatchTd);
+    });
+  }
+  syncVariantHeaders();
+}
+
+function syncVariantHeaders() {
+  const names = getAttrNames();
+  const headerRow = document.getElementById('vb-header-row');
+  if (!headerRow) return;
+  headerRow.querySelectorAll('.vb-attr-th, .vb-check-th').forEach(th => th.remove());
+  const swatchTh = headerRow.querySelector('.vb-swatch-th');
+  names.forEach((name, i) => {
+    const th = document.createElement('th');
+    th.className = 'vb-attr-th';
+    th.textContent = name || `Attribute ${i + 1}`;
+    headerRow.insertBefore(th, swatchTh);
+  });
+  const checkTh = document.createElement('th');
+  checkTh.className = 'vb-check-th';
+  checkTh.style.cssText = 'width:28px;text-align:center;vertical-align:middle;padding:4px';
+  checkTh.innerHTML = '<input type="checkbox" id="vr-check-all-hdr" title="Select / deselect all rows" style="width:15px;height:15px;cursor:pointer;accent-color:#14b8a6" />';
+  headerRow.insertBefore(checkTh, headerRow.firstElementChild);
 }
 
 function setRowMode(tr, mode) {
@@ -998,15 +1090,22 @@ function addVariantRow(data) {
   const tbody = document.getElementById('variant-rows');
   if (!tbody) return;
   const id = ++_variantRowId;
-  const n2 = document.getElementById('attr-name-2')?.value.trim();
+  const attrNames = getAttrNames();
+  const attrVals = data.attrs || [data.attr1 || '', data.attr2 || '', data.attr3 || ''];
   const color = data.color || '#ffffff';
   const imgSrc = data.image || '';
   const rowMode = data.displayMode || _variantGlobalMode;
   const tr = document.createElement('tr');
   tr.dataset.rowId = id;
+  const _ph = ['e.g. Black', 'e.g. Large', 'e.g. iPhone 15'];
+  const attrCells = attrNames.map((_, i) =>
+    `<td class="vb-dyn-attr-td"><input type="text" class="vb-input" name="vr-attr" value="${attrVals[i] || ''}" placeholder="${_ph[i] || 'e.g. value'}" /></td>`
+  ).join('');
   tr.innerHTML = `
-    <td><input type="text" class="vb-input" name="vr-attr1" value="${data.attr1 || ''}" placeholder="e.g. Black" /></td>
-    <td class="vb-attr2-cell${n2 ? '' : ' vb-th-hidden'}"><input type="text" class="vb-input" name="vr-attr2" value="${data.attr2 || ''}" placeholder="e.g. Large" /></td>
+    <td class="vb-check-td" style="width:28px;text-align:center;vertical-align:middle;padding:4px">
+      <input type="checkbox" class="vr-row-check" style="width:15px;height:15px;cursor:pointer;accent-color:#14b8a6" />
+    </td>
+    ${attrCells}
     <td class="vb-color-cell">
       <input type="color" class="vb-color-pick" name="vr-color" value="${color}" data-user-set="${data.color ? 'true' : 'false'}" title="Pick swatch colour" />
       <span class="vr-mode-sel"><button type="button" class="vr-mode-btn" data-pick="color" title="Show as colour swatch on product page">Clr</button><button type="button" class="vr-mode-btn" data-pick="image" title="Show as image thumbnail on product page">Img</button></span>
@@ -1019,7 +1118,9 @@ function addVariantRow(data) {
             <button type="button" class="vr-img-clear">CLR</button>
           </div>
         </div>
-        <input type="text" class="vb-input ao-img-url vr-img-url" name="vr-image" value="${imgSrc}" placeholder="Paste image URL…" />
+        <div style="display:flex;gap:4px;align-items:center">
+          <input type="text" class="vb-input ao-img-url vr-img-url" name="vr-image" value="${imgSrc}" placeholder="Paste URL or upload…" style="flex:1;min-width:0" />
+        </div>
       </div>
     </td>
     <td><input type="number" class="vb-input vb-input-sm" name="vr-price" step="0.01" min="0" value="${data.price != null ? data.price : ''}" placeholder="0.00" /></td>
@@ -1029,6 +1130,53 @@ function addVariantRow(data) {
   `;
   tbody.appendChild(tr);
   setRowMode(tr, rowMode);
+
+  // Wire per-row upload button
+  const uploadBtn   = tr.querySelector('.vr-upload-btn');
+  const uploadInput = tr.querySelector('.vr-upload-input');
+  if (uploadBtn && uploadInput) {
+    uploadBtn.addEventListener('click', () => uploadInput.click());
+    uploadInput.addEventListener('change', async () => {
+      const file = uploadInput.files[0];
+      if (!file) return;
+      uploadBtn.textContent = '⏳';
+      uploadBtn.disabled = true;
+      try {
+        const url = await uploadToCloudinary(file);
+        const urlInput = tr.querySelector('[name="vr-image"]');
+        const img      = tr.querySelector('.vr-img-preview');
+        const wrap     = tr.querySelector('.vr-thumb-wrap');
+        if (urlInput) urlInput.value = url;
+        if (img)      img.src = url;
+        if (wrap)     wrap.classList.add('has-img');
+        sampleDominantColor(url, (hex) => {
+          const picker = tr.querySelector('[name="vr-color"]');
+          if (picker) { picker.value = hex; picker.dataset.userSet = 'true'; }
+          // Propagate image + colour to other rows sharing the same first attribute value
+          const firstAttrVal = tr.querySelector('[name="vr-attr"]')?.value.trim();
+          if (firstAttrVal) {
+            document.getElementById('variant-rows')?.querySelectorAll('tr').forEach(row => {
+              if (row === tr) return;
+              if (row.querySelector('[name="vr-attr"]')?.value.trim() !== firstAttrVal) return;
+              const ri = row.querySelector('[name="vr-image"]');
+              if (ri && !ri.value) {
+                ri.value = url;
+                const rImg = row.querySelector('.vr-img-preview');
+                const rWrap = row.querySelector('.vr-thumb-wrap');
+                const rPick = row.querySelector('[name="vr-color"]');
+                if (rImg) rImg.src = url;
+                if (rWrap) rWrap.classList.add('has-img');
+                if (rPick) { rPick.value = hex; rPick.dataset.userSet = 'true'; }
+              }
+            });
+          }
+        });
+      } catch { window.showToast?.('Image upload failed', 'error'); }
+      uploadBtn.textContent = '📷';
+      uploadBtn.disabled = false;
+      uploadInput.value = '';
+    });
+  }
 
   // Auto-sample dominant colour from image when no colour is stored yet
   if (imgSrc && !data.color) {
@@ -1041,24 +1189,25 @@ function addVariantRow(data) {
 
 function getVariants() {
   if (!document.getElementById('has-variants')?.checked) return [];
-  const attr1Name = document.getElementById('attr-name-1')?.value.trim() || 'Option 1';
-  const attr2Name = document.getElementById('attr-name-2')?.value.trim() || '';
+  const attrNames = getAttrNames();
   const variants = [];
   document.querySelectorAll('#variant-rows tr').forEach((tr, idx) => {
-    const a1Raw = tr.querySelector('[name="vr-attr1"]')?.value.trim();
+    const attrInputs = Array.from(tr.querySelectorAll('[name="vr-attr"]'));
+    const a1Raw = attrInputs[0]?.value.trim();
     const imgVal = tr.querySelector('[name="vr-image"]')?.value.trim() || '';
-    // Skip rows that have neither a name nor an image (truly blank rows)
     if (!a1Raw && !imgVal) return;
     const a1 = a1Raw || `Variant ${idx + 1}`;
-    const a2 = tr.querySelector('[name="vr-attr2"]')?.value.trim();
     const priceRaw = parseFloat(tr.querySelector('[name="vr-price"]')?.value);
     const stockRaw = parseInt(tr.querySelector('[name="vr-stock"]')?.value, 10);
     const sku = tr.querySelector('[name="vr-sku"]')?.value.trim();
     const color = tr.querySelector('[name="vr-color"]')?.value || '';
     const image = tr.querySelector('[name="vr-image"]')?.value.trim() || '';
     const displayMode = tr.dataset.mode || 'color';
-    const attributes = { [attr1Name]: a1 };
-    if (attr2Name && a2) attributes[attr2Name] = a2;
+    const attributes = {};
+    attrNames.forEach((name, i) => {
+      const val = i === 0 ? a1 : (attrInputs[i]?.value.trim() || '');
+      if (name) attributes[name] = val;
+    });
     variants.push({
       attributes,
       price: isNaN(priceRaw) ? undefined : priceRaw,
@@ -1075,14 +1224,9 @@ function getVariants() {
 function loadVariants(variants) {
   if (!variants || !variants.length) return;
   const keys = Object.keys(variants[0].attributes || {});
-  if (keys[0]) {
-    const el = document.getElementById('attr-name-1');
-    if (el) el.value = keys[0];
-  }
-  if (keys[1]) {
-    const el = document.getElementById('attr-name-2');
-    if (el) el.value = keys[1];
-  }
+  const wrap = document.getElementById('attr-names-wrap');
+  if (wrap) wrap.innerHTML = '';
+  (keys.length ? keys : ['Colour']).forEach(k => addAttrInput(k, false));
   const toggle = document.getElementById('has-variants');
   const builder = document.getElementById('variant-builder');
   if (toggle) toggle.checked = true;
@@ -1090,10 +1234,8 @@ function loadVariants(variants) {
   syncVariantHeaders();
   variants.forEach((v) => {
     const attrs = v.attributes || {};
-    const vKeys = Object.keys(attrs);
     addVariantRow({
-      attr1: attrs[vKeys[0]] || '',
-      attr2: vKeys[1] ? (attrs[vKeys[1]] || '') : '',
+      attrs: keys.map(k => attrs[k] || ''),
       price: v.price,
       stock: v.stock,
       sku: v.sku,
@@ -1157,6 +1299,80 @@ function sampleDominantColor(src, onColor) {
   };
 }
 
+function openGenModal() {
+  const attrNames = getAttrNames();
+  if (!attrNames.length) return;
+  const existingVals = attrNames.map((_, i) =>
+    [...new Set(Array.from(document.querySelectorAll('#variant-rows tr')).map(tr => {
+      const inputs = tr.querySelectorAll('[name="vr-attr"]');
+      return inputs[i]?.value.trim();
+    }).filter(Boolean))]
+  );
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#fff;border-radius:12px;padding:24px;max-width:460px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)';
+  box.innerHTML = `
+    <h3 style="margin:0 0 6px;font-size:1rem;color:#111827">Generate all combinations</h3>
+    <p style="margin:0 0 16px;font-size:0.82rem;color:#6b7280">Enter values for each attribute — one per line. Every combination will be created as a variant row.</p>
+    ${attrNames.map((name, i) => `
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:4px">${name || `Attribute ${i+1}`}</label>
+        <textarea data-idx="${i}" rows="4" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;font-size:0.85rem;resize:vertical;box-sizing:border-box;font-family:inherit">${existingVals[i].join('\n')}</textarea>
+      </div>`).join('')}
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+      <button id="_gen-cancel" style="padding:7px 16px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:0.9rem">Cancel</button>
+      <button id="_gen-ok" style="padding:7px 16px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;font-weight:600">&#9889; Generate</button>
+    </div>`;
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  overlay.querySelector('#_gen-cancel').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  overlay.querySelector('#_gen-ok').addEventListener('click', () => {
+    const arrays = Array.from(box.querySelectorAll('textarea')).map(ta =>
+      ta.value.split('\n').map(v => v.trim()).filter(Boolean));
+    if (arrays.some(a => !a.length)) { alert('Please enter at least one value for each attribute.'); return; }
+    function combos(arrs) {
+      if (!arrs.length) return [[]];
+      return arrs[0].flatMap(v => combos(arrs.slice(1)).map(r => [v, ...r]));
+    }
+    const tbody = document.getElementById('variant-rows');
+    const allCombos = combos(arrays);
+    const newKeys = new Set(allCombos.map(c => c.join('\x00')));
+    // Snapshot image/colour/price from existing rows, keyed by first attribute value
+    const snap = {};
+    tbody.querySelectorAll('tr').forEach(row => {
+      const first = row.querySelector('[name="vr-attr"]')?.value.trim();
+      if (!first || snap[first]) return;
+      snap[first] = {
+        image: row.querySelector('[name="vr-image"]')?.value.trim() || '',
+        color: row.querySelector('[name="vr-color"]')?.dataset.userSet === 'true' ? row.querySelector('[name="vr-color"]').value : '',
+        price: row.querySelector('[name="vr-price"]')?.value || '',
+        stock: row.querySelector('[name="vr-stock"]')?.value || '',
+        sku:   row.querySelector('[name="vr-sku"]')?.value || '',
+        displayMode: row.dataset.mode || 'color',
+      };
+    });
+    // Remove rows that are not in the new combination set (old colour-only rows)
+    Array.from(tbody.querySelectorAll('tr')).forEach(row => {
+      const key = Array.from(row.querySelectorAll('[name="vr-attr"]')).map(i => i.value.trim()).join('\x00');
+      if (!newKeys.has(key)) row.remove();
+    });
+    // Add missing combinations, inheriting image/colour from matching colour snapshot
+    const existingKeys = new Set(
+      Array.from(tbody.querySelectorAll('tr')).map(row =>
+        Array.from(row.querySelectorAll('[name="vr-attr"]')).map(i => i.value.trim()).join('\x00')
+      )
+    );
+    allCombos.forEach(combo => {
+      if (existingKeys.has(combo.join('\x00'))) return;
+      const s = snap[combo[0]] || {};
+      addVariantRow({ attrs: combo, image: s.image, color: s.color, price: s.price, stock: s.stock, sku: s.sku, displayMode: s.displayMode });
+    });
+    overlay.remove();
+  });
+}
+
 function bindVariants() {
   const toggle = document.getElementById('has-variants');
   const builder = document.getElementById('variant-builder');
@@ -1206,7 +1422,7 @@ function bindVariants() {
         addVariantRow({ attr1: name });
       } else {
         // Fill existing row's name only if blank
-        const ni = rows[i].querySelector('[name="vr-attr1"]');
+        const ni = rows[i].querySelector('[name="vr-attr"]');
         if (ni && !ni.value.trim()) ni.value = name;
       }
     }
@@ -1250,8 +1466,48 @@ function bindVariants() {
     if (uploaded) window.showToast?.(`${uploaded} variant image${uploaded > 1 ? 's' : ''} uploaded ✓`);
   });
 
-  document.getElementById('attr-name-1')?.addEventListener('input', syncVariantHeaders);
-  document.getElementById('attr-name-2')?.addEventListener('input', syncVariantHeaders);
+  document.getElementById('btn-add-attr')?.addEventListener('click', () => addAttrInput('', true));
+  document.getElementById('btn-gen-variants')?.addEventListener('click', openGenModal);
+  addAttrInput('Colour');
+
+  // Wire header checkbox: select all / deselect all variant rows
+  document.getElementById('vb-header-row')?.addEventListener('change', (e) => {
+    if (e.target.id === 'vr-check-all-hdr') {
+      document.querySelectorAll('#variant-rows .vr-row-check').forEach(c => c.checked = e.target.checked);
+    }
+  });
+
+  // Inject Select All + Remove Selected buttons into the variant button row
+  const vbBtnRow = document.querySelector('.vb-btn-row');
+  if (vbBtnRow && !document.getElementById('vr-sel-all-btn')) {
+    const selAllBtn = document.createElement('button');
+    selAllBtn.type = 'button';
+    selAllBtn.id = 'vr-sel-all-btn';
+    selAllBtn.textContent = '☑ Select All';
+    selAllBtn.style.cssText = 'font-size:0.82rem;padding:6px 12px;background:#f0f9f8;border:1px solid #0b6b6a;color:#0b6b6a;border-radius:6px;cursor:pointer;font-weight:600';
+    const removeSelBtn = document.createElement('button');
+    removeSelBtn.type = 'button';
+    removeSelBtn.id = 'vr-remove-sel-btn';
+    removeSelBtn.textContent = '✕ Remove Selected';
+    removeSelBtn.style.cssText = 'font-size:0.82rem;padding:6px 12px;background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;cursor:pointer;font-weight:600';
+    selAllBtn.addEventListener('click', () => {
+      const checks = Array.from(document.querySelectorAll('#variant-rows .vr-row-check'));
+      const allChecked = checks.length > 0 && checks.every(c => c.checked);
+      checks.forEach(c => c.checked = !allChecked);
+      const hdr = document.getElementById('vr-check-all-hdr');
+      if (hdr) hdr.checked = !allChecked;
+    });
+    removeSelBtn.addEventListener('click', () => {
+      const checked = Array.from(document.querySelectorAll('#variant-rows .vr-row-check:checked'));
+      if (!checked.length) { window.showToast?.('No rows selected', 'error'); return; }
+      if (!confirm(`Remove ${checked.length} variant row(s)?`)) return;
+      checked.forEach(cb => cb.closest('tr')?.remove());
+      const hdr = document.getElementById('vr-check-all-hdr');
+      if (hdr) hdr.checked = false;
+    });
+    vbBtnRow.appendChild(selAllBtn);
+    vbBtnRow.appendChild(removeSelBtn);
+  }
 
   const variantRows = document.getElementById('variant-rows');
   variantRows?.addEventListener('click', (e) => {
@@ -1301,11 +1557,20 @@ function bindVariants() {
       const tbody = document.getElementById('variant-rows');
       for (const file of files) {
         try {
+          // Colour name = filename without extension (e.g. "Army Green.jpg" → "Army Green")
+          const colourName = file.name.replace(/\.[^.]+$/, '').trim();
           const url = await uploadToCloudinary(file);
           const rows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
-          let targetRow = rows.find(r => !r.querySelector('[name="vr-image"]')?.value.trim());
-          if (!targetRow) { addVariantRow({}); targetRow = tbody?.querySelector('tr:last-child'); }
+          // Prefer a row whose first attr matches the filename; fall back to first empty row
+          let targetRow = rows.find(r => {
+            const v = r.querySelector('[name="vr-attr"]')?.value.trim().toLowerCase();
+            return v === colourName.toLowerCase();
+          }) || rows.find(r => !r.querySelector('[name="vr-image"]')?.value.trim());
+          if (!targetRow) { addVariantRow({ attrs: [colourName] }); targetRow = tbody?.querySelector('tr:last-child'); }
           if (!targetRow) continue;
+          // Always set colour name from filename into first attr input
+          const firstAttr = targetRow.querySelector('[name="vr-attr"]');
+          if (firstAttr) firstAttr.value = colourName;
           const urlInput = targetRow.querySelector('[name="vr-image"]');
           const img      = targetRow.querySelector('.vr-img-preview');
           const wrap     = targetRow.querySelector('.vr-thumb-wrap');
@@ -1316,6 +1581,24 @@ function bindVariants() {
             const picker = targetRow.querySelector('[name="vr-color"]');
             if (picker && picker.dataset.userSet !== 'true') {
               picker.value = hex; picker.dataset.userSet = 'true';
+            }
+            // Propagate image + colour to other rows sharing the same first attribute value
+            const firstAttrVal = targetRow.querySelector('[name="vr-attr"]')?.value.trim();
+            if (firstAttrVal) {
+              tbody?.querySelectorAll('tr').forEach(row => {
+                if (row === targetRow) return;
+                if (row.querySelector('[name="vr-attr"]')?.value.trim() !== firstAttrVal) return;
+                const ri = row.querySelector('[name="vr-image"]');
+                if (ri && !ri.value) {
+                  ri.value = url;
+                  const rImg = row.querySelector('.vr-img-preview');
+                  const rWrap = row.querySelector('.vr-thumb-wrap');
+                  const rPick = row.querySelector('[name="vr-color"]');
+                  if (rImg) rImg.src = url;
+                  if (rWrap) rWrap.classList.add('has-img');
+                  if (rPick) { rPick.value = hex; rPick.dataset.userSet = 'true'; }
+                }
+              });
             }
           });
         } catch {
@@ -1374,7 +1657,21 @@ function bindVariants() {
     }
     btnClr.addEventListener('click', () => setGlobalMode('color'));
     btnImg.addEventListener('click', () => setGlobalMode('image'));
+    const sep = document.createElement('span');
+    sep.textContent = '|';
+    sep.style.cssText = 'color:#d1d5db;margin:0 2px';
+    const topSelAll = document.createElement('button');
+    topSelAll.type = 'button';
+    topSelAll.textContent = '☑ Select All';
+    topSelAll.style.cssText = 'padding:3px 10px;background:#f0f9f8;border:1px solid #0b6b6a;color:#0b6b6a;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600';
+    topSelAll.addEventListener('click', () => document.getElementById('vr-sel-all-btn')?.click());
+    const topRemSel = document.createElement('button');
+    topRemSel.type = 'button';
+    topRemSel.textContent = '✕ Remove Selected';
+    topRemSel.style.cssText = 'padding:3px 10px;background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600';
+    topRemSel.addEventListener('click', () => document.getElementById('vr-remove-sel-btn')?.click());
     ctrl.appendChild(lbl); ctrl.appendChild(btnClr); ctrl.appendChild(btnImg);
+    ctrl.appendChild(sep); ctrl.appendChild(topSelAll); ctrl.appendChild(topRemSel);
     vbTable.parentNode.insertBefore(ctrl, vbTable);
   }
   // Also wire existing checkbox if HTML was uploaded

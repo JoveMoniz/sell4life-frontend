@@ -4241,12 +4241,61 @@ Vendor Products
    VARIANT BUILDER
 ================================ */
 
-.vb-attr-names {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
+#attr-names-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
 }
+
+.attr-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 130px;
+}
+
+.attr-group-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.attr-group-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.attr-group-row .vb-input {
+  width: 130px;
+}
+
+.attr-remove-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.attr-remove-btn:hover { color: #b91c1c; }
+
+.vb-add-attr-btn {
+  font-size: 0.8rem;
+  color: #14b8a6;
+  background: none;
+  border: 1px dashed #14b8a6;
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  margin-bottom: 14px;
+  display: inline-block;
+}
+
+.vb-add-attr-btn:hover { background: #f0fdfa; }
 
 .vb-table-wrap {
   overflow-x: auto;
@@ -4342,6 +4391,23 @@ Vendor Products
   margin-top: 4px;
 }
 
+.vb-gen-btn {
+  padding: 8px 16px;
+  border: 1px solid #6366f1;
+  border-radius: 7px;
+  background: transparent;
+  color: #6366f1;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.vb-gen-btn:hover {
+  background: #6366f1;
+  color: #fff;
+}
+
 .vb-add-btn {
   padding: 8px 16px;
   border: 1px dashed #0b6b6a;
@@ -4379,8 +4445,7 @@ Vendor Products
 }
 
 @media (max-width: 640px) {
-  .vb-attr-names {
-    grid-template-columns: 1fr;
+  #attr-names-wrap {
     gap: 8px;
   }
 }

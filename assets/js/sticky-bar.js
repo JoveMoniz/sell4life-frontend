@@ -286,73 +286,66 @@
     // ── Actions ───────────────────────────────────────────────
     bar.querySelector('.s4l-top-btn').addEventListener('click',    () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     bar.querySelector('.s4l-account-btn').addEventListener('click', () => { window.location.href = localStorage.getItem('s4l_token') ? '/account/orders.html' : '/account/signin.html'; });
-    // Cart button: tap/click → go to cart. Hold 600ms → clear basket popup
+    // Cart button: click/tap → popup with "Go to Basket" + "Clear Basket"
     (function() {
       const cartBtn = bar.querySelector('.s4l-cart-btn');
-      let holdTimer = null;
-      let held = false;
 
-      function startHold() {
-        held = false;
-        holdTimer = setTimeout(() => {
-          held = true;
-          showClearPopup();
-        }, 600);
+      function cartCount() {
+        let cart = [];
+        try { cart = JSON.parse(localStorage.getItem('cart') || '[]'); } catch {}
+        return cart.reduce((s, i) => s + (i.quantity || 1), 0);
       }
-      function cancelHold() { clearTimeout(holdTimer); }
 
-      function showClearPopup() {
-        // Remove any existing popup
-        document.getElementById('s4l-clear-popup')?.remove();
+      function showCartPopup() {
+        if (cartCount() === 0) return;
+        document.getElementById('s4l-cart-popup')?.remove();
 
         const pop = document.createElement('div');
-        pop.id = 's4l-clear-popup';
-        pop.style.cssText = `
-          position:fixed;bottom:72px;left:50%;transform:translateX(-50%);
-          background:#fff;border:1px solid #e5e7eb;border-radius:12px;
-          padding:14px 16px;box-shadow:0 4px 20px rgba(0,0,0,0.15);
-          display:flex;flex-direction:column;align-items:center;gap:10px;
-          z-index:9999;min-width:180px;text-align:center;
-        `;
+        pop.id = 's4l-cart-popup';
+        pop.style.cssText = [
+          'position:fixed', 'bottom:72px', 'left:50%', 'transform:translateX(-50%)',
+          'background:#fff', 'border:1px solid #e5e7eb', 'border-radius:14px',
+          'padding:12px', 'box-shadow:0 4px 24px rgba(0,0,0,0.16)',
+          'display:flex', 'flex-direction:column', 'gap:8px',
+          'z-index:99999', 'min-width:210px',
+        ].join(';');
         pop.innerHTML = `
-          <span style="font-size:0.85rem;font-weight:600;color:#111827">Clear basket?</span>
-          <div style="display:flex;gap:8px;width:100%">
-            <button id="s4l-clear-confirm" style="flex:1;padding:8px;background:#dc2626;color:#fff;border:none;border-radius:7px;font-size:0.82rem;font-weight:700;cursor:pointer">Clear</button>
-            <button id="s4l-clear-cancel"  style="flex:1;padding:8px;background:#f3f4f6;color:#374151;border:none;border-radius:7px;font-size:0.82rem;font-weight:600;cursor:pointer">Cancel</button>
-          </div>
+          <button id="s4l-pop-go"    style="width:100%;padding:11px 16px;background:#0b6b6a;color:#fff;border:none;border-radius:9px;font-size:0.9rem;font-weight:700;cursor:pointer;text-align:left">🛒 Go to Basket</button>
+          <button id="s4l-pop-clear" style="width:100%;padding:11px 16px;background:#fff;color:#dc2626;border:1.5px solid #fca5a5;border-radius:9px;font-size:0.9rem;font-weight:700;cursor:pointer;text-align:left">✕ Clear Basket</button>
         `;
         document.body.appendChild(pop);
 
-        document.getElementById('s4l-clear-confirm').addEventListener('click', () => {
+        document.getElementById('s4l-pop-go').addEventListener('click', () => {
+          pop.remove();
+          window.location.href = '/cart/cart.html';
+        });
+        document.getElementById('s4l-pop-clear').addEventListener('click', () => {
           localStorage.removeItem('cart');
           document.dispatchEvent(new Event('cartUpdated'));
           pop.remove();
         });
-        document.getElementById('s4l-clear-cancel').addEventListener('click', () => pop.remove());
 
-        // Close if tapping anywhere else
         setTimeout(() => {
           document.addEventListener('click', function outsideClick(e) {
-            if (!pop.contains(e.target)) { pop.remove(); document.removeEventListener('click', outsideClick); }
+            if (!pop.contains(e.target) && e.target !== cartBtn) {
+              pop.remove();
+              document.removeEventListener('click', outsideClick);
+            }
           });
         }, 10);
       }
 
-      // Touch events (mobile)
-      cartBtn.addEventListener('touchstart',  () => startHold(), { passive: true });
-      cartBtn.addEventListener('touchend',    () => { cancelHold(); if (!held) window.location.href = '/cart/cart.html'; held = false; });
-      cartBtn.addEventListener('touchcancel', () => { cancelHold(); held = false; });
+      // Touch (mobile) — guard against empty basket bypassing disabled state
+      cartBtn.addEventListener('touchend', (e) => {
+        if (cartCount() === 0) return;
+        e.preventDefault();
+        showCartPopup();
+      });
 
-      // Mouse events (desktop)
-      cartBtn.addEventListener('mousedown',  () => startHold());
-      cartBtn.addEventListener('mouseup',    () => { cancelHold(); if (!held) window.location.href = '/cart/cart.html'; });
-      cartBtn.addEventListener('mouseleave', () => { cancelHold(); held = false; });
+      // Click (desktop + mobile fallback)
+      cartBtn.addEventListener('click', () => showCartPopup());
 
-      // Swallow the click event that fires after a hold — prevents it from closing the popup
-      cartBtn.addEventListener('click', (e) => { if (held) { e.stopImmediatePropagation(); held = false; } });
-
-      // Desktop hover hint
-      cartBtn.title = 'Go to basket (hold to clear)';
+      cartBtn.title = 'View basket';
     })();
     bar.querySelector('.s4l-pill-vendor').addEventListener('click', () => { window.location.href = '/account/vendor/orders.html'; });
     bar.querySelector('.s4l-pill-buyer').addEventListener('click',  () => { window.location.href = '/account/orders.html'; });

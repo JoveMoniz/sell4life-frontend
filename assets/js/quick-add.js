@@ -9,8 +9,6 @@ window.__quickAddLoaded = true;
 (function () {
 
   // ── Modal DOM — created lazily on first open() call ──────
-  // This prevents the unstyled modal from appearing on pages
-  // that don't load quick-add.css (e.g. signin, vendor pages).
   let modal = null;
 
   function ensureModal() {
@@ -36,15 +34,14 @@ window.__quickAddLoaded = true;
       }
       const vBtn = e.target.closest('.qa-v');
       if (vBtn && !vBtn.disabled) {
-        modal.querySelectorAll('.qa-v').forEach(b => b.classList.remove('qa-v-sel'));
-        vBtn.classList.add('qa-v-sel');
-        const vi = +vBtn.dataset.vi;
-        _variant  = _product.variants[vi];
-        const price = Number(_variant.price || _product.price || 0);
-        setPrice(price);
-        const confirm = modal.querySelector('.qa-confirm');
-        confirm.disabled    = false;
-        confirm.textContent = 'Add to Basket';
+        const attr = vBtn.dataset.attr;
+        const val  = vBtn.dataset.val;
+        if (attr && val !== undefined) {
+          modal.querySelectorAll(`.qa-v[data-attr="${attr}"]`).forEach(b => b.classList.remove('qa-v-sel'));
+          vBtn.classList.add('qa-v-sel');
+          _selectedAttrs[attr] = val;
+          tryResolveVariant();
+        }
         return;
       }
       if (e.target.classList.contains('qa-confirm') && !e.target.disabled) {
@@ -53,42 +50,95 @@ window.__quickAddLoaded = true;
     });
   }
 
-  let _product   = null;
-  let _variant   = null;
-  let _sourceBtn = null;   // the card button that triggered the popup
+  let _product       = null;
+  let _variant       = null;
+  let _selectedAttrs = {};
+  let _attrNames     = [];
+  let _sourceBtn     = null;
 
-  // ── Helpers ───────────────────────────────────────────────
-  // Human-readable label from attributes (preferred) or fall back to color hex
-  function variantLabel(v) {
-    if (v.attributes && typeof v.attributes === 'object') {
-      const vals = Object.values(v.attributes).map(x => String(x || '').trim()).filter(Boolean);
-      if (vals.length) return vals.join(' / ');
+  // ── Try to find a matching variant from current selections ─
+  function tryResolveVariant() {
+    const confirm = modal.querySelector('.qa-confirm');
+    if (!_attrNames.length) return;
+
+    const allSelected = _attrNames.every(n => _selectedAttrs[n] !== undefined);
+    if (!allSelected) {
+      _variant = null;
+      confirm.disabled    = true;
+      confirm.textContent = 'Select an option';
+      return;
     }
-    if (v.color && v.color.trim()) return v.color.trim();
-    return '';
+
+    const match = (_product.variants || []).find(v =>
+      _attrNames.every(n => (v.attributes?.[n] || '') === _selectedAttrs[n])
+    );
+
+    if (match) {
+      _variant = match;
+      const price = Number(match.price || _product.price || 0);
+      setPrice(price);
+      const soldOut = match.stock !== undefined && Number(match.stock) <= 0;
+      confirm.disabled    = soldOut;
+      confirm.textContent = soldOut ? 'Out of stock' : 'Add to Basket';
+    } else {
+      _variant = null;
+      confirm.disabled    = true;
+      confirm.textContent = 'Select an option';
+    }
   }
 
-  // Build the HTML for one variant button — swatch, thumbnail, or plain text
-  function variantBtn(v, i) {
-    const label   = variantLabel(v);
-    const soldOut = v.stock !== undefined && Number(v.stock) <= 0;
-    const base    = `qa-v${soldOut ? ' qa-v-out' : ''}`;
-    const dis     = soldOut ? ' disabled' : '';
-    const tip     = label ? ` title="${label}"` : '';
+  // ── Build per-attribute selection UI ─────────────────────
+  function buildVariantsUI(product) {
+    const variants = product.variants || [];
+    const firstWithAttrs = variants.find(v => v.attributes && typeof v.attributes === 'object');
+    _attrNames = firstWithAttrs ? Object.keys(firstWithAttrs.attributes) : [];
 
-    if (v.displayMode === 'image' && v.image) {
-      return `<button class="${base} qa-v-img" data-vi="${i}"${dis}${tip}>
-        <img src="${v.image}" alt="${label}" />
-      </button>`;
+    if (!_attrNames.length) {
+      // Fallback: flat text list
+      _attrNames = ['_variant'];
+      return `<div class="qa-attr-group"><div class="qa-attr-btns">${
+        variants.map((v, i) => {
+          const label = Object.values(v.attributes || {}).join(' / ') || v.color || `Option ${i + 1}`;
+          const soldOut = v.stock !== undefined && Number(v.stock) <= 0;
+          return `<button class="qa-v${soldOut ? ' qa-v-out' : ''}" data-attr="_variant" data-val="${i}" ${soldOut ? 'disabled' : ''}>${label}</button>`;
+        }).join('')
+      }</div></div>`;
     }
-    const hex = v.color && v.color.trim();
-    if (hex && hex !== '#ffffff' && hex !== '#fff') {
-      return `<button class="${base} qa-v-swatch" data-vi="${i}"${dis}${tip}>
-        <span class="qa-swatch-dot" style="background:${hex}"></span>
-        <span class="qa-swatch-lbl">${label}</span>
-      </button>`;
-    }
-    return `<button class="${base}" data-vi="${i}"${dis}>${label}</button>`;
+
+    return _attrNames.map((attrName, attrIdx) => {
+      const isFirst = attrIdx === 0;
+      const seen = new Set();
+      const uniqueVals = [];
+      variants.forEach(v => {
+        const val = v.attributes?.[attrName];
+        if (val && !seen.has(val)) { seen.add(val); uniqueVals.push({ val, v }); }
+      });
+
+      const btns = uniqueVals.map(({ val, v }) => {
+        // A colour is sold out only if ALL model variants for it are sold out
+        const soldOut = isFirst
+          ? variants.filter(x => x.attributes?.[attrName] === val).every(x => x.stock !== undefined && Number(x.stock) <= 0)
+          : false;
+        const dis = soldOut ? ' disabled' : '';
+        const cls = `qa-v${soldOut ? ' qa-v-out' : ''}`;
+
+        if (isFirst) {
+          // First attribute: swatch only (no label text)
+          if (v.displayMode === 'image' && v.image) {
+            return `<button class="${cls} qa-v-img" data-attr="${attrName}" data-val="${val}" title="${val}"${dis}><img src="${v.image}" alt="${val}" /></button>`;
+          }
+          const hex = v.color && v.color.trim() && v.color !== '#ffffff' && v.color !== '#fff' ? v.color : '#e5e7eb';
+          return `<button class="${cls} qa-v-dot" data-attr="${attrName}" data-val="${val}" title="${val}"${dis}><span class="qa-dot" style="background:${hex}"></span></button>`;
+        }
+        // Second+ attribute: text pill
+        return `<button class="${cls}" data-attr="${attrName}" data-val="${val}"${dis}>${val}</button>`;
+      }).join('');
+
+      return `<div class="qa-attr-group">
+        ${!isFirst ? `<div class="qa-attr-label">${attrName}</div>` : ''}
+        <div class="qa-attr-btns">${btns}</div>
+      </div>`;
+    }).join('');
   }
 
   // ── Open ──────────────────────────────────────────────────
@@ -96,33 +146,33 @@ window.__quickAddLoaded = true;
     ensureModal();
     _product = product;
     _variant = null;
+    _selectedAttrs = {};
+    _attrNames = [];
 
-    // Keep variants that have a label, a colour, or an image
-    const realVariants = (product.variants || []).filter(v => variantLabel(v) || v.image);
+    const realVariants = (product.variants || []).filter(v =>
+      (v.attributes && Object.values(v.attributes).some(Boolean)) || v.image || v.color
+    );
 
-    // No real options → skip the popup entirely, add directly
     if (!realVariants.length) {
       directAddToCart(product);
       return;
     }
 
-    const confirmBtn = modal.querySelector('.qa-confirm');
+    _product = { ...product, variants: realVariants };
+
     const variantsEl = modal.querySelector('.qa-variants');
+    const confirmBtn = modal.querySelector('.qa-confirm');
     const priceEl    = modal.querySelector('.qa-price');
 
-    variantsEl.innerHTML = realVariants.map((v, i) => variantBtn(v, i)).join('');
-
-    // Store only the real variants so addToCart picks the right one
-    _product = { ...product, variants: realVariants };
+    variantsEl.innerHTML = buildVariantsUI(_product);
 
     confirmBtn.disabled    = true;
     confirmBtn.textContent = 'Select an option';
 
-    // Only show price if variants have different prices
     const prices = realVariants.map(v => Number(v.price || product.price || 0));
-    const hasDifferentPrices = prices.some(p => p !== prices[0]);
+    const hasDiffPrices = prices.some(p => p !== prices[0]);
     if (priceEl) {
-      if (hasDifferentPrices) {
+      if (hasDiffPrices) {
         priceEl.style.display = '';
         setPrice(Number(product.price || 0));
       } else {
@@ -135,7 +185,7 @@ window.__quickAddLoaded = true;
   }
 
   function setPrice(n) {
-    const el = modal.querySelector('.qa-price');
+    const el = modal?.querySelector('.qa-price');
     if (el && el.style.display !== 'none') el.textContent = `£${n.toFixed(2)}`;
   }
 
@@ -143,7 +193,6 @@ window.__quickAddLoaded = true;
     modal.classList.remove('open');
     document.body.style.overflow = '';
   }
-
 
   // ── Add to localStorage cart ──────────────────────────────
   function addToCart() {
@@ -187,7 +236,6 @@ window.__quickAddLoaded = true;
     localStorage.setItem('cart', JSON.stringify(cart));
     document.dispatchEvent(new Event('cartUpdated'));
 
-    // Update the exact button that was clicked — guaranteed to work
     if (_sourceBtn) {
       const total = cart.reduce((s, i) =>
         (i.productId || i.id) === pid ? s + (i.quantity || 1) : s, 0);
@@ -196,12 +244,11 @@ window.__quickAddLoaded = true;
       _sourceBtn.addEventListener('mouseleave', () => _sourceBtn.classList.remove('just-added'), { once: true });
     }
 
-    refreshBasketBtns();   // sync any duplicates on page (browse rows)
+    refreshBasketBtns();
     close();
   }
 
   // ── Apply/remove filled state on ONE button ───────────────
-  // In-cart = bag body fills solid teal. No number. No circle change.
   function applyBtnState(btn, qty) {
     const body   = btn.querySelector('svg path:last-child');
     const handle = btn.querySelector('svg path:first-child');
@@ -257,7 +304,7 @@ window.__quickAddLoaded = true;
     refreshBasketBtns();
   }
 
-  // ── Refresh ALL basket buttons (page load / cart change) ──
+  // ── Refresh ALL basket buttons ────────────────────────────
   function refreshBasketBtns() {
     let cart = [];
     try { cart = JSON.parse(localStorage.getItem('cart') || '[]'); } catch {}
@@ -272,11 +319,10 @@ window.__quickAddLoaded = true;
       .forEach(btn => applyBtnState(btn, qtyMap[btn.dataset.id] || 0));
   }
 
-  // ── Global open hook (called by card buttons) ─────────────
+  // ── Global open hook ─────────────────────────────────────
   window.openQuickAdd = open;
 
   // ── Disable basket buttons for own products + out-of-stock ─
-  // Called after products render OR after vendorId becomes known.
   window.s4l_markOwnListings = function () {
     const myVid = localStorage.getItem('s4l_vendorId');
     if (!window._qaProducts) return;
@@ -284,13 +330,11 @@ window.__quickAddLoaded = true;
     document.querySelectorAll(
       '.sp-quick-add-btn[data-id], .cp-quick-add-btn[data-id]'
     ).forEach((btn) => {
-      // Skip already-disabled buttons (OOS etc.) but re-check for own-vendor
       if (btn.dataset.oos) return;
 
       const p = window._qaProducts[btn.dataset.id];
       if (!p) return;
 
-      // Own vendor listing — check every time (vendorId may arrive late)
       if (myVid) {
         const pvid = typeof p.vendor === 'object'
           ? (p.vendor?._id || p.vendor?.id)
@@ -304,7 +348,6 @@ window.__quickAddLoaded = true;
         }
       }
 
-      // Out of stock (product-level, no variants) — permanent, mark to skip next time
       const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
       const stockNum    = p.stock !== undefined && p.stock !== null ? Number(p.stock) : null;
       if (!hasVariants && stockNum !== null && stockNum <= 0) {
@@ -312,12 +355,12 @@ window.__quickAddLoaded = true;
         btn.style.opacity = '0.35';
         btn.style.cursor  = 'not-allowed';
         btn.title = 'Out of stock';
-        btn.dataset.oos = '1';   // permanent — no need to re-check
+        btn.dataset.oos = '1';
       }
     });
   };
 
-  // ── Lazy-fetch vendorId for vendors whose ID wasn't cached at login ─
+  // ── Lazy-fetch vendorId ───────────────────────────────────
   (async function ensureVendorId() {
     const token    = localStorage.getItem('s4l_token');
     const isVendor = localStorage.getItem('s4l_isVendor') === 'true';
@@ -331,7 +374,7 @@ window.__quickAddLoaded = true;
       const vid = d.vendor?._id || d.vendor?.id;
       if (vid) {
         localStorage.setItem('s4l_vendorId', String(vid));
-        window.s4l_markOwnListings();   // now mark own listings
+        window.s4l_markOwnListings();
       }
     } catch {}
   })();
@@ -339,7 +382,6 @@ window.__quickAddLoaded = true;
   // ── Delegate clicks from card buttons ────────────────────
   document.addEventListener('click', (e) => {
 
-    // CLR overlay → remove this product from cart
     const clrEl = e.target.closest('.sp-qa-clr, .cp-qa-clr');
     if (clrEl) {
       e.preventDefault();
@@ -355,13 +397,11 @@ window.__quickAddLoaded = true;
       return;
     }
 
-    // Basket button → toggle: remove if already in cart, add/popup if not
     const btn = e.target.closest('.sp-quick-add-btn, .cp-quick-add-btn');
     if (!btn) return;
     e.preventDefault();
     e.stopPropagation();
 
-    // Already in cart → remove immediately on any device, no popup
     if (btn.classList.contains('has-qty')) {
       let cart = [];
       try { cart = JSON.parse(localStorage.getItem('cart') || '[]'); } catch {}
@@ -372,27 +412,24 @@ window.__quickAddLoaded = true;
       return;
     }
 
-    // Not in cart → open() decides: popup if real variants, direct add if not
     _sourceBtn = btn;
     const product = (window._qaProducts || {})[btn.dataset.id];
     if (!product) return;
 
-    // Block vendor's own products
     const _myVid = localStorage.getItem('s4l_vendorId');
     const _pvid  = typeof product.vendor === 'object'
       ? (product.vendor?._id || product.vendor?.id)
       : product.vendor;
     if (_myVid && _pvid && _myVid === String(_pvid)) return;
 
-    // Block out-of-stock products (no variants)
     const _hasVar = Array.isArray(product.variants) && product.variants.length > 0;
     const _stock  = product.stock !== undefined && product.stock !== null ? Number(product.stock) : null;
     if (!_hasVar && _stock !== null && _stock <= 0) return;
 
     if (product.variants && product.variants.length > 0) {
-      open(product);            // open() filters blank rows; falls to directAddToCart if none real
+      open(product);
     } else {
-      directAddToCart(product); // no variants at all → add straight away
+      directAddToCart(product);
     }
   });
 
@@ -401,12 +438,10 @@ window.__quickAddLoaded = true;
     if (e.key === 'Escape' && modal) close();
   });
 
-  // ── Sync on cart changes (cart page remove / clear) ───────
+  // ── Sync on cart changes ──────────────────────────────────
   document.addEventListener('cartUpdated', refreshBasketBtns);
 
-  // ── Init on load ──────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', refreshBasketBtns);
-  // Also run immediately in case DOMContentLoaded already fired
   if (document.readyState !== 'loading') refreshBasketBtns();
 
 })();

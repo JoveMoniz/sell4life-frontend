@@ -236,9 +236,17 @@ console.log('product.js loaded');
       product.variants.forEach((v, i) => {
         if (!v.image) return;
         const src = toSrc(v.image);
-        // Only map to an existing gallery slide — never add variant images as new slides
         const children = Array.from(hiddenGallery.children);
-        const found = children.findIndex((el) => el.getAttribute('src') === src);
+        let found = children.findIndex((el) => el.getAttribute('src') === src);
+        if (found === -1 && !addedSrcs.has(src)) {
+          // Variant image not in main gallery — add it as a new slide
+          const img = document.createElement('img');
+          img.setAttribute('src', src);
+          img.alt = product.name;
+          hiddenGallery.appendChild(img);
+          addedSrcs.add(src);
+          found = hiddenGallery.children.length - 1;
+        }
         if (found !== -1) variantImageMap[i] = found + 1;
       });
     }
@@ -275,11 +283,16 @@ console.log('product.js loaded');
         });
       });
 
-      const html = attrNames.map((attrName) => {
+      const html = attrNames.map((attrName, attrIdx) => {
         const values = [...new Set(product.variants.map((v) => v.attributes[attrName]).filter(Boolean))];
         let hasSwatch = false;
         const buttons = values.map((val) => {
           const v = product.variants.find(v2 => v2.attributes[attrName] === val);
+          // Only the first attribute (colour) uses swatch/image mode.
+          // All other attributes (Model, Size, etc.) always render as text pills.
+          if (attrIdx > 0) {
+            return `<button type="button" class="pd-variant-pill" data-attr="${attrName}" data-val="${val}">${val}</button>`;
+          }
           const useImg = v?.displayMode === 'image' || (!v?.displayMode && product.variantDisplay === 'image');
           if (useImg) {
             hasSwatch = true;
@@ -289,8 +302,8 @@ console.log('product.js loaded');
             }</button>`;
           }
           const hex = v?.color || colorMap[attrName]?.[val];
-          const forceColor = v?.displayMode === 'color' || (!v?.displayMode && !v?.image);
-          if (hex || forceColor) {
+          const attrUsesColor = !!colorMap[attrName] || /colou?r/i.test(attrName);
+          if (hex || attrUsesColor) {
             hasSwatch = true;
             return `<button type="button" class="pd-color-swatch" data-attr="${attrName}" data-val="${val}" style="background:${hex || '#e5e7eb'}" title="${val}"></button>`;
           }
