@@ -10,6 +10,10 @@ const urlCategory = (params.get('category') || '').toLowerCase().trim();
 const CAT_VALUE   = { 'home-garden': 'home', 'health-beauty': 'health' };
 const catToFilter = id => CAT_VALUE[id] || id;
 
+// ── Reviews config (fetched once; used by renderCard) ──────
+let _rvCfg = { reviewsEnabled: false, reviewsMinCount: 3 };
+fetch(`${window.API_BASE}/reviews/config`).then(r => r.ok ? r.json() : null).then(d => { if (d) _rvCfg = d; }).catch(() => {});
+
 // ── State ──────────────────────────────────────────────────
 let allProducts    = [];
 let activeCategory = urlCategory;
@@ -190,6 +194,10 @@ function renderCard(p) {
         </div>
         <div class="sp-info">
           <p class="sp-name">${p.name}</p>
+          ${_rvCfg.reviewsEnabled && (p.reviewCount || 0) >= _rvCfg.reviewsMinCount && p.avgRating
+            ? `<div class="sp-stars-row">${window.s4lStarsHTML ? window.s4lStarsHTML(p.avgRating, 11) : ''}
+               <span class="s4l-stars-count">(${p.reviewCount})</span></div>`
+            : ''}
         </div>
       </a>
       <div class="sp-card-footer">

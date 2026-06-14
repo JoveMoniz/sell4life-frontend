@@ -645,4 +645,9 @@ console.log('product.js loaded');
 
     relSection.style.display = 'block';
   }
+
+  // ── Reviews ────────────────────────────────────────────────
+  if (typeof window.initReviews === 'function') {
+    window.initReviews(productId);
+  }
 })();

@@ -132,6 +132,9 @@ async function initPromoSlider() {
 }
 
 // ── Featured products ──────────────────────────────────────
+let _rvCfg = { reviewsEnabled: false, reviewsMinCount: 3 };
+fetch(`${window.API_BASE}/reviews/config`).then(r => r.ok ? r.json() : null).then(d => { if (d) _rvCfg = d; }).catch(() => {});
+
 async function loadFeaturedProducts() {
   const container = document.querySelector('.featured-products-grid');
   if (!container) return;
@@ -181,6 +184,10 @@ async function loadFeaturedProducts() {
             ${p.comingSoon ? '<div class="sp-coming-soon-badge">🕐 Coming Soon</div>' : ''}
           </div>
           <h3>${p.name}</h3>
+          ${_rvCfg.reviewsEnabled && (p.reviewCount || 0) >= _rvCfg.reviewsMinCount && p.avgRating
+            ? `<div class="sp-stars-row">${window.s4lStarsHTML ? window.s4lStarsHTML(p.avgRating, 11) : ''}
+               <span class="s4l-stars-count">(${p.reviewCount})</span></div>`
+            : ''}
         </a>
         <div class="sp-card-footer">
           <div class="sp-price-row">

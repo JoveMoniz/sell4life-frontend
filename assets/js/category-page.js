@@ -13,6 +13,10 @@
   const IMAGE_BASE = '/assets/images/products/';
   const FALLBACK_IMAGE = '/assets/images/products/sell4life-placeholder.png';
 
+  // Reviews config (fetched once; used in card rendering)
+  let _rvCfg = { reviewsEnabled: false, reviewsMinCount: 3 };
+  fetch(`${window.API_BASE}/reviews/config`).then(r => r.ok ? r.json() : null).then(d => { if (d) _rvCfg = d; }).catch(() => {});
+
   // ======================================================
   // HELPERS
   // ======================================================
@@ -89,6 +93,10 @@
             ${p.comingSoon ? '<div class="sp-coming-soon-badge">🕐 Coming Soon</div>' : ''}
           </div>
           <h3>${p.name}</h3>
+          ${_rvCfg.reviewsEnabled && (p.reviewCount || 0) >= _rvCfg.reviewsMinCount && p.avgRating
+            ? `<div class="cp-stars-row">${window.s4lStarsHTML ? window.s4lStarsHTML(p.avgRating, 11) : ''}
+               <span class="s4l-stars-count">(${p.reviewCount})</span></div>`
+            : ''}
         </a>
         <div class="sp-card-footer">
           <p class="product-price" style="margin:0">${makePrice(p)}</p>

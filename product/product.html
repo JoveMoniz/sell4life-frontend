@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/assets/css/product.css" />
   <link rel="stylesheet" href="/assets/css/gallery-slider.css" />
   <link rel="stylesheet" href="/assets/css/quick-add.css" />
+  <link rel="stylesheet" href="/assets/css/reviews.css" />
     <style id="s4l-fouc">html{visibility:hidden}</style>
   </head>
 <body class="s4l-loading">
@@ -41,6 +42,9 @@
 
       <h1 class="product-title"></h1>
       <p class="product-category"></p>
+
+      <!-- Star rating summary (injected by reviews.js when enabled + threshold met) -->
+      <div id="pd-rating-header"></div>
 
       <div class="pd-divider"></div>
 
@@ -110,6 +114,9 @@
     </div>
   </section>
 
+  <!-- REVIEWS (hidden by default; reviews.js shows when enabled) -->
+  <section id="pd-reviews"></section>
+
   <!-- RELATED PRODUCTS -->
   <section class="pd-related" id="pd-related">
     <h2 class="pd-related-title">You might also like</h2>
@@ -117,11 +124,12 @@
   </section>
 
   <script src="/assets/js/config-global.js"></script>
+  <script src="/assets/js/reviews.js"></script>
 
   <script>
     window.__pageScripts = [
       "/assets/js/gallery-slider.js",
-      "/assets/js/product.js?v=20260602"
+      "/assets/js/product.js?v=20260614"
     ];
   </script>
 
