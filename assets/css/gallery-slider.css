@@ -54,7 +54,8 @@
 
 .main-image-wrapper {
   flex: 1;
-  max-width: 100%;
+  max-width: 650px;
+  position: relative;
 }
 
 .slider-wrapper {
@@ -84,6 +85,92 @@
 }
 
 /* ---------------------------------------------------------
+   VIDEO SLIDES
+   A video slide is a <div class="slide-img slide-video">.
+   It must match img-slide dimensions exactly so the track
+   stays in sync.
+--------------------------------------------------------- */
+
+.slide-video {
+  /* Give the div the same height as the tallest img slide */
+  height: 500px;
+  max-height: 500px;
+  position: relative;
+  overflow: hidden;
+  background: #000;
+}
+
+/* Poster (thumbnail before play) */
+.slide-video-poster {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-color: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.slide-video-play {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.88);
+  border: none;
+  font-size: 26px;
+  color: #0b6b6a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.slide-video-play:hover {
+  transform: scale(1.1);
+  background: #fff;
+}
+
+/* Actual video element (direct MP4 upload) */
+.slide-video-el {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+/* YouTube / Vimeo iframe */
+.slide-video-iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Thumbnail for video slides */
+.thumb-video {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #111;
+  background-size: cover;
+  background-position: center;
+  font-size: 18px;
+}
+
+.thumb-video-icon {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 20px;
+  line-height: 1;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+/* ---------------------------------------------------------
    NAVIGATION ARROWS
 --------------------------------------------------------- */
 
@@ -96,43 +183,58 @@
   width: 60px;
   max-width: 60px;
   background: transparent;
-  color: rgba(0,0,0,0.35);
+  color: rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 38px;
   cursor: pointer;
   transition: 0.2s ease;
+  -webkit-user-select: none;
   user-select: none;
 }
 
 #main-prev:hover,
 #main-next:hover {
- background: transparent;
+  background: transparent;
 }
 
 #main-prev:active,
 #main-next:active {
-  
   transform: scale(0.96);
 }
 
-#main-prev { left: 0; }
-#main-next { right: 0; }
+#main-prev {
+  left: 0;
+}
+#main-next {
+  right: 0;
+}
 
 /* =========================================================
-   RESPONSIVE
+   RESPONSIVE  — everything ≤ 1400px (tablet + mobile, all orientations)
+   Desktop (> 1400px) is untouched above.
 ========================================================= */
 
-/* Tablet / mobile: stack layout, horizontal thumbnails */
 @media (max-width: 1400px) {
 
+  /* Stack: slider on top, thumbnails below — all at full viewport width */
   .custom-gallery.side-layout {
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;   /* stretch, never center — keeps full width */
+    gap: 0;
+    width: 100%;
+  }
+
+  .main-image-wrapper {
+    order: 1;
+    width: 100%;
+    max-width: 100%;
+    position: relative;     /* buttons anchor here — NEVER set to static */
   }
 
   .thumbnail-gallery {
+    order: 2;
     flex-direction: row;
     overflow-x: auto;
     overflow-y: hidden;
@@ -140,7 +242,9 @@
     width: 100%;
     justify-content: center;
     padding: 8px 0;
+    scrollbar-width: none;
   }
+  .thumbnail-gallery::-webkit-scrollbar { display: none; }
 
   .thumb-img {
     width: 60px;
@@ -148,92 +252,123 @@
     flex: 0 0 auto;
   }
 
-  /* Make main slider full width */
+  /* Slider: full width, clips any overflow, fixed height cap */
   .slider-wrapper {
-    max-width: 100%;
+    position: relative;
     width: 100%;
+    max-width: 100%;
+    max-height: 62vh;
     border-radius: 0;
-  }
-}
-
-/* MOBILE PORTRAIT — full bleed slider */
-/* FORCE full-height center on mobile portrait */
-@media (max-width: 600px) and (orientation: portrait) {
-  .slider-wrapper {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    height: auto !important;
-    min-height: 65vh !important; /* Ensures vertical room */
-    padding: 0 !important;
+    overflow: hidden;
+    background: #f9f9f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
+  .slider-track {
+    display: flex;
+    width: 100%;
+    transition: transform 0.3s ease;
+  }
+
+  /* Images never overflow — contain inside the fixed-height wrapper */
   .slide-img {
-    object-fit: contain !important;
-    max-height: 65vh !important;
-    width: 100% !important;
-  }
-}
-
-
-
- /* MOBILE LANDSCAPE — image must be fully visible */
-@media (max-height: 600px) and (orientation: landscape) {
-
-  .slider-wrapper,
-  .main-image-wrapper,
-  .product-gallery {
+    flex: 0 0 100%;
     width: 100%;
     max-width: 100%;
-
+    max-height: 62vh;
+    object-fit: contain;
+    object-position: center center;
+    display: block;
+    background: #f9f9f9;
   }
 
-
-
-  /* Image fits inside, no cropping */
-  .slider-track img {
-    width: 100%;
-    height: 280px;
-    object-fit: contain;  /* <-- no cut image */
-    background: #fff;
-  }
-  
-
-     .thumb-img {
-    width: 40px;
-    height: 40px;
+  /* Video slides: match capped height so track stays in sync */
+  .slide-video {
+    height: 62vh;
+    max-height: 62vh;
   }
 
-
-  .thumbnail-gallery {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-  }
-}
-
-/* Full-width gallery on tablets + mobiles, including iPad Pro */
-@media (max-width: 1400px) {
-
-  .main-image-wrapper {
-    order: 1;
-  }
-  .thumbnail-gallery {
-    order: 2;
-  }
-
-    /* Arrows still on edges */
+  /* ── Buttons: always at left / right edge of the slider, on top ── */
   #main-prev,
   #main-next {
     position: absolute;
     top: 0;
     bottom: 0;
-    font-size: 30px;
-    opacity: 0.9;
-    z-index: 10;
+    width: 56px;
+    max-width: 56px;
+    z-index: 20;
+    background: transparent;
+    border-top: none;
+    border-bottom: none;
+    border: 0.6px solid rgba(11, 107, 105, 0.28);
+    color: rgba(0, 0, 0, 0.65);
+    font-size: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    transition: color 0.2s, background 0.2s;
   }
 
-  #main-prev { left: 0; }
-  #main-next { right: 0; }
+  #main-prev { left: 0; border-left: none; }
+  #main-next { right: 0; border-right: none; }
+
+  #main-prev:active,
+  #main-next:active { transform: scale(0.92); }
+}
+
+/* ── Mobile portrait: taller image area ──────────────── */
+@media (max-width: 600px) and (orientation: portrait) {
+  .slider-wrapper,
+  .slide-img {
+    max-height: 65vh;
+  }
+
+  .slide-video {
+    height: 65vh;
+    max-height: 65vh;
+  }
+
+  #main-prev,
+  #main-next {
+    width: 52px;
+    font-size: 30px;
+  }
+
+  .thumbnail-gallery {
+    justify-content: flex-start;
+  }
+}
+
+/* ── Mobile landscape: short screen — subtract header + padding so nothing overflows ─ */
+@media (max-height: 520px) and (orientation: landscape) {
+  .slider-wrapper {
+    /* 100vh minus ~80px for header + product-page top padding */
+    height: calc(100vh - 80px);
+    max-height: calc(100vh - 80px);
+  }
+
+  .slide-img {
+    max-height: calc(100vh - 80px);
+  }
+
+  .slide-video {
+    height: calc(100vh - 80px);
+    max-height: calc(100vh - 80px);
+  }
+
+  .thumb-img {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Thumbnails on landscape: smaller and scrollable below slider */
+  .thumbnail-gallery {
+    justify-content: flex-start;
+    padding: 4px 0;
+  }
 }

@@ -1,99 +1,134 @@
 // =====================================================
-// SIGN IN (intent-based, NOT role-based)
+// SIGN IN
 // =====================================================
 
-import { API_BASE } from './config.js';
-
-console.log('signin.js loaded');
-
-// =====================================================
-// AUTO-REDIRECT IF ALREADY LOGGED IN
-// =====================================================
 const existingToken = localStorage.getItem('s4l_token');
+const existingUser  = localStorage.getItem('s4l_user');
 
-if (existingToken) {
-  const redirect = localStorage.getItem('postLoginRedirect') || '/account/orders.html';
+// ── Already logged in — redirect away ────────────────
+if (existingToken && existingUser) {
+  const intent   = localStorage.getItem('s4l_intent');
+  const redirect = localStorage.getItem('postLoginRedirect');
 
-  localStorage.removeItem('postLoginRedirect');
-  window.location.href = redirect;
+  if (intent === 'sell') {
+    localStorage.removeItem('s4l_intent');
+    (async () => {
+      try {
+        const res  = await fetch(`${window.API_BASE}/vendor/me`, {
+          headers: { Authorization: `Bearer ${existingToken}` },
+        });
+        const data = await res.json();
+        if (data.isVendor && data.vendor) {
+          localStorage.setItem('s4l_isVendor', 'true');
+          localStorage.setItem('s4l_vendorStatus', data.vendor.status);
+          localStorage.setItem('s4l_vendorType', data.vendor.type || 'casual');
+          const _dest = (data.vendor.type || 'casual') === 'casual'
+            ? '/account/vendor/dashboard-casual.html'
+            : '/account/vendor/dashboard.html';
+          window.location.replace(_dest);
+        } else {
+          localStorage.setItem('s4l_isVendor', 'false');
+          window.location.replace('/account/vendor/create.html');
+        }
+      } catch {
+        localStorage.removeItem('postLoginRedirect');
+        window.location.replace(redirect || '/index.html');
+      }
+    })();
+  } else {
+    localStorage.removeItem('postLoginRedirect');
+    window.location.replace(redirect || '/index.html');
+  }
 }
 
-// =====================================================
-//                   DOM READY
-// =====================================================
-document.addEventListener('DOMContentLoaded', () => {
-  const form = document.getElementById('signinForm');
-  const msg = document.getElementById('msg');
+// ── Form ─────────────────────────────────────────────
+const form = document.getElementById('signinForm');
+const msg  = document.getElementById('msg');
 
-  if (!form || !msg) {
-    console.error('Signin DOM elements missing');
-    return;
-  }
-
+if (form && msg) {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const email = document.getElementById('email').value.trim();
+    const email    = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value.trim();
+    const btn      = form.querySelector('button[type="submit"]');
 
-    msg.textContent = 'Checking credentials…';
-    msg.style.color = '#e5e7eb'; // neutral
+    msg.textContent  = 'Checking credentials…';
+    msg.style.color  = '#e5e7eb';
+    btn.disabled     = true;
 
     try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
+      const res  = await fetch(`${window.API_BASE}/auth/login`, {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body:    JSON.stringify({ email, password }),
       });
 
-      const text = await res.text();
-
       let data;
-      try {
-        data = JSON.parse(text);
-
-        console.log('STATUS:', res.status);
-        console.log('RESPONSE:', data);
-      } catch {
+      try { data = await res.json(); }
+      catch {
         msg.textContent = 'Invalid server response';
-        msg.style.color = 'red';
+        msg.style.color = '#f87171';
+        btn.disabled = false;
         return;
       }
 
       if (!res.ok || !data.token || !data.user) {
-        msg.textContent = data.msg || 'Login failed';
-        msg.style.color = 'red';
+        msg.textContent = data.msg || data.error || 'Login failed';
+        msg.style.color = '#f87171';
+        btn.disabled = false;
         return;
       }
 
-      // =====================================================
-      // STORE AUTH (TOKEN CREATED HERE ONLY)
-      // =====================================================
+      // Store auth
       localStorage.setItem('s4l_token', data.token);
       localStorage.setItem('s4l_user', JSON.stringify(data.user));
 
-      msg.textContent = 'Login successful';
-      msg.style.color = 'lightgreen';
+      msg.textContent = 'Login successful…';
+      msg.style.color = '#86efac';
 
-      // =====================================================
-      // REDIRECT LOGIC (INTENT ONLY)
-      // =====================================================
-      let redirect = localStorage.getItem('postLoginRedirect');
-
-      localStorage.removeItem('postLoginRedirect');
-
-      // PUBLIC SIGN-IN ALWAYS GOES TO USER AREA
-      if (!redirect) {
-        redirect = '/account/orders.html';
+      // Check vendor status and cache it so layout.js sidebar guard passes
+      try {
+        const vRes  = await fetch(`${window.API_BASE}/vendor/me`, {
+          headers: { Authorization: `Bearer ${data.token}` },
+        });
+        const vData = await vRes.json();
+        if (vData.isVendor && vData.vendor) {
+          const _vid = vData.vendor._id || vData.vendor.id || '';
+          localStorage.setItem('s4l_isVendor', 'true');
+          localStorage.setItem('s4l_vendorStatus', vData.vendor.status);
+          localStorage.setItem('s4l_vendorType', vData.vendor.type || 'casual');
+          if (_vid) localStorage.setItem('s4l_vendorId', String(_vid));
+        } else {
+          localStorage.setItem('s4l_isVendor', 'false');
+          localStorage.removeItem('s4l_vendorId');
+          localStorage.removeItem('s4l_vendorType');
+        }
+      } catch {
+        // Non-critical — vendor pages will re-check via vendor-guard.js
       }
 
-      setTimeout(() => {
-        window.location.href = redirect;
-      }, 300);
+      // Determine redirect
+      const intent   = localStorage.getItem('s4l_intent');
+      const isVendor = localStorage.getItem('s4l_isVendor') === 'true';
+      localStorage.removeItem('s4l_intent');
+
+      let redirect = localStorage.getItem('postLoginRedirect');
+      localStorage.removeItem('postLoginRedirect');
+
+      if (intent === 'sell') {
+        redirect = isVendor ? '/account/vendor/dashboard.html' : '/account/vendor/create.html';
+      } else {
+        redirect = redirect || '/index.html';
+      }
+
+      window.location.replace(redirect);
+
     } catch (err) {
       console.error('LOGIN ERROR:', err);
-      msg.textContent = 'Server error';
-      msg.style.color = 'red';
+      msg.textContent = 'Server error — please try again';
+      msg.style.color = '#f87171';
+      btn.disabled = false;
     }
   });
-});
+}

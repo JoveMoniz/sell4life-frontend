@@ -1,112 +1,253 @@
+// =======================================================
+// SELL4LIFE – THANK YOU PAGE (FINAL STABLE VERSION)
+// Stripe → Webhook → Order → Render → Cleanup
+// =======================================================
 
-
-
-// thankyou.js – FINAL CLEANUP
-
-
-// ================================
-// THANK YOU – KILL BACK-FORWARD CACHE
-// ================================
+// =======================================================
+// IMMEDIATE CART CLEAR
+// Runs synchronously before cart.js loads, so cart.js
+// reads an empty cart from localStorage from the start.
+// =======================================================
 
 (function () {
-  const isCheckoutDone = localStorage.getItem("checkout_completed") === "true";
+  if (!new URLSearchParams(location.search).get('payment_intent')) return;
 
-  // Fires when page is restored from cache (BACK button)
-  window.addEventListener("pageshow", function (event) {
-    if (event.persisted && isCheckoutDone) {
-      window.location.replace("/index.html");
+  try {
+    const planRaw = localStorage.getItem('checkout_cleanup_plan');
+    const plan = planRaw ? JSON.parse(planRaw) : null;
+
+    if (plan && plan.buyNow) {
+      const backup = localStorage.getItem('cart_backup');
+      if (backup) localStorage.setItem('cart', backup);
+      else localStorage.removeItem('cart');
+      localStorage.removeItem('cart_backup');
+      localStorage.removeItem('buyNow');
+    } else {
+      localStorage.removeItem('cart');
     }
-  });
+  } catch {
+    localStorage.removeItem('cart');
+  }
 
-  // Mark checkout as completed
-  localStorage.setItem("checkout_completed", "true");
+  localStorage.removeItem('checkout_cleanup_plan');
 })();
 
+// =======================================================
+// BACK-FORWARD CACHE PROTECTION
+// =======================================================
 
+(function () {
+  window.addEventListener('pageshow', function (event) {
+    const done = localStorage.getItem('checkout_completed') === 'true';
 
-import { API_BASE } from "./config.js";
+    if (event.persisted && done) {
+      window.location.replace('/index.html');
+    }
+  });
+})();
 
-document.addEventListener("DOMContentLoaded", async () => {
-  const params  = new URLSearchParams(window.location.search);
-  const orderId = params.get("id");
+// =======================================================
+// MAIN
+// =======================================================
 
-  const idEl    = document.getElementById("order-id");
-  const dateEl  = document.getElementById("order-date");
-  const itemsEl = document.getElementById("order-items");
-  const totalEl = document.getElementById("order-total");
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('🔥 Thankyou started');
 
-  if (!orderId) {
-    idEl.textContent = "—";
-    dateEl.textContent = "-";
-    itemsEl.innerHTML = "<p>Order not found.</p>";
-    totalEl.textContent = "—";
+  const API = window.API_BASE;
+
+  const params = new URLSearchParams(window.location.search);
+  const paymentIntentId = params.get('payment_intent');
+
+  // 🔥 STORE PAYMENT INTENT FOR GLOBAL CLEANUP
+  localStorage.setItem('last_payment_intent', paymentIntentId);
+  localStorage.removeItem('checkout_completed');
+
+  const idEl = document.getElementById('order-id');
+  const dateEl = document.getElementById('order-date');
+  const itemsEl = document.getElementById('order-items');
+  const totalEl = document.getElementById('order-total');
+  const statusMsg = document.getElementById('payment-status-message');
+  const loadingEl = document.getElementById('ty-loading');
+  const cardEl = document.getElementById('thankyou-card');
+
+  function showCard() {
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (cardEl) {
+      cardEl.style.display = 'block';
+      // next frame so display:block is painted before opacity transition starts
+      requestAnimationFrame(() => cardEl.classList.add('ty-ready'));
+    }
+  }
+
+  // =====================================================
+  // VALIDATION
+  // =====================================================
+  if (!paymentIntentId || paymentIntentId.length < 10) {
+    console.warn('Invalid payment_intent');
+    if (itemsEl) itemsEl.innerHTML = '<p>Payment not found.</p>';
+    showCard();
     return;
   }
 
-  try {
-    const token = localStorage.getItem("s4l_token");
+  // =====================================================
+  // AUTH
+  // =====================================================
 
-    const res = await fetch(`${API_BASE}/orders/${orderId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
+  const token = localStorage.getItem('s4l_token');
+
+  if (!token) {
+    window.location.href = '/account/signin.html';
+    return;
+  }
+
+  // Card stays hidden — spinner is visible via #ty-loading until data arrives
+
+  // =====================================================
+  // WAIT FOR WEBHOOK
+  // =====================================================
+
+  async function waitForPaid() {
+    const maxMs = 90000;
+    const stepMs = 1500;
+    const started = Date.now();
+
+    while (Date.now() - started < maxMs) {
+      try {
+        const res = await fetch(`${API}/orders/by-payment/${paymentIntentId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+          const order = await res.json();
+
+          console.log('🔄 Status:', order.paymentStatus);
+
+          if (order && order.paymentStatus === 'paid') {
+            return order;
+          }
+        } else if (res.status !== 404) {
+          console.warn('Unexpected status:', res.status);
+        }
+      } catch (err) {
+        console.warn('Retry…', err);
       }
-    });
 
-    if (!res.ok) throw new Error("Order not found");
+      await new Promise((r) => setTimeout(r, stepMs));
+    }
 
-    const order = await res.json();
+    return null;
+  }
 
-    // 🔹 SAME rule everywhere
-    const displayId = `S4L-${order.id.slice(0, 10).toUpperCase()}`;
+  // =====================================================
+  // CLEAN CART (ONLY AFTER PAID)
+  // =====================================================
 
-    idEl.textContent   = displayId;
-    dateEl.textContent = new Date(order.createdAt).toLocaleString();
+  function cleanupCart(order) {
+    if (!order || order.paymentStatus !== 'paid') return;
+    // Cart was already cleared synchronously at page load.
+    // Just mark complete and update the badge.
+    localStorage.setItem('checkout_completed', 'true');
+    document.dispatchEvent(new Event('cartUpdated'));
+  }
 
-    // 🔹 Render items
-    let itemsHTML = "";
-    let computedTotal = 0;
+  // =====================================================
+  // RENDER ORDER (SAFE ZONE)
+  // =====================================================
 
-    order.items.forEach(item => {
-      const qty   = Number(item.quantity || 1);
-      const price = Number(item.price || 0);
-      const line  = qty * price;
+  function renderOrder(order) {
+    if (!order) return;
 
-      computedTotal += line;
+    const displayId = order.shortId || order.id || '—';
 
-      itemsHTML += `
-        <div class="ty-item">
-          <span class="ty-item-name">${item.name}</span>
-          <span class="ty-item-qty">${qty} × £${price.toFixed(2)}</span>
-          <span class="ty-item-line">£${line.toFixed(2)}</span>
-        </div>
-      `;
-    });
+    if (idEl) idEl.textContent = displayId;
 
- itemsEl.innerHTML = order.items
-  .map(item => {
-    const qty = Number(item.quantity || item.qty || 1);
-    const price = Number(item.price || 0);
-    const lineTotal = qty * price;
+    if (dateEl) {
+      dateEl.textContent = order.createdAt ? new Date(order.createdAt).toLocaleString() : '-';
+    }
 
-    return `
-      <div class="ty-item">
-        <div class="ty-item-left">
-          <span>${item.name}</span>
-          <span class="ty-item-qty">×${qty}</span>
-        </div>
-        <span class="ty-item-subtotal">£${lineTotal.toFixed(2)}</span>
-      </div>
-    `;
-  })
-      .join("");
+    if (itemsEl) {
+      itemsEl.innerHTML = (order.items || [])
+        .map((item) => {
+          const qty = Number(item.quantity || 1);
+          const price = Number(item.price || 0);
+          const total = qty * price;
 
-    // Final total only
-    totalEl.textContent = `£${order.total.toFixed(2)}`;
+          return `
+            <div class="ty-item">
+              <div class="ty-item-left">
+                <div class="ty-name-wrap"><span>${item.name}</span></div>
+                <span class="ty-item-qty">×${qty}</span>
+              </div>
+              <span class="ty-item-subtotal">
+                £${total.toFixed(2)}
+              </span>
+            </div>
+          `;
+        })
+        .join('');
+    }
 
+    if (totalEl) {
+      totalEl.textContent = `£${Number(order.total || 0).toFixed(2)}`;
+    }
+
+    // =====================================================
+    // ✅ SAFE STATUS UPDATE (THIS WAS MISSING)
+    // =====================================================
+
+    if (statusMsg) {
+      if (order.paymentStatus === 'paid') {
+        statusMsg.textContent = 'Payment successful. Thank you!';
+      } else {
+        statusMsg.textContent = 'Processing your payment...';
+      }
+    }
+  }
+
+  // =====================================================
+  // FETCH + WAIT FLOW
+  // =====================================================
+
+  try {
+    let order = null;
+
+    // fast attempt
+    try {
+      const res = await fetch(`${API}/orders/by-payment/${paymentIntentId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        order = await res.json();
+      }
+    } catch (err) {
+      console.warn('Initial fetch failed');
+    }
+
+    // 🔥 THIS IS THE FIX
+    if (!order || order.paymentStatus !== 'paid') {
+      order = await waitForPaid();
+    }
+
+    // still nothing after polling
+    if (!order) {
+      console.warn('⏳ Order not ready yet');
+      if (itemsEl) itemsEl.innerHTML = '<p>Payment received. Your order will appear in My Orders shortly.</p>';
+      localStorage.setItem('checkout_completed', 'true');
+      showCard();
+      return;
+    }
+
+    // ✅ render everything, then reveal card all at once
+    renderOrder(order);
+    cleanupCart(order);
+    showCard();
+
+
+    console.log('✅ Thankyou complete');
   } catch (err) {
-    console.error("Thank-you fetch failed:", err);
-
-    itemsEl.innerHTML =
-      "<p>Server is waking up. Please wait a moment and refresh.</p>";
+    console.error('Thankyou error:', err);
+    if (itemsEl) itemsEl.innerHTML = '<p>Something went wrong. Please check your orders.</p>';
+    showCard();
   }
 });

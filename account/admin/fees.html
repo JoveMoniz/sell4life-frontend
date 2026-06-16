@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Fee Management | Admin</title>
+    <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png" />
+    <link rel="stylesheet" href="/assets/css/admin.css" />
+    <style>
+      #logoutBtn { padding: 5px 10px; font-size: 12px; font-weight: 500; }
+
+      .fee-body {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 0 20px 60px;
+      }
+
+      /* ── Section headings ── */
+      .fee-section {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 22px 24px;
+        margin-top: 22px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.05);
+      }
+      .fee-section-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #374151;
+        margin: 0 0 16px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      .fee-section-subtitle {
+        font-size: 12px;
+        font-weight: 400;
+        color: #9ca3af;
+        margin-left: 8px;
+      }
+
+      /* ── Rate grid ── */
+      .fee-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+      .fee-field label {
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: #6b7280;
+        margin-bottom: 5px;
+      }
+      .fee-field .fee-field-hint {
+        font-size: 10px;
+        font-weight: 400;
+        text-transform: none;
+        letter-spacing: 0;
+        color: #9ca3af;
+      }
+      .fee-input-wrap {
+        display: flex;
+        align-items: center;
+        border: 1px solid #d1d5db;
+        border-radius: 7px;
+        overflow: hidden;
+        background: #fff;
+        transition: border-color .15s;
+      }
+      .fee-input-wrap:focus-within {
+        border-color: #0b6b6a;
+        box-shadow: 0 0 0 2px rgba(11,107,106,.1);
+      }
+      .fee-input-wrap input {
+        flex: 1;
+        border: none;
+        outline: none;
+        padding: 8px 10px;
+        font-size: 14px;
+        background: transparent;
+        min-width: 0;
+      }
+      .fee-input-unit {
+        padding: 0 10px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #6b7280;
+        background: #f9fafb;
+        border-left: 1px solid #e5e7eb;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+      }
+
+      /* ── Save button + status ── */
+      .fee-save-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .btn-save {
+        padding: 8px 20px;
+        background: #0b6b6a;
+        color: #fff;
+        border: none;
+        border-radius: 7px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .15s;
+      }
+      .btn-save:hover { background: #0a5857; }
+      .btn-save:disabled { background: #9ca3af; cursor: not-allowed; }
+      .fee-save-status {
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .fee-save-status.ok   { color: #15803d; }
+      .fee-save-status.err  { color: #b91c1c; }
+
+      /* ── Vendor table ── */
+      .fee-search-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      .fee-search-row input {
+        flex: 1;
+        padding: 7px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 7px;
+        font-size: 13px;
+        outline: none;
+        max-width: 320px;
+      }
+      .fee-search-row input:focus { border-color: #0b6b6a; }
+
+      .fee-table-wrap { overflow-x: auto; }
+      .fee-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        min-width: 600px;
+      }
+      .fee-table th {
+        text-align: left;
+        padding: 8px 10px;
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #6b7280;
+        white-space: nowrap;
+      }
+      .fee-table td {
+        padding: 9px 10px;
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: middle;
+      }
+      .fee-table tr:last-child td { border-bottom: none; }
+      .fee-table tr:hover td { background: #f9fafb; }
+
+      .tier-badge {
+        display: inline-block;
+        padding: 1px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: capitalize;
+      }
+      .tier-badge.casual       { background:#e0f2fe; color:#075985; }
+      .tier-badge.refurbished  { background:#fef3c7; color:#92400e; }
+      .tier-badge.professional { background:#dcfce7; color:#166534; }
+      .tier-badge.enterprise   { background:#ede9fe; color:#6b21a8; }
+
+      .rate-source {
+        font-size: 11px;
+        color: #9ca3af;
+        display: block;
+        margin-top: 2px;
+      }
+      .rate-source.override { color: #1d4ed8; }
+      .rate-source.tier     { color: #b45309; }
+
+      .vendor-rate-input {
+        width: 80px;
+        padding: 5px 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 13px;
+        text-align: right;
+        outline: none;
+      }
+      .vendor-rate-input:focus { border-color: #0b6b6a; }
+
+      .btn-vendor-save {
+        padding: 5px 12px;
+        background: #0b6b6a;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background .15s;
+      }
+      .btn-vendor-save:hover { background: #0a5857; }
+
+      .btn-vendor-clear {
+        padding: 5px 10px;
+        background: #fff;
+        color: #6b7280;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .btn-vendor-clear:hover { border-color: #b91c1c; color: #b91c1c; }
+
+      .vendor-status-cell {
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .vendor-status-cell.ok  { color: #15803d; }
+      .vendor-status-cell.err { color: #b91c1c; }
+
+      .fee-loading { color: #9ca3af; text-align: center; padding: 30px; font-size: 14px; }
+
+      /* info banner */
+      .fee-info {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 12px;
+        color: #166534;
+        margin-bottom: 18px;
+      }
+    </style>
+  </head>
+
+  <body class="admin">
+
+    <!-- TOP BAR -->
+    <div class="admin-sticky">
+      <div class="admin-top">
+        <header class="admin-header">
+          <a href="/index.html" class="admin-logo">
+            <span class="logo-dollar">$</span>
+            <span class="logo-text">ell</span>
+            <span class="logo-four">4</span>
+            <span class="logo-text">Life</span>
+          </a>
+        </header>
+        <div class="admin-title">
+          <a href="/account/admin/index.html" class="admin-back">← dashboard</a>
+          <h1>Fee Management</h1>
+        </div>
+        <button type="button" id="logoutBtn">Log out</button>
+      </div>
+    </div>
+
+    <div class="fee-body">
+
+      <div class="fee-info">
+        Changes take effect immediately on all new calculations — payouts, ledger, financials, and vendor transactions.
+        Existing paid-out amounts are not retroactively changed.
+      </div>
+
+      <!-- ══ PLATFORM DEFAULTS ══ -->
+      <div class="fee-section">
+        <div class="fee-section-title">
+          Platform Defaults
+          <span class="fee-section-subtitle">Applied when no tier or vendor override exists</span>
+        </div>
+        <div class="fee-grid">
+          <div class="fee-field">
+            <label>Commission Rate <span class="fee-field-hint">(default for all vendors)</span></label>
+            <div class="fee-input-wrap">
+              <input type="number" id="inp-commission-default" min="0" max="100" step="0.1" placeholder="8">
+              <span class="fee-input-unit">%</span>
+            </div>
+          </div>
+          <div class="fee-field">
+            <label>Standard Reserve <span class="fee-field-hint">(held for 90 days)</span></label>
+            <div class="fee-input-wrap">
+              <input type="number" id="inp-reserve-standard" min="0" max="100" step="0.1" placeholder="10">
+              <span class="fee-input-unit">%</span>
+            </div>
+          </div>
+          <div class="fee-field">
+            <label>Trusted Reserve <span class="fee-field-hint">(long-standing clean sellers)</span></label>
+            <div class="fee-input-wrap">
+              <input type="number" id="inp-reserve-trusted" min="0" max="100" step="0.1" placeholder="5">
+              <span class="fee-input-unit">%</span>
+            </div>
+          </div>
+          <div class="fee-field">
+            <label>Trusted Threshold <span class="fee-field-hint">(months without dispute)</span></label>
+            <div class="fee-input-wrap">
+              <input type="number" id="inp-trusted-months" min="0" max="120" step="1" placeholder="6">
+              <span class="fee-input-unit">mo</span>
+            </div>
+          </div>
+        </div>
+        <div class="fee-save-row">
+          <button type="button" class="btn-save" id="btn-save-defaults">Save Defaults</button>
+          <span class="fee-save-status" id="status-defaults"></span>
+        </div>
+      </div>
+
+      <!-- ══ TIER OVERRIDES ══ -->
+      <div class="fee-section">
+        <div class="fee-section-title">
+          Commission by Tier
+          <span class="fee-section-subtitle">Leave blank to use the platform default</span>
+        </div>
+        <div class="fee-grid">
+          <div class="fee-field">
+            <label>Casual</label>
+            <div class="fee-input-wrap">
+              <input type="number" id="inp-tier-casual" min="0" max="100" step="0.1" placeholder="use default">
+              <span class="fee-input-unit">%</span>
+            </div>
+          </div>
+          <div class="fee-field">
+            <label>Refurbished</label>
+            <div class="fee-input-wrap">
+              <input type="number" id="inp-tier-refurbished" min="0" max="100" step="0.1" placeholder="use default">
+              <span class="fee-input-unit">%</span>
+            </div>
+          </div>
+          <div class="fee-field">
+            <label>Professional</label>
+            <div class="fee-input-wrap">
+              <input type="number" id="inp-tier-professional" min="0" max="100" step="0.1" placeholder="use default">
+              <span class="fee-input-unit">%</span>
+            </div>
+          </div>
+          <div class="fee-field">
+            <label>Enterprise</label>
+            <div class="fee-input-wrap">
+              <input type="number" id="inp-tier-enterprise" min="0" max="100" step="0.1" placeholder="use default">
+              <span class="fee-input-unit">%</span>
+            </div>
+          </div>
+        </div>
+        <div class="fee-save-row">
+          <button type="button" class="btn-save" id="btn-save-tiers">Save Tier Rates</button>
+          <span class="fee-save-status" id="status-tiers"></span>
+        </div>
+      </div>
+
+      <!-- ══ PER-VENDOR OVERRIDES ══ -->
+      <div class="fee-section">
+        <div class="fee-section-title">
+          Per-Vendor Commission Overrides
+          <span class="fee-section-subtitle">Takes precedence over tier and default rates</span>
+        </div>
+        <div class="fee-search-row">
+          <input type="text" id="vendor-search" placeholder="Search by store name or tier…">
+        </div>
+        <div class="fee-table-wrap">
+          <table class="fee-table">
+            <thead>
+              <tr>
+                <th>Store</th>
+                <th>Tier</th>
+                <th>Effective Rate</th>
+                <th>Override %</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="vendor-rate-table">
+              <tr><td colspan="5" class="fee-loading">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <script src="/assets/js/config-global.js"></script>
+    <script src="/assets/js/require-admin.js"></script>
+    <script type="module" src="/assets/js/admin-fees.js?v=20260605e"></script>
+    <script type="module" src="/assets/js/admin-logout.js?v=20260211"></script>
+  </body>
+</html>

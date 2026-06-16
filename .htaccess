@@ -1,0 +1,7 @@
+ErrorDocument 404 /404.html
+
+<FilesMatch "\.(js|css)$">
+  Header set Cache-Control "no-store, no-cache, must-revalidate"
+  Header unset ETag
+  FileETag None
+</FilesMatch>

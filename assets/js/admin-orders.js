@@ -1,385 +1,462 @@
+const API = window.API_BASE;
 
-const FINAL_STATES = ["delivered", "cancelled"];
-
-import { API_BASE } from "./config.js";
-
-/* ================================
-   AUTH GUARD (ADMIN ONLY)
-================================ */
-const token = localStorage.getItem("s4l_token");
-const role  = localStorage.getItem("s4l_role");
-
-if (!token || role !== "admin") {
-  window.location.href = "/account/admin/signin.html";
+/* =================================
+   AUTH FETCH — cookie + Authorization header (fallback)
+================================= */
+function authFetch(url, opts = {}) {
+  const token = localStorage.getItem('s4l_token');
+  const headers = { ...(opts.headers || {}) };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return fetch(url, { ...opts, credentials: 'include', headers });
 }
 
-/* ================================
-   HELPERS
-================================ */
-async function updateOrderStatus(orderId, status) {
-  const url = `${API_BASE}/admin/orders/${orderId}/status`;
+/* =================================
+   STATE
+================================= */
+let currentPage = 1;
+let currentQuery = '';
+let currentStatus = 'all';
 
-  const res = await fetch(url, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({ status })
+let searchInput;
+let searchTimer;
+let searchController;
+
+/* =================================
+   HELPERS
+================================= */
+
+function getAdminLabel(status) {
+  const labels = {
+    Cancelled: 'Force Cancel',
+
+    'Return Approved': 'Override Approve Return',
+
+    'Return Rejected': 'Override Reject Return',
+  };
+
+  return labels[status] || status;
+}
+
+/* =================================
+   SEARCH HANDLER (ONLY ONE SOURCE)
+================================= */
+function attachSearchHandlers() {
+  searchInput.addEventListener('input', (e) => {
+    let raw = e.target.value;
+
+    const isEmail = /[a-z]/i.test(raw);
+
+    if (isEmail) {
+      currentQuery = raw.replace(/^S4L-/i, '');
+    } else {
+      // ID MODE — auto-prefix with S4L-
+      let clean = raw.replace(/^S4L-/i, '').toUpperCase();
+      currentQuery = clean;
+
+      const cursorPos = searchInput.selectionStart;
+      const newValue = clean ? `S4L-${clean}` : '';
+      searchInput.value = newValue;
+      const offset = newValue.length - raw.length;
+      searchInput.setSelectionRange(cursorPos + offset, cursorPos + offset);
+    }
+
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      currentPage = 1;
+      loadOrders(1, currentQuery, currentStatus);
+    }, 300);
   });
 
-  if (!res.ok) {
-    const msg = await res.text();
-    throw new Error(msg || "Status update failed");
-  }
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      clearTimeout(searchTimer);
+      currentPage = 1;
+      loadOrders(1, currentQuery, currentStatus);
+    }
+  });
 }
 
-
-/* ================================
-   STATE
-================================ */
-let currentPage = 1;
-const STATUSES = ["Processing", "Shipped", "Delivered", "Cancelled"];
-const STATUS_FLOW = ["Processing", "Shipped", "Delivered"];
-
-/* ================================
+/* =================================
    LOAD ORDERS
-================================ */
-async function loadOrders(page = 1, q = "", status = "all")
- {
-  let url = `${API_BASE}/admin/orders?page=${page}`;
+================================= */
+async function loadOrders(page = 1, q = '', status = 'all') {
+  if (searchController) searchController.abort();
+  searchController = new AbortController();
 
-if (q) url += `&q=${encodeURIComponent(q)}`;
-if (status !== "all") url += `&status=${status}`;
+  let url = `${API}/admin/orders?page=${page}`;
+  if (q) url += `&q=${encodeURIComponent(q)}`;
+  if (status !== 'all') url += `&status=${status}`;
 
-const res = await fetch(url, {
-  headers: { Authorization: `Bearer ${token}` }
-});
+  const tbody = document.getElementById('ordersTable');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#6b7280">Loading…</td></tr>';
 
+  try {
+    const res = await authFetch(url, { signal: searchController.signal });
 
-  if (res.status === 401 || res.status === 403) {
-    window.location.href = "/account/admin/signin.html";
-    return;
-  }
+    if (res.status === 401 || res.status === 403) {
+      window.location.href = '/account/admin/signin.html';
+      return;
+    }
 
-  const data = await res.json();
-  const tbody = document.getElementById("ordersTable");
-  tbody.innerHTML = "";
+    const data = await res.json();
+    tbody.innerHTML = '';
 
-  data.orders.forEach(order => {
-    const tr = document.createElement("tr");
+  data.orders.forEach((order) => {
+    const tr = document.createElement('tr');
+    tr.dataset.order = JSON.stringify(order);
+
+    const paymentStatus = order.paymentStatus || 'pending';
+
+    const paymentLabelMap = {
+      paid: 'Paid',
+      refund_scheduled: 'Refund Scheduled',
+      refunded: 'Refunded',
+      partially_refunded: 'Partially Refunded',
+      failed: 'Failed',
+    };
+
+    const paymentLabel = paymentLabelMap[paymentStatus] || 'Unpaid';
+
+    const realId = order._id;
+
+    let displayId =
+      order.displayId ||
+      (order.shortId
+        ? `S4L-${order.shortId}`
+        : `S4L-${(order._id || order.id).slice(0, 10).toUpperCase()}`);
+
+    const cleanId = displayId.replace('S4L-', '');
+
+    const activeDisputes = (order.disputes || []).filter(d =>
+      d.status !== 'won' && d.status !== 'charge_refunded' && d.status !== 'warning_closed'
+    );
+    const disputeBadge = activeDisputes.length
+      ? `<span class="dispute-badge" title="Chargeback: ${activeDisputes[0].status}">⚠ dispute</span>`
+      : '';
 
     tr.innerHTML = `
-      <td>S4L-${order.id.slice(0, 10).toUpperCase()}</td>
-      <td>${order.user?.email || "-"}</td>
-      <td>£${Number(order.total || 0).toFixed(2)}</td>
-      <td>
-        <span class="status status-${order.status.toLowerCase()}">
-          ${order.status}
-        </span>
-      </td>
-      <td>${new Date(order.createdAt).toLocaleString()}</td>
-      <td>
-        <button class="view-order" data-id="${order.id}">View</button>
-      </td>
-    `;
+<td>
+  <button class="quick-search-id" data-id="${cleanId}">
+    ${displayId}
+  </button>
+  ${disputeBadge}
+</td>
+
+<td>
+  ${
+    order.user?.email
+      ? `<button class="quick-search-email" data-email="${order.user.email}">
+           ${order.user.email}
+         </button>`
+      : '-'
+  }
+</td>
+
+<td>£${Number(order.total || 0).toFixed(2)}</td>
+
+<td>
+  <span class="status status-${order.status.toLowerCase()}">
+    ${order.status}
+  </span>
+</td>
+
+<td>
+  <span class="payment-status ${paymentStatus}">
+    ${paymentLabel}
+  </span>
+</td>
+
+<td>${new Date(order.createdAt).toLocaleString()}</td>
+
+<td>
+  <button class="view-order" data-id="${realId}">
+    View
+  </button>
+</td>
+`;
 
     tbody.appendChild(tr);
   });
 
-  renderPagination(data.page, data.totalPages);
+    renderPagination(data.page, data.totalPages);
+  } catch (err) {
+    if (err.name === 'AbortError') return;
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#e53e3e">Failed to load orders.</td></tr>';
+  }
 }
 
-/* ================================
+/* =================================
    PAGINATION
-================================ */
+================================= */
 function renderPagination(current, total) {
-  const container = document.getElementById("pagination");
-  if (!container || total <= 1) return;
+  const container = document.getElementById('pagination');
+  container.innerHTML = '';
 
-  container.innerHTML = "";
+  if (total <= 1) return;
 
   for (let i = 1; i <= total; i++) {
-    const btn = document.createElement("button");
+    const btn = document.createElement('button');
     btn.textContent = i;
-    if (i === current) btn.classList.add("active");
 
-    btn.addEventListener("click", () => {
-      if (i === current) return;
+    if (i === current) btn.classList.add('active');
+
+    btn.addEventListener('click', () => {
       currentPage = i;
-      loadOrders(i);
+      loadOrders(i, currentQuery, currentStatus);
     });
 
     container.appendChild(btn);
   }
 }
 
-/* ================================
-   INLINE DETAILS + STATUS UPDATE
-================================ */
-document.getElementById("ordersTable").addEventListener("click", async (e) => {
-
-  /* ===============================
-     OPEN / CLOSE INLINE DETAILS
-  =============================== */
-  const viewBtn = e.target.closest(".view-order");
-  if (viewBtn) {
-    const row = viewBtn.closest("tr");
-    const orderId = viewBtn.dataset.id;
-
-    // Backend status (as displayed)
-    const backendStatus = row.children[3].textContent.trim();
-
-    // Normalized for logic
-    const currentStatus = backendStatus.toLowerCase();
-
-    
-    const isFinal = FINAL_STATES.includes(currentStatus);
-
-    // Toggle same row
-    let detailsRow = row.nextElementSibling;
-    if (detailsRow && detailsRow.classList.contains("order-details-row")) {
-      detailsRow.classList.toggle("open");
-
-      return;
-    }
-
-    // Close others
-    document.querySelectorAll(".order-details-row").forEach(r => r.remove());
-
-    /* -------- STATUS TRANSITIONS (LOGIC ONLY) -------- */
-    const TRANSITIONS = {
-      processing: ["Processing", "Shipped", "Cancelled"],
-      shipped: ["Shipped", "Delivered"],
-      delivered: ["Delivered"],
-      cancelled: ["Cancelled"]
-    };
-
-    const allowedStatuses =
-      TRANSITIONS[currentStatus] || [backendStatus];
-
-    const optionsHtml = allowedStatuses.map(status => `
-      <option value="${status}" ${status === backendStatus ? "selected" : ""}>
-        ${status}
-      </option>
-    `).join("");
-
-    /* -------- BUILD ROW -------- */
-    detailsRow = document.createElement("tr");
-    detailsRow.className = "order-details-row open";
-
-
-    const cell = document.createElement("td");
-    cell.colSpan = 6;
-
-    cell.innerHTML = `
-    <div class="inline-order-wrapper">
-      <div class="inline-order-grid">
-        <div>
-          <strong>Order ID:</strong>
-          <span class="inline-order-id">
-            S4L-${orderId.slice(0, 10).toUpperCase()}
-          </span><br><br>
-
-          <strong>User</strong><br>
-          ${row.children[1].textContent}<br><br>
-
-          <strong>Created</strong><br>
-          ${row.children[4].textContent}
-        </div>
-
-        <div>
-          <strong>Total</strong><br>
-          ${row.children[2].textContent}<br><br>
-
-          <strong>Status</strong><br>
-
-          ${
-            isFinal
-              ? `<span class="status status-${currentStatus}">
-                   ${backendStatus}
-                 </span>`
-              : `
-                <select class="inline-status" data-id="${orderId}">
-                  ${optionsHtml}
-                </select>
-              `
-          }
-
-          <br><br>
-
-          ${
-            isFinal
-              ? `<em style="opacity:.6">Final state <br> no further changes</em>`
-              : `<button class="inline-update" data-id="${orderId}">
-                   Update status
-                 </button>`
-          }
-
-          <br><br>
-
-          <a href="/account/admin/order-details.html?id=${orderId}">
-            Open full details →
-          </a>
-        </div>
-      </div>
-     </div> 
-    `;
-
-    detailsRow.appendChild(cell);
-    row.after(detailsRow);
+/* =================================
+   TABLE CLICK HANDLER (FINAL CLEAN)
+================================= */
+document.getElementById('ordersTable').addEventListener('click', (e) => {
+  // ===============================
+  // LET LINKS WORK
+  // ===============================
+  if (e.target.closest('.inline-details-link')) {
     return;
   }
 
-  /* ===============================
-     SAVE STATUS
-  =============================== */
-  const saveBtn = e.target.closest(".inline-update");
-  if (!saveBtn) return;
+  // ===============================
+  // STATUS BUTTON CLICK
+  // ===============================
+  const statusBtn = e.target.closest('.status-btn');
+  if (statusBtn) {
+    const orderId = statusBtn.dataset.id;
+    const newStatus = statusBtn.dataset.status;
 
-  const orderId = saveBtn.dataset.id;
-  const select = document.querySelector(
-    `.inline-status[data-id="${orderId}"]`
-  );
-  if (!select) return;
+    updateOrderStatus(orderId, newStatus);
+    return;
+  }
+  const viewBtn = e.target.closest('.view-order');
+  if (!viewBtn) return;
 
-  // IMPORTANT: send backend enum, NOT lowercase
-  const newStatus = select.value;
+  const row = viewBtn.closest('tr');
+  const orderId = viewBtn.dataset.id;
 
-  saveBtn.disabled = true;
-  saveBtn.textContent = "Saving…";
+  let detailsRow = row.nextElementSibling;
 
-  try {
-    await updateOrderStatus(orderId, newStatus);
+  // ===============================
+  // CLOSE
+  // ===============================
+  if (detailsRow && detailsRow.classList.contains('order-details-row')) {
+    const wrapper = detailsRow.querySelector('.inline-order-wrapper');
 
-    const detailsRow = saveBtn.closest("tr");
-    const mainRow = detailsRow.previousElementSibling;
-    const statusCell = mainRow.children[3];
+    if (wrapper) {
+      // lock current height
+      wrapper.style.height = wrapper.scrollHeight + 'px';
 
-    statusCell.innerHTML = `
-  <span class="status status-${newStatus.toLowerCase()}">
-    ${newStatus}
-  </span>
+      requestAnimationFrame(() => {
+        wrapper.style.height = '0px';
+      });
+
+      setTimeout(() => {
+        detailsRow.remove();
+      }, 450);
+    }
+
+    return;
+  }
+
+  // ===============================
+  // CLOSE ANY OPEN ROW (SMOOTH, NOT INSTANT)
+  // ===============================
+  const openRow = document.querySelector('.order-details-row');
+
+  if (openRow && openRow !== detailsRow) {
+    const openWrapper = openRow.querySelector('.inline-order-wrapper');
+
+    if (openWrapper) {
+      // lock current height
+      openWrapper.style.height = openWrapper.scrollHeight + 'px';
+
+      requestAnimationFrame(() => {
+        openWrapper.style.height = '0px';
+      });
+
+      // remove AFTER animation
+      setTimeout(() => {
+        openRow.remove();
+      }, 450);
+    }
+  }
+
+  const backendStatus = row.children[3].innerText.trim();
+  const order = JSON.parse(row.dataset.order);
+
+  const allowedStatuses = Array.isArray(order.allowedActions) ? order.allowedActions : [];
+  const paymentState = row.querySelector('.payment-status')?.textContent.trim().toLowerCase();
+
+  const isFinalState = Boolean(order.isFinal);
+  // ===============================
+  // CREATE ROW
+  // ===============================
+  detailsRow = document.createElement('tr');
+  detailsRow.className = 'order-details-row';
+
+  const cell = document.createElement('td');
+  cell.colSpan = 7;
+
+  const vendorOrders = Array.isArray(order.vendorOrders) ? order.vendorOrders : [];
+
+  const vendorChips = vendorOrders.map(vo => {
+    const name     = vo.vendorStoreName || vo.vendorName || '';
+    const shortVId = '...' + String(vo.vendorId || '').slice(-6).toUpperCase();
+    const nameHtml = name
+      ? `<strong>${name}</strong> <strong style="font-family:monospace;font-size:0.72rem;color:#6b7280">${shortVId}</strong>`
+      : `<strong style="font-family:monospace;font-size:0.78rem">${shortVId}</strong>`;
+    const status = vo.status || 'Pending';
+    const total  = Number(vo.total || 0).toFixed(2);
+    return `
+      <div style="display:inline-flex;align-items:center;gap:6px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:4px 10px;font-size:0.78rem;margin:2px 4px 2px 0">
+        ${nameHtml}
+        <span class="status status-${status.toLowerCase().replace(/\s+/g, '-')}" style="font-size:0.72rem">${status}</span>
+        <span style="color:#6b7280">£${total}</span>
+      </div>`;
+  }).join('');
+
+  cell.innerHTML = `
+<div class="inline-order-wrapper">
+  <div class="inline-order-content">
+
+    <div class="inline-status-line">
+      <strong>Status</strong>
+      <span class="status status-${backendStatus.toLowerCase()}">
+        ${backendStatus}
+      </span>
+    </div>
+
+    ${vendorChips ? `<div style="margin:6px 0 4px"><strong style="font-size:0.8rem;color:#6b7280">Sellers</strong><div style="margin-top:4px">${vendorChips}</div></div>` : ''}
+
+<div class="inline-status-buttons">
+  ${
+    isFinalState
+      ? `<div class="final-state-message">Order is finalized</div>`
+      : allowedStatuses
+          .map(
+            (status) => `
+        <button class="status-btn" data-id="${orderId}" data-status="${status}">
+          ${getAdminLabel(status)}
+        </button>
+      `
+          )
+          .join('')
+  }
+    </div>
+
+    <a class="inline-details-link"
+       href="/account/admin/order-details.html?id=${orderId}">
+      View full details →
+    </a>
+
+  </div>
+</div>
 `;
 
-    const normalized = newStatus.toLowerCase();
-const isFinalNow = FINAL_STATES.includes(normalized);
+  detailsRow.appendChild(cell);
+  row.after(detailsRow);
 
-const TRANSITIONS = {
-  processing: ["Processing", "Shipped", "Cancelled"],
-  shipped: ["Shipped", "Delivered"],
-  delivered: ["Delivered"],
-  cancelled: ["Cancelled"]
-};
+  // ===============================
+  // OPEN (SMOOTH + FULL HEIGHT)
+  // ===============================
+  const wrapper = detailsRow.querySelector('.inline-order-wrapper');
 
-if (isFinalNow) {
-  const select = detailsRow.querySelector(".inline-status");
-  const btn = detailsRow.querySelector(".inline-update");
+  // measure real height
+  wrapper.style.height = 'auto';
+  const fullHeight = wrapper.scrollHeight + 'px';
 
-  if (select) {
-    select.outerHTML = `
-      <span class="status status-${normalized}">
-        ${newStatus}
-      </span>
-    `;
-  }
+  // collapse
+  wrapper.style.height = '0px';
+  wrapper.offsetHeight;
 
-  if (btn) {
-    btn.outerHTML = `
-      <em style="opacity:.6">Final state <br> no further changes</em>
-    `;
-  }
+  // animate open
+  requestAnimationFrame(() => {
+    wrapper.style.height = fullHeight;
+  });
+});
 
-} else {
-  // 🔧 REBUILD DROPDOWN FOR NON-FINAL STATES (THIS IS THE FIX)
-  const select = detailsRow.querySelector(".inline-status");
-  if (select) {
-    const allowed = TRANSITIONS[normalized] || [newStatus];
+async function updateOrderStatus(orderId, status) {
+  try {
+    const res = await authFetch(`${API_BASE}/admin/orders/${orderId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
 
-    select.innerHTML = allowed
-      .map(
-        s =>
-          `<option value="${s}" ${
-            s === newStatus ? "selected" : ""
-          }>${s}</option>`
-      )
-      .join("");
-  }
-}
+    const data = await res.json();
 
+    if (!res.ok) {
+      showAlert(data.error || 'Update failed');
+      return;
+    }
 
-
-    saveBtn.textContent = "Saved";
+    // reload updated data
+    loadOrders(currentPage, currentQuery, currentStatus);
   } catch (err) {
     console.error(err);
-    saveBtn.textContent = "Error";
+    showAlert('Something went wrong');
   }
+}
+/* =================================
+   FILTERS
+================================= */
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
 
-  setTimeout(() => {
-    saveBtn.textContent = "Update status";
-    saveBtn.disabled = false;
-  }, 1200);
+  currentStatus = btn.dataset.status;
+  currentPage = 1;
+
+  document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  loadOrders(currentPage, currentQuery, currentStatus);
 });
 
+/* =================================
+   QUICK SEARCH
+================================= */
+document.addEventListener('click', (e) => {
+  const idBtn = e.target.closest('.quick-search-id');
+  if (idBtn) {
+    currentQuery = idBtn.dataset.id;
+    currentPage = 1;
+    loadOrders(currentPage, currentQuery, currentStatus);
+    return;
+  }
 
-/* ================================
+  const emailBtn = e.target.closest('.quick-search-email');
+  if (emailBtn) {
+    currentQuery = emailBtn.dataset.email;
+    currentPage = 1;
+    loadOrders(currentPage, currentQuery, currentStatus);
+  }
+});
+
+/* =================================
    INIT
-================================ */
-loadOrders();
+================================= */
+document.addEventListener('DOMContentLoaded', () => {
+  searchInput = document.getElementById('orderSearch');
 
-
-document.addEventListener("click", (e) => {
-  const openRow = document.querySelector(".order-details-row.open");
-  if (!openRow) return;
-
-  const clickedInsideDropdown =
-    e.target.closest(".inline-order-wrapper") ||
-    e.target.closest(".view-order");
-
-  if (!clickedInsideDropdown) {
-    openRow.classList.remove("open");
+  if (!searchInput) {
+    console.error('❌ Search input not found');
+    return;
   }
+
+  attachSearchHandlers();
+  loadOrders();
 });
 
+/* =================================
+   LIVE UPDATES
+================================= */
+startLiveUpdates(() => {
+  const openRow = document.querySelector('.order-details-row');
+  if (openRow) return;
 
-
-/* ================================
-   ADMIN SEARCH (FINAL)
-================================ */
-
-let currentQuery = "";
-let currentStatus = "all";
-
-document.addEventListener("DOMContentLoaded", () => {
-  const searchInput  = document.getElementById("orderSearch");
-  const statusSelect = document.getElementById("statusFilter");
-  const searchBtn    = document.getElementById("searchBtn");
-
-  if (!searchInput || !statusSelect || !searchBtn) return;
-
-  function runSearch() {
-let q = searchInput.value.trim();
-
-/* remove S4L- prefix */
-if (q.toUpperCase().startsWith("S4L-")) {
-  q = q.slice(4);
-}
-
-/* allow only 10-char hex OR email */
-if (!/^[0-9A-Fa-f]{10}$/.test(q) && !q.includes("@")) {
-  q = "__invalid__";
-}
-
-currentQuery = q;
-    currentStatus = statusSelect.value;
-    currentPage   = 1;
-
-    loadOrders(1, currentQuery, currentStatus);
-  }
-
-  searchBtn.addEventListener("click", runSearch);
-
-  searchInput.addEventListener("keydown", e => {
-    if (e.key === "Enter") runSearch();
-  });
+  loadOrders(currentPage, currentQuery, currentStatus);
 });
