@@ -127,21 +127,22 @@ async function initVendorButtons() {
 
       if (status === 'approved') {
         try {
-          const cr = await fetch(`${API_BASE}/vendor/orders/pending-count`, {
-            headers: { Authorization: `Bearer ${token}` },
+          const [cr, mr] = await Promise.allSettled([
+            fetch(`${API_BASE}/vendor/orders/pending-count`, { headers: { Authorization: `Bearer ${token}` } }),
+            fetch(`${API_BASE}/messages/unread-count?view=vendor`, { headers: { Authorization: `Bearer ${token}` } }),
+          ]);
+          const orderCount   = (cr.status === 'fulfilled' && cr.value.ok) ? (await cr.value.json()).count   || 0 : 0;
+          const messageCount = (mr.status === 'fulfilled' && mr.value.ok) ? (await mr.value.json()).unread  || 0 : 0;
+          const total = orderCount + messageCount;
+          buttons.forEach((btn) => {
+            btn.querySelectorAll('.vendor-btn-badge').forEach(b => b.remove());
+            if (total > 0) {
+              const badge = document.createElement('span');
+              badge.className = 'vendor-btn-badge';
+              badge.textContent = total > 99 ? '99+' : total;
+              btn.appendChild(badge);
+            }
           });
-          if (cr.ok) {
-            const { count } = await cr.json();
-            buttons.forEach((btn) => {
-              btn.querySelectorAll('.vendor-btn-badge').forEach(b => b.remove());
-              if (count > 0) {
-                const badge = document.createElement('span');
-                badge.className = 'vendor-btn-badge';
-                badge.textContent = count > 99 ? '99+' : count;
-                btn.appendChild(badge);
-              }
-            });
-          }
         } catch { /* non-critical */ }
       }
     } else {

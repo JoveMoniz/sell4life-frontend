@@ -33,6 +33,14 @@
 }
 
 /* Category pills */
+.shop-cat-pills-outer {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
 .shop-cat-pills {
   display: flex;
   gap: 8px;
@@ -41,6 +49,29 @@
   scrollbar-width: none;
 }
 .shop-cat-pills::-webkit-scrollbar { display: none; }
+
+/* Always-visible scroll buttons — pills only scroll by touch/drag otherwise,
+   which isn't discoverable with a mouse. */
+.shop-cat-pills-arrow {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid #ddeaea;
+  background: #fff;
+  color: #0b6b6a;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  transition: background 0.15s, color 0.15s;
+}
+.shop-cat-pills-arrow:hover { background: #0b6b6a; color: #fff; border-color: #0b6b6a; }
+.shop-cat-pills-arrow.arrow-left  { margin-right: 8px; }
+.shop-cat-pills-arrow.arrow-right { margin-left: 8px; }
 
 .shop-cat-pill {
   padding: 7px 16px;
@@ -68,10 +99,14 @@
   flex-wrap: wrap;
 }
 
+/* Default-hidden until shop.js decides the page mode — prevents a flash of
+   the category pills before JS determines whether browse mode applies. */
+.shop-controls-pending {
+  display: none;
+}
+
 .shop-count {
-  font-size: 13px;
-  color: #aaa;
-  margin-left: auto;
+  display: none;
 }
 
 .shop-sort {
@@ -132,74 +167,7 @@
 }
 
 /* ── Product card ─────────────────────────────────────────── */
-
-.sp-card {
-  text-decoration: none;
-  background: #fff;
-  border: 1px solid #e6eeee;
-  border-radius: 12px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.sp-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.09);
-}
-
-.sp-img-wrap {
-  aspect-ratio: 1;
-  overflow: hidden;
-  background: #f5f5f5;
-  position: relative;
-}
-.sp-img-wrap img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.3s;
-}
-.sp-card:hover .sp-img-wrap img { transform: scale(1.04); }
-
-/* ── Coming Soon badge ──────────────────────────────── */
-.sp-coming-soon-badge {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(245, 158, 11, 0.92);
-  color: #fff;
-  font-size: 0.74rem;
-  font-weight: 700;
-  text-align: center;
-  padding: 5px 0;
-  letter-spacing: 0.03em;
-  pointer-events: none;
-}
-.sp-card-coming-soon { opacity: 0.85; }
-
-.sp-info {
-  padding: 11px 14px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.sp-name {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #222;
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sp-price-row { display: flex; align-items: center; gap: 7px; }
-.sp-price     { font-size: 0.95rem; font-weight: 700; color: #0b6b6a; }
-.sp-compare   { font-size: 0.8rem; color: #bbb; text-decoration: line-through; }
+/* Card itself now lives in product-card.css (shared with the Store page) */
 
 /* ── Skeleton loader ──────────────────────────────────────── */
 
@@ -390,6 +358,20 @@
   .shop-row-track .sp-card-wrap,
   .shop-row-skel-card { min-width: 155px; max-width: 155px; }
   .shop-row-arrow   { display: none; }
+  .shop-cat-pills-arrow { display: none; }
+}
+
+@media (max-width: 600px) {
+  /* Pills get their own full row; sort sits cleanly underneath */
+  .shop-cat-pills-outer {
+    flex-basis: 100%;
+    width: 100%;
+  }
+  .shop-controls-right {
+    width: 100%;
+    display: flex;
+    align-items: center;
+  }
 }
 
 @media (max-width: 480px) {
@@ -397,7 +379,6 @@
   .shop-sort       { font-size: 1rem; padding: 10px 12px; }
   .shop-cat-pill   { min-height: 40px; padding: 0 14px; display: flex; align-items: center; }
   .shop-controls   { gap: 8px; }
-  .shop-count      { width: 100%; margin-left: 0; order: -1; }
   .shop-row-track .sp-card-wrap,
   .shop-row-skel-card { min-width: 140px; max-width: 140px; }
 }

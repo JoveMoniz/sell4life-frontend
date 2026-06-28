@@ -175,6 +175,19 @@
   margin-top: 10px;
 }
 
+.checkout-policy-note {
+  font-size: 0.8rem;
+  color: #666;
+  line-height: 1.5;
+  margin: 16px 0 0;
+}
+
+.checkout-policy-note a {
+  color: #0b6b6a;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
 /* Button */
 .checkout-btn {
   width: 100%;

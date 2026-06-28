@@ -117,6 +117,13 @@ async function loadOrders(page = 1, q = '', status = 'all') {
 
     const paymentLabel = paymentLabelMap[paymentStatus] || 'Unpaid';
 
+    // Goodwill refunds don't change order.paymentStatus (it's item-level), so
+    // surface it separately here with its own countdown.
+    const goodwillItem = (order.items || []).find((i) => i.goodwillRefund && i.refundStatus === 'scheduled');
+    const goodwillNote = goodwillItem
+      ? ` <span class="goodwill-pending-note" style="color:#92400e">+ Goodwill scheduled <span class="refund-timer" data-time="${goodwillItem.refundScheduledAt}"></span></span>`
+      : '';
+
     const realId = order._id;
 
     let displayId =
@@ -163,7 +170,7 @@ async function loadOrders(page = 1, q = '', status = 'all') {
 <td>
   <span class="payment-status ${paymentStatus}">
     ${paymentLabel}
-  </span>
+  </span>${goodwillNote}
 </td>
 
 <td>${new Date(order.createdAt).toLocaleString()}</td>
@@ -179,10 +186,41 @@ async function loadOrders(page = 1, q = '', status = 'all') {
   });
 
     renderPagination(data.page, data.totalPages);
+    initGoodwillTimers();
   } catch (err) {
     if (err.name === 'AbortError') return;
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#e53e3e">Failed to load orders.</td></tr>';
   }
+}
+
+/* =================================
+   GOODWILL REFUND COUNTDOWNS
+================================= */
+let goodwillTimerInterval;
+
+function initGoodwillTimers() {
+  const els = document.querySelectorAll('.refund-timer');
+  if (!els.length) {
+    if (goodwillTimerInterval) clearInterval(goodwillTimerInterval);
+    return;
+  }
+
+  function update() {
+    const now = Date.now();
+    els.forEach((el) => {
+      const target = new Date(el.dataset.time).getTime();
+      const diff = target - now;
+      if (diff <= 0) { el.textContent = 'processing…'; return; }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      el.textContent = `${h}h ${m}m ${s}s`;
+    });
+  }
+
+  update();
+  if (goodwillTimerInterval) clearInterval(goodwillTimerInterval);
+  goodwillTimerInterval = setInterval(update, 1000);
 }
 
 /* =================================
@@ -453,10 +491,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* =================================
    LIVE UPDATES
+   Disabled for now — the 20s auto-refresh was causing the table to flash to
+   "Loading…" and back every cycle, especially noticeable when the backend is
+   slow. Re-enable by uncommenting once backend speed is no longer an issue.
 ================================= */
-startLiveUpdates(() => {
-  const openRow = document.querySelector('.order-details-row');
-  if (openRow) return;
-
-  loadOrders(currentPage, currentQuery, currentStatus);
-});
+// startLiveUpdates(() => {
+//   const openRow = document.querySelector('.order-details-row');
+//   if (openRow) return;
+//
+//   loadOrders(currentPage, currentQuery, currentStatus);
+// });

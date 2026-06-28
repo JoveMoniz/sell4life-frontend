@@ -409,6 +409,7 @@ function injectMobileBar() {
       { href: '/account/vendor/add-product-casual.html', label: 'Add Product' },
       { href: '/account/vendor/orders.html',             label: 'Orders' },
       { href: '/account/vendor/payouts.html',            label: 'Payouts' },
+      { href: '/account/vendor/messages.html',           label: 'Messages', badge: 'mob-msg-badge' },
       { href: '/account/vendor/settings.html',           label: 'Store Settings' },
       { href: '/account/signin.html',                    label: 'Logout', cls: 'vendor-logout' },
     ],
@@ -419,6 +420,7 @@ function injectMobileBar() {
       { href: '/account/vendor/orders.html',             label: 'Orders' },
       { href: '/account/vendor/transactions.html',       label: 'Transactions' },
       { href: '/account/vendor/payouts.html',            label: 'Payouts' },
+      { href: '/account/vendor/messages.html',           label: 'Messages', badge: 'mob-msg-badge' },
       { href: '/account/vendor/settings.html',           label: 'Store Settings' },
       { href: '/account/signin.html',                    label: 'Logout', cls: 'vendor-logout' },
     ],
@@ -429,6 +431,7 @@ function injectMobileBar() {
       { href: '/account/vendor/orders.html',             label: 'Orders' },
       { href: '/account/vendor/transactions.html',       label: 'Transactions' },
       { href: '/account/vendor/payouts.html',            label: 'Payouts' },
+      { href: '/account/vendor/messages.html',           label: 'Messages', badge: 'mob-msg-badge' },
       { href: '/account/vendor/settings.html',           label: 'Store Settings' },
       { href: '/account/vendor/tools.html',              label: 'Tools' },
       { href: '/account/signin.html',                    label: 'Logout', cls: 'vendor-logout' },
@@ -445,10 +448,29 @@ function injectMobileBar() {
     .map((l) => {
       const classes = [l.cls, l.href === currentPath ? 'active' : ''].filter(Boolean);
       const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
-      return `<a href="${l.href}"${cls}>${l.label}</a>`;
+      const badge = l.badge ? ` <span id="${l.badge}" class="sidebar-msg-badge" style="display:none"></span>` : '';
+      return `<a href="${l.href}"${cls}>${l.label}${badge}</a>`;
     })
     .join('');
   bar.after(nav);
+
+  // Populate mobile message badge
+  (async function () {
+    const tok = localStorage.getItem('s4l_token');
+    if (!tok) return;
+    try {
+      const r = await fetch((window.API_BASE || '') + '/messages/unread-count?view=vendor', {
+        headers: { Authorization: 'Bearer ' + tok },
+      });
+      if (!r.ok) return;
+      const { unread } = await r.json();
+      const b = nav.querySelector('#mob-msg-badge');
+      if (b && unread > 0) {
+        b.textContent = unread > 99 ? '99+' : unread;
+        b.style.display = 'inline-block';
+      }
+    } catch {}
+  })();
 
   // Wire mobile logout
   const mobileLogout = nav.querySelector('.vendor-logout');
@@ -546,18 +568,35 @@ async function applyBuyerBadge() {
   let since = localStorage.getItem('s4l_orders_seen');
   if (!since) {
     localStorage.setItem('s4l_orders_seen', Date.now());
-    return;
+    since = null;
   }
 
   try {
-    const r = await fetch(`${window.API_BASE}/account/unseen-orders?since=${since}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!r.ok) return;
-    const { count } = await r.json();
-    if (!count) return;
+    const [orderRes, msgRes] = await Promise.allSettled([
+      since
+        ? fetch(`${window.API_BASE}/account/unseen-orders?since=${since}`, { headers: { Authorization: `Bearer ${token}` } })
+        : Promise.resolve(null),
+      fetch(`${window.API_BASE}/messages/unread-count?view=buyer`, { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
 
-    const label = count > 99 ? '99+' : String(count);
+    const orderCount = (orderRes.status === 'fulfilled' && orderRes.value?.ok)
+      ? ((await orderRes.value.json()).count || 0) : 0;
+    const msgCount = (msgRes.status === 'fulfilled' && msgRes.value?.ok)
+      ? ((await msgRes.value.json()).unread || 0) : 0;
+
+    // Populate message badge inside the dropdown link
+    if (msgCount > 0) {
+      const label = msgCount > 99 ? '99+' : String(msgCount);
+      document.querySelectorAll('.dd-msg-badge').forEach(b => {
+        b.textContent = label;
+        b.style.display = 'inline-block';
+      });
+    }
+
+    const total = orderCount + msgCount;
+    if (!total) return;
+
+    const label = total > 99 ? '99+' : String(total);
 
     ['accountBtnDesktop', 'accountBtnMobile'].forEach((id) => {
       const btn = document.getElementById(id);
@@ -621,6 +660,7 @@ document.addEventListener('headerLoaded', () => {
     const login = menu.querySelector('.dd-login');
     const register = menu.querySelector('.dd-register');
     const orders = menu.querySelector('.dd-orders');
+    const messages = menu.querySelector('.dd-messages');
     const settings = menu.querySelector('.dd-settings');
     const vendorLink = menu.querySelector('.dd-vendor');
     const logoutBtn = menu.querySelector('.dd-logout');
@@ -629,12 +669,14 @@ document.addEventListener('headerLoaded', () => {
       login && (login.style.display = 'none');
       register && (register.style.display = 'none');
       orders && (orders.style.display = 'block');
+      messages && (messages.style.display = 'block');
       settings && (settings.style.display = 'block');
       logoutBtn && (logoutBtn.style.display = 'block');
       logoutBtn && logoutBtn.addEventListener('click', logout);
       vendorLink && (vendorLink.style.display = 'none');
     } else {
       orders && (orders.style.display = 'none');
+      messages && (messages.style.display = 'none');
       settings && (settings.style.display = 'none');
       vendorLink && (vendorLink.style.display = 'none');
       logoutBtn && (logoutBtn.style.display = 'none');
@@ -701,6 +743,12 @@ document.addEventListener('headerLoaded', () => {
     const s = document.createElement('script');
     s.src = `${clean}?v=${version}&t=${Date.now()}`;
     s.defer = true;
+    // Dynamically-inserted scripts ignore defer-based ordering by default
+    // (they execute as soon as each finishes downloading, in any order).
+    // async=false forces them to run in insertion order instead — required
+    // since shipping-label.js/product-card.js must run before the page
+    // script that calls window.s4lShippingText/s4lProductCardHTML.
+    s.async = false;
     document.body.appendChild(s);
   }
 
@@ -735,7 +783,9 @@ function initEmailVerificationBanner() {
   try { user = JSON.parse(localStorage.getItem('s4l_user') || 'null'); } catch {}
   if (!user) return;
   if (user.emailVerified !== false) return;
-  if (localStorage.getItem('s4l_verify_dismissed') === '1') return;
+  const VERIFY_ENFORCED_FROM = new Date('2026-06-27T00:00:00Z');
+  if (user.createdAt && new Date(user.createdAt) < VERIFY_ENFORCED_FROM) return;
+  if (sessionStorage.getItem('s4l_verify_dismissed') === '1') return;
 
   const style = document.createElement('style');
   style.textContent = `
@@ -791,7 +841,7 @@ function initEmailVerificationBanner() {
   document.body.insertBefore(bar, document.body.firstChild);
 
   document.getElementById('verifyDismissBtn').addEventListener('click', () => {
-    localStorage.setItem('s4l_verify_dismissed', '1');
+    sessionStorage.setItem('s4l_verify_dismissed', '1');
     bar.remove();
   });
 
@@ -839,8 +889,8 @@ function initCookieBanner() {
       position: fixed;
       bottom: 0; left: 0; right: 0;
       z-index: 9999;
-      background: #0b6b6a;
-      border-top: none;
+      background: #1f2430;
+      border-top: 1px solid rgba(255,255,255,0.08);
       display: flex;
       align-items: center;
       justify-content: space-between;

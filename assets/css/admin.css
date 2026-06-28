@@ -416,6 +416,11 @@ button {
   overflow: hidden;
   padding: 0 24px;
   transition: height 0.45s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
+  /* Reset the table's white-space:nowrap (meant for compact rows) — it
+     otherwise inherits into this expanded panel and forces long text
+     (e.g. store description) onto one unbreakable line that overflows
+     across the other detail columns instead of wrapping. */
+  white-space: normal;
 }
 /* open state */
 .order-details-row.open .inline-order-wrapper {
@@ -1616,4 +1621,168 @@ body.admin-users .admin-users-table thead th {
   border-radius: 6px;
   font-size: 0.85rem;
   cursor: pointer;
+}
+
+/* ===============================
+   PRODUCT TITLE — truncate + auto-scroll
+   (same pattern as cart/checkout)
+=============================== */
+.admin-title-wrap {
+  max-width: 220px;
+  overflow: hidden;
+}
+
+.admin-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #111827;
+  display: inline-block;
+  white-space: nowrap;
+  will-change: transform, opacity;
+}
+
+.admin-title.scrollable {
+  animation: admin-title-scroll 28s linear 1s infinite;
+}
+
+@keyframes admin-title-scroll {
+  0%   { transform: translateX(0);                             opacity: 1; }
+  8%   { transform: translateX(0);                             opacity: 1; }
+  72%  { transform: translateX(min(0px, calc(-100% + 220px))); opacity: 1; }
+  81%  { transform: translateX(min(0px, calc(-100% + 220px))); opacity: 0; }
+  82%  { transform: translateX(0);                             opacity: 0; }
+  92%  { transform: translateX(0);                             opacity: 1; }
+  100% { transform: translateX(0);                             opacity: 1; }
+}
+
+/* ===============================
+   MOBILE FIXES — top bar, expand, panels
+=============================== */
+
+/* ── ≤ 768px ── */
+@media (max-width: 768px) {
+  /* Top bar: switch grid → flex-wrap.
+     display:contents on .admin-title lets its children (back link + h1)
+     join the flex row directly so we can order them independently.
+     Row 1: [logo] [← back  ···] [logout]
+     Row 2: [h1 full-width]                */
+  .admin-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    padding: 10px 14px;
+  }
+
+  .admin-top .admin-title { display: contents; }
+
+  .admin-top .admin-header { order: 1; }
+  .admin-top .admin-back   { order: 2; flex: 1 1 auto; font-size: 13px; text-align: center; }
+  .admin-top #logoutBtn    { order: 3; }
+  .admin-top .admin-title h1 {
+    order: 4;
+    flex: 0 0 100%;
+    margin: 2px 0 4px;
+  }
+
+  /* Inline expand: right-align is awkward on mobile — switch to left */
+  .inline-order-content {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .inline-status-buttons {
+    justify-content: flex-start;
+  }
+
+  /* Payout body: allow horizontal scroll so table isn't clipped */
+  .admin-payout-body {
+    overflow-x: auto;
+  }
+
+  /* Notification button bar: wrap on narrow screens */
+  .admin-notif-bar {
+    flex-wrap: wrap;
+    padding: 6px 12px;
+  }
+}
+
+/* ── ≤ 480px ── */
+@media (max-width: 480px) {
+  /* Top bar: tighten padding (layout already set at 768px) */
+  .admin-top {
+    gap: 4px;
+    padding: 8px 10px;
+  }
+
+  /* Logo: shrink slightly so title has more room */
+  .admin-logo {
+    font-size: 16px;
+    letter-spacing: 0;
+  }
+
+  /* Notification panels: allow x-scroll while keeping height animation */
+  .admin-notif-panel {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  /* Notification action buttons: equal width */
+  .admin-notif-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Order details: stack status select + update button vertically */
+  .admin-order-details .status-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-order-details .status-controls select,
+  .admin-order-details #updateStatus {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Open expand row: match tighter horizontal padding */
+  .order-details-row.open .inline-order-wrapper {
+    padding: 12px 10px;
+  }
+}
+
+/* ── ≤ 360px — very small phones ── */
+@media (max-width: 360px) {
+  .admin-top {
+    gap: 4px;
+    padding: 8px;
+  }
+
+  .admin-logo {
+    font-size: 14px;
+  }
+
+  #logoutBtn {
+    font-size: 11px;
+    padding: 5px 8px;
+  }
+
+  h1 {
+    font-size: 17px;
+  }
+
+  /* Modal: reduce padding and stack action buttons */
+  .modal-card {
+    padding: 16px;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .btn-danger,
+  .btn-secondary {
+    width: 100%;
+  }
 }

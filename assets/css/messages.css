@@ -1,0 +1,189 @@
+/* =========================================================
+   MESSAGES — shared styles (buyer + vendor inbox)
+========================================================= */
+
+.sidebar-msg-badge {
+  display: inline-block;
+  background: #f28c28; color: #fff;
+  font-size: 11px; font-weight: 700;
+  padding: 1px 6px; border-radius: 10px;
+  margin-left: 5px; vertical-align: middle;
+  line-height: 16px;
+}
+
+.msg-page { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
+.msg-page h1 { font-size: 22px; color: #111827; margin: 0 0 20px; }
+
+/* Conversation list */
+.msg-list { list-style: none; margin: 0; padding: 0; }
+.msg-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.msg-list-item:hover { border-color: #0b6b6a; box-shadow: 0 1px 6px rgba(11,107,106,.1); }
+.msg-list-item.active { border-color: #0b6b6a; background: #f0fafa; }
+.msg-list-item.unread .msg-list-product { font-weight: 700; }
+
+.msg-list-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: #0b6b6a; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; flex-shrink: 0;
+}
+.msg-list-body { flex: 1; min-width: 0; }
+.msg-list-product { font-size: 14px; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msg-list-meta { font-size: 12px; color: #6b7280; margin-top: 2px; }
+.msg-list-snippet { font-size: 13px; color: #374151; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.msg-unread-dot {
+  width: 9px; height: 9px; border-radius: 50%; background: #f28c28;
+  flex-shrink: 0; margin-top: 6px;
+}
+
+/* Thread */
+.msg-thread {
+  border: 1px solid #e5e7eb; border-radius: 10px;
+  background: #fff; margin-top: 20px; overflow: hidden;
+}
+.msg-thread-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.msg-thread-title { font-size: 14px; font-weight: 600; color: #111827; }
+.msg-thread-subtitle { font-size: 12px; color: #6b7280; margin-top: 2px; }
+.msg-thread-back {
+  font-size: 13px; color: #0b6b6a; cursor: pointer;
+  background: none; border: none; padding: 0; text-decoration: underline;
+}
+
+.msg-bubbles { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-height: 120px; }
+
+.msg-bubble-wrap { display: flex; flex-direction: column; }
+.msg-bubble-wrap.mine  { align-items: flex-end; }
+.msg-bubble-wrap.theirs { align-items: flex-start; }
+
+.msg-bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+.msg-bubble-wrap.mine .msg-bubble   { background: #0b6b6a; color: #fff; border-bottom-right-radius: 4px; }
+.msg-bubble-wrap.theirs .msg-bubble { background: #f3f4f6; color: #111827; border-bottom-left-radius: 4px; }
+
+.msg-bubble-time { font-size: 11px; color: #9ca3af; margin-top: 3px; }
+
+/* Reply form */
+.msg-reply-form {
+  border-top: 1px solid #e5e7eb;
+  padding: 12px 18px;
+  display: flex; gap: 10px; align-items: flex-end;
+}
+.msg-reply-input {
+  flex: 1;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 42px;
+  max-height: 160px;
+  font-family: inherit;
+  color: #111827;
+  outline: none;
+}
+.msg-reply-input:focus { border-color: #0b6b6a; }
+.msg-reply-send {
+  background: #0b6b6a; color: #fff;
+  border: none; border-radius: 8px;
+  padding: 9px 18px; font-size: 14px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+  transition: background 0.15s;
+}
+.msg-reply-send:hover { background: #084f4e; }
+.msg-reply-send:disabled { background: #9ca3af; cursor: not-allowed; }
+
+.msg-empty { color: #6b7280; font-size: 14px; text-align: center; padding: 40px 0; }
+.msg-error  { color: #dc2626; font-size: 14px; text-align: center; padding: 40px 0; }
+
+/* Ask Seller modal */
+#pd-ask-seller { display: none; }
+
+.ask-seller-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 10px;
+  background: none;
+  border: 1.5px solid #0b6b6a;
+  color: #0b6b6a;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.ask-seller-btn:hover { background: #0b6b6a; color: #fff; }
+
+.ask-modal-backdrop {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.45); z-index: 1000;
+  align-items: center; justify-content: center;
+}
+.ask-modal-backdrop.open { display: flex; }
+.ask-modal {
+  background: #fff; border-radius: 14px;
+  padding: 24px; max-width: 460px; width: calc(100% - 32px);
+  box-shadow: 0 8px 32px rgba(0,0,0,.18);
+}
+.ask-modal h3 { margin: 0 0 4px; font-size: 17px; color: #111827; }
+.ask-modal p  { margin: 0 0 14px; font-size: 13px; color: #6b7280; }
+.ask-modal textarea {
+  width: 100%; box-sizing: border-box;
+  border: 1px solid #d1d5db; border-radius: 8px;
+  padding: 10px 12px; font-size: 14px; font-family: inherit;
+  resize: vertical; min-height: 100px; color: #111827; outline: none;
+}
+.ask-modal textarea:focus { border-color: #0b6b6a; }
+.ask-modal-actions {
+  display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px;
+}
+.ask-modal-cancel {
+  background: none; border: 1px solid #d1d5db; border-radius: 8px;
+  padding: 8px 16px; font-size: 14px; cursor: pointer; color: #374151;
+}
+.ask-modal-submit {
+  background: #0b6b6a; color: #fff; border: none; border-radius: 8px;
+  padding: 8px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: background 0.15s;
+}
+.ask-modal-submit:hover { background: #084f4e; }
+.ask-modal-submit:disabled { background: #9ca3af; cursor: not-allowed; }
+.ask-modal-msg { font-size: 13px; margin-top: 10px; }
+.ask-modal-msg.ok  { color: #0b6b6a; }
+.ask-modal-msg.err { color: #dc2626; }
+
+/* Vendor inbox inside vendor layout */
+.vendor-msg-split {
+  display: flex; gap: 20px; align-items: flex-start;
+}
+.vendor-msg-list-col {
+  width: 300px; flex-shrink: 0;
+}
+.vendor-msg-thread-col { flex: 1; min-width: 0; }
+
+@media (max-width: 680px) {
+  .vendor-msg-split { flex-direction: column; }
+  .vendor-msg-list-col { width: 100%; }
+  .msg-bubble { max-width: 92%; }
+}

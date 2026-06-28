@@ -1,11 +1,11 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Add Product | Sell4Life</title>
     <link rel="stylesheet" href="/assets/css/layout.css" />
-    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260529" />
+    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260622b" />
     <style id="s4l-fouc">html{visibility:hidden}</style>
   </head>
   <body class="s4l-loading">
@@ -14,10 +14,10 @@
 
       <main class="vendor-main">
         <div class="vendor-container">
-          <a href="/account/vendor/products.html" class="vendor-back-link">← Products</a>
+          <a href="/account/vendor/products.html" class="vendor-back-link"> Products</a>
           <div class="ap-page-header">
             <h1 class="vendor-title">Add Product</h1>
-            <a href="/account/vendor/tools.html" class="ap-csv-link">📊 Import multiple via CSV</a>
+            <a href="/account/vendor/tools.html" class="ap-csv-link"> Import multiple via CSV</a>
           </div>
 
           <form id="add-product-form" class="ap-form">
@@ -38,11 +38,11 @@
 
               <div class="form-group">
                 <label>Full Description</label>
-                <textarea id="product-description" rows="5" placeholder="Describe your product in detail — materials, dimensions, what's included..."></textarea>
+                <textarea id="product-description" rows="5" placeholder="Describe your product in detail  materials, dimensions, what's included..."></textarea>
               </div>
 
               <div class="form-group">
-                <label>Bullet Points <span class="ap-hint">One point per line — shown as a highlights list on the product page</span></label>
+                <label>Bullet Points <span class="ap-hint">One point per line  shown as a highlights list on the product page</span></label>
                 <textarea id="product-bullet-points" rows="4" placeholder="Fast shipping&#10;1-year warranty&#10;Comes in 3 colours"></textarea>
               </div>
             </div>
@@ -63,7 +63,7 @@
                 </div>
                 <div class="form-group">
                   <label>Cost Price (£)
-                    <span class="ap-hint">Private — for profit tracking only</span>
+                    <span class="ap-hint">Private  for profit tracking only</span>
                   </label>
                   <input type="number" id="product-cost-price" step="0.01" min="0" placeholder="0.00" />
                 </div>
@@ -153,7 +153,7 @@
                 </div>
               </div>
 
-              <!-- Extra slots 6–10 (hidden until "Show more") -->
+              <!-- Extra slots 610 (hidden until "Show more") -->
               <div class="ap-extra-slots" id="ap-extra-slots">
                 <div class="ap-img-grid" style="margin-top:12px">
                   <div class="ap-img-slot">
@@ -344,7 +344,7 @@
 
             <!-- VIDEO -->
             <div class="ap-section">
-              <div class="ap-section-head">Videos <span class="ap-hint" style="font-weight:400;text-transform:none;letter-spacing:0">Optional — upload or paste a YouTube / Vimeo URL</span></div>
+              <div class="ap-section-head">Videos <span class="ap-hint" style="font-weight:400;text-transform:none;letter-spacing:0">Optional  upload or paste a YouTube / Vimeo URL</span></div>
 
               <div class="ap-row-2">
                 <div>
@@ -359,7 +359,7 @@
                     <div class="ap-upload-overlay" id="video-overlay-1" style="display:none"><div class="ap-spinner"></div></div>
                     <button type="button" class="ap-remove-btn" style="display:none">&#x2715;</button>
                   </div>
-                  <input type="text" id="product-video-url" class="ap-video-url-input form-group input" placeholder="Or paste YouTube / Vimeo URL…" style="margin-top:8px;width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:0.85rem" />
+                  <input type="text" id="product-video-url" class="ap-video-url-input form-group input" placeholder="Or paste YouTube / Vimeo URL" style="margin-top:8px;width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:0.85rem" />
                 </div>
 
                 <div>
@@ -374,7 +374,56 @@
                     <div class="ap-upload-overlay" id="video-overlay-2" style="display:none"><div class="ap-spinner"></div></div>
                     <button type="button" class="ap-remove-btn" style="display:none">&#x2715;</button>
                   </div>
-                  <input type="text" id="product-video-url2" class="ap-video-url-input" placeholder="Or paste YouTube / Vimeo URL…" style="margin-top:8px;width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:0.85rem" />
+                  <input type="text" id="product-video-url2" class="ap-video-url-input" placeholder="Or paste YouTube / Vimeo URL" style="margin-top:8px;width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:0.85rem" />
+                </div>
+              </div>
+
+              <div class="ap-row-2" data-tier-section="video3" style="margin-top:16px">
+                <div>
+                  <div class="ap-video-zone" data-video="3">
+                    <input type="file" id="video-file-3" accept="video/*" style="display:none" />
+                    <div class="ap-video-idle">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M10 8l5 3-5 3V8z"/></svg>
+                      <span>Upload video 3</span>
+                      <small>MP4 / WebM</small>
+                    </div>
+                    <video class="ap-video-preview" id="video-preview-3" controls style="display:none"></video>
+                    <div class="ap-upload-overlay" id="video-overlay-3" style="display:none"><div class="ap-spinner"></div></div>
+                    <button type="button" class="ap-remove-btn" style="display:none">&#x2715;</button>
+                  </div>
+                  <input type="text" id="product-video-url3" class="ap-video-url-input" placeholder="Or paste YouTube / Vimeo URL" style="margin-top:8px;width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:0.85rem" />
+                </div>
+
+                <div data-tier-section="video4">
+                  <div class="ap-video-zone" data-video="4">
+                    <input type="file" id="video-file-4" accept="video/*" style="display:none" />
+                    <div class="ap-video-idle">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M10 8l5 3-5 3V8z"/></svg>
+                      <span>Upload video 4</span>
+                      <small>MP4 / WebM</small>
+                    </div>
+                    <video class="ap-video-preview" id="video-preview-4" controls style="display:none"></video>
+                    <div class="ap-upload-overlay" id="video-overlay-4" style="display:none"><div class="ap-spinner"></div></div>
+                    <button type="button" class="ap-remove-btn" style="display:none">&#x2715;</button>
+                  </div>
+                  <input type="text" id="product-video-url4" class="ap-video-url-input" placeholder="Or paste YouTube / Vimeo URL" style="margin-top:8px;width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:0.85rem" />
+                </div>
+              </div>
+
+              <div class="ap-row-2" data-tier-section="video5" style="margin-top:16px">
+                <div>
+                  <div class="ap-video-zone" data-video="5">
+                    <input type="file" id="video-file-5" accept="video/*" style="display:none" />
+                    <div class="ap-video-idle">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M10 8l5 3-5 3V8z"/></svg>
+                      <span>Upload video 5</span>
+                      <small>MP4 / WebM</small>
+                    </div>
+                    <video class="ap-video-preview" id="video-preview-5" controls style="display:none"></video>
+                    <div class="ap-upload-overlay" id="video-overlay-5" style="display:none"><div class="ap-spinner"></div></div>
+                    <button type="button" class="ap-remove-btn" style="display:none">&#x2715;</button>
+                  </div>
+                  <input type="text" id="product-video-url5" class="ap-video-url-input" placeholder="Or paste YouTube / Vimeo URL" style="margin-top:8px;width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:0.85rem" />
                 </div>
               </div>
             </div>
@@ -414,7 +463,7 @@
                 </div>
               </div>
               <div class="form-group">
-                <label>Tags <span class="ap-hint">Comma-separated — helps buyers find your product</span></label>
+                <label>Tags <span class="ap-hint">Comma-separated  helps buyers find your product</span></label>
                 <input type="text" id="product-tags" placeholder="e.g. vintage, red, gift, handmade" />
               </div>
               <div class="ap-tag-suggestions" id="tag-suggestions" style="display:none">
@@ -450,11 +499,28 @@
               </div>
             </div>
 
+            <!-- SUPPLIER (private  never shown to buyers) -->
+            <div class="ap-section">
+              <div class="ap-section-head">Supplier
+                <span class="ap-hint">Private  for your own dropshipping/sourcing reference, never shown to buyers</span>
+              </div>
+              <div class="ap-row-2">
+                <div class="form-group">
+                  <label>Supplier Name</label>
+                  <input type="text" id="product-supplier" placeholder="e.g. CJ Dropshipping, AliExpress" />
+                </div>
+                <div class="form-group">
+                  <label>Supplier Product URL</label>
+                  <input type="url" id="product-supplier-url" placeholder="https://..." />
+                </div>
+              </div>
+            </div>
+
             <!-- VARIANTS -->
             <div class="ap-section" data-tier-section="variants">
               <div class="ap-section-head">Variants</div>
               <div style="margin-bottom:12px">
-                <button type="button" id="vr-bulk-img-btn" style="font-size:0.82rem;padding:6px 14px;background:#f0f9f8;border:1px solid #0b6b6a;color:#0b6b6a;border-radius:6px;cursor:pointer;font-weight:600">📷 Bulk upload variant images</button>
+                <button type="button" id="vr-bulk-img-btn" style="font-size:0.82rem;padding:6px 14px;background:#f0f9f8;border:1px solid #0b6b6a;color:#0b6b6a;border-radius:6px;cursor:pointer;font-weight:600">ðŸ“· Bulk upload variant images</button>
                 <input type="file" id="vr-bulk-img-input" accept="image/*" multiple style="display:none" />
               </div>
               <div class="ap-toggle-group" style="margin-bottom:0">
@@ -548,6 +614,27 @@
                   <input type="number" id="product-length" step="0.1" min="0" placeholder="0" />
                 </div>
               </div>
+              <div class="ap-row-2" style="margin-top:14px">
+                <div class="form-group">
+                  <label>Estimated delivery  min days
+                    <span class="ap-hint">Shown to buyers on the product page</span>
+                  </label>
+                  <input type="number" id="product-delivery-min" step="1" min="0" placeholder="3" />
+                </div>
+                <div class="form-group">
+                  <label>Estimated delivery  max days</label>
+                  <input type="number" id="product-delivery-max" step="1" min="0" placeholder="7" />
+                </div>
+              </div>
+              <div class="ap-toggle-group" style="margin-top:14px">
+                <label class="ap-toggle">
+                  <input type="checkbox" id="product-free-returns" />
+                  <span class="ap-toggle-slider"></span>
+                  <span class="ap-toggle-label">Offer free returns for this product
+                    <span class="ap-hint">If off, buyers may pay return postage for change-of-mind returns</span>
+                  </span>
+                </label>
+              </div>
             </div>
 
             <!-- REFURBISHED DETAILS -->
@@ -557,17 +644,17 @@
                 <div class="form-group">
                   <label>Condition Grade</label>
                   <select id="refurb-condition-grade">
-                    <option value="">— Select grade —</option>
-                    <option value="Excellent">Excellent — fully restored, looks new</option>
-                    <option value="Good">Good — minor cosmetic marks only</option>
-                    <option value="Fair">Fair — visible wear, fully functional</option>
-                    <option value="For Parts">For Parts — not fully functional</option>
+                    <option value=""> Select grade </option>
+                    <option value="Excellent">Excellent  fully restored, looks new</option>
+                    <option value="Good">Good  minor cosmetic marks only</option>
+                    <option value="Fair">Fair  visible wear, fully functional</option>
+                    <option value="For Parts">For Parts  not fully functional</option>
                   </select>
                 </div>
                 <div class="form-group">
                   <label>Tested Status</label>
                   <select id="refurb-tested-status">
-                    <option value="">— Select status —</option>
+                    <option value=""> Select status </option>
                     <option value="Fully Tested">Fully Tested</option>
                     <option value="Partially Tested">Partially Tested</option>
                     <option value="Untested">Untested</option>
@@ -580,13 +667,13 @@
                   <input type="text" id="refurb-warranty" placeholder="e.g. 90 days" maxlength="60" />
                 </div>
                 <div class="form-group">
-                  <label>Serial Number <span class="ap-hint">Optional — for tracking</span></label>
+                  <label>Serial Number <span class="ap-hint">Optional  for tracking</span></label>
                   <input type="text" id="refurb-serial" placeholder="e.g. SN-12345" maxlength="100" />
                 </div>
               </div>
               <div class="form-group">
                 <label>Refurbishment Notes <span class="ap-hint">Describe what was repaired or replaced</span></label>
-                <textarea id="refurb-notes" rows="3" placeholder="e.g. Replaced battery, cleaned screen, tested all functions…" maxlength="1000"></textarea>
+                <textarea id="refurb-notes" rows="3" placeholder="e.g. Replaced battery, cleaned screen, tested all functions" maxlength="1000"></textarea>
               </div>
             </div>
 
@@ -595,7 +682,7 @@
               <div class="ap-section-head ap-section-toggle" id="seo-toggle">
                 SEO &amp; Search
                 <span class="ap-toggle-icon" id="seo-icon">&#9658;</span>
-                <span class="ap-hint" style="font-weight:400;text-transform:none;letter-spacing:0;margin-left:4px">Optional — improves visibility in search engines</span>
+                <span class="ap-hint" style="font-weight:400;text-transform:none;letter-spacing:0;margin-left:4px">Optional  improves visibility in search engines</span>
               </div>
               <div id="seo-body" style="display:none">
                 <div class="form-group">
@@ -628,7 +715,7 @@
                 <label class="ap-toggle">
                   <input type="checkbox" id="coming-soon" />
                   <span class="ap-toggle-slider"></span>
-                  <span class="ap-toggle-label">Coming Soon — product is visible but cannot be purchased</span>
+                  <span class="ap-toggle-label">Coming Soon  product is visible but cannot be purchased</span>
                 </label>
               </div>
             </div>
@@ -652,17 +739,20 @@
     </script>
     <script src="/assets/js/vendor-guard.js"></script>
     <script src="/assets/js/tier-config.js"></script>
-    <script src="/assets/js/layout.js?v=20260603"></script>
+    <script src="/assets/js/layout.js?v=20260627"></script>
     <script>
       window.__pageScripts = ['/assets/js/vendor-add-product.js'];
 
-      // Section tier map: section key → minimum tier required
+      // Section tier map: section key  minimum tier required
       const SECTION_TIER = {
         inventory: 'refurbished',
         refurb:    'refurbished',
         variants:  'professional',
         addons:    'professional',
         seo:       'professional',
+        video3:    'refurbished',
+        video4:    'professional',
+        video5:    'enterprise',
       };
 
       document.addEventListener('vendorLoaded', function(e) {
@@ -684,7 +774,7 @@
         const rank = TIER_RANK[cachedTier] || 1;
         document.querySelectorAll('[data-tier-section]').forEach(function(el) {
           const section = el.dataset.tierSection;
-          const required = TIER_RANK[{ inventory:'refurbished', refurb:'refurbished', variants:'professional', addons:'professional', seo:'professional' }[section]] || 1;
+          const required = TIER_RANK[{ inventory:'refurbished', refurb:'refurbished', variants:'professional', addons:'professional', seo:'professional', video3:'refurbished', video4:'professional', video5:'enterprise' }[section]] || 1;
           if (rank < required) el.style.display = 'none';
         });
       }

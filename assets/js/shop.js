@@ -14,16 +14,6 @@ const catToFilter = id => CAT_VALUE[id] || id;
 let _rvCfg = { reviewsEnabled: false, reviewsMinCount: 3 };
 fetch(`${window.API_BASE}/reviews/config`).then(r => r.ok ? r.json() : null).then(d => { if (d) _rvCfg = d; }).catch(() => {});
 
-function _starsHTML(rating, size) {
-  let html = '<span class="s4l-stars">';
-  for (let i = 1; i <= 5; i++) {
-    const diff = rating - (i - 1);
-    const cls = diff >= 1 ? 'filled' : diff >= 0.25 ? 'half' : 'empty';
-    html += `<span class="s4l-star ${cls}" style="font-size:${size}px">★</span>`;
-  }
-  return html + '</span>';
-}
-
 // ── State ──────────────────────────────────────────────────
 let allProducts    = [];
 let activeCategory = urlCategory;
@@ -35,6 +25,8 @@ let pillsReady     = null; // Promise resolved when categoryList is populated
 const grid        = document.getElementById('product-list');
 const browse      = document.getElementById('shop-browse');
 const pillsWrap   = document.getElementById('shop-cat-pills');
+const pillsLeftBtn  = document.getElementById('shop-cat-pills-left');
+const pillsRightBtn = document.getElementById('shop-cat-pills-right');
 const sortSel     = document.getElementById('shop-sort');
 const countEl     = document.getElementById('shop-count');
 const filterChip  = document.getElementById('shop-active-filter');
@@ -46,6 +38,22 @@ const shopControls = document.querySelector('.shop-controls');
 function isBrowseMode() {
   return !searchQuery && !vendorId && !activeCategory;
 }
+
+// .shop-controls starts hidden via the shop-controls-pending CSS class (see
+// shop.css) so there's never a window where it's visible before JS decides
+// the mode. This toggles that class — not just inline style — since the
+// class's display:none would otherwise persist once an inline override
+// is cleared.
+function setControlsVisible(visible) {
+  if (!shopControls) return;
+  shopControls.classList.toggle('shop-controls-pending', !visible);
+}
+
+// Decide visibility immediately (URL params are known synchronously) instead
+// of waiting for applyFilters() to run after the products fetch resolves —
+// otherwise the category pills render into an already-visible control bar
+// and then get hidden a moment later, causing a visible flash.
+setControlsVisible(!isBrowseMode());
 
 // ── Vendor banner ──────────────────────────────────────────
 if (vendorId && storeName) {
@@ -99,8 +107,17 @@ function loadPills() {
   if (!pillsWrap) { pillsReady = Promise.resolve(); return; }
   pillsReady = (async () => {
     try {
-      const res  = await fetch('/data/category.json');
-      const cats = await res.json();
+      const [catRes, countRes] = await Promise.all([
+        fetch('/data/category.json'),
+        fetch(`${window.API_BASE}/products/category/counts`),
+      ]);
+      const allCats = await catRes.json();
+      const counts  = countRes.ok ? await countRes.json() : null;
+
+      const cats = counts
+        ? allCats.filter(cat => (counts[catToFilter(cat.id)] || 0) > 0)
+        : allCats;
+
       categoryList = cats;
 
       pillsWrap.innerHTML = [{ id: '', name: 'All' }, ...cats].map(cat => {
@@ -122,11 +139,18 @@ function loadPills() {
 }
 
 // ── Active filter chip ─────────────────────────────────────
+// Only shown when the category pills aren't available (e.g. /data/category.json
+// failed to load) — when pills are visible, their own highlight already shows
+// the active filter, so the chip would just duplicate it.
 function updateChip() {
   if (!filterChip) return;
   if (activeCategory) {
     const pill = pillsWrap ? pillsWrap.querySelector(`[data-cat="${activeCategory}"]`) : null;
-    if (filterLabel) filterLabel.textContent = pill ? pill.textContent : activeCategory;
+    if (pill) {
+      filterChip.classList.remove('show');
+      return;
+    }
+    if (filterLabel) filterLabel.textContent = activeCategory;
     filterChip.classList.add('show');
   } else {
     filterChip.classList.remove('show');
@@ -146,6 +170,13 @@ if (clearBtn) {
 }
 
 if (sortSel) sortSel.addEventListener('change', () => { activeSort = sortSel.value; applyFilters(); });
+
+if (pillsLeftBtn)  pillsLeftBtn.addEventListener('click', () => pillsWrap?.scrollBy({ left: -160, behavior: 'smooth' }));
+if (pillsRightBtn) pillsRightBtn.addEventListener('click', () => pillsWrap?.scrollBy({ left: 160, behavior: 'smooth' }));
+if (pillsWrap) pillsWrap.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  pillsWrap.scrollLeft += e.deltaX || e.deltaY;
+}, { passive: false });
 
 // ── Sort ───────────────────────────────────────────────────
 function sorted(list) {
@@ -167,56 +198,7 @@ function getRecentlyViewed() {
 
 // ── Card ───────────────────────────────────────────────────
 function renderCard(p) {
-  const id    = p._id || p.id;
-  const price = Number(p.price || 0).toFixed(2);
-
-  // Store for quick-add modal lookup
-  window._qaProducts = window._qaProducts || {};
-  window._qaProducts[id] = p;
-
-  const compareRaw = p.comparePrice ?? p.compare_price ?? null;
-  const compareEl  = compareRaw && Number(compareRaw) > Number(p.price)
-    ? `<span class="sp-compare">£${Number(compareRaw).toFixed(2)}</span>` : '';
-
-  let img = '/assets/images/products/sell4life-placeholder.png';
-  if (Array.isArray(p.images) && p.images[0]) {
-    img = p.images[0].startsWith('http') ? p.images[0] : `/assets/images/products/${p.images[0]}`;
-  } else if (p.image) {
-    img = p.image;
-  }
-
-  const basketBtn = !p.comingSoon ? `
-    <button class="sp-quick-add-btn" data-id="${id}" title="Add to basket">
-      <svg width="21" height="24" viewBox="0 0 24 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M7 13C7 5 17 5 17 13"/>
-        <path d="M1 12H23V23Q23 27 19 27H5Q1 27 1 23V12Z"/>
-      </svg>
-      <span class="sp-qa-clr" title="Remove from basket">CLR</span>
-    </button>` : '';
-
-  return `
-    <div class="sp-card-wrap">
-      <a href="/product/product.html?id=${id}" class="sp-card${p.comingSoon ? ' sp-card-coming-soon' : ''}">
-        <div class="sp-img-wrap">
-          <img src="${img}" alt="${p.name}" loading="lazy"
-            onerror="this.src='/assets/images/products/sell4life-placeholder.png'" />
-          ${p.comingSoon ? '<div class="sp-coming-soon-badge">🕐 Coming Soon</div>' : ''}
-        </div>
-        <div class="sp-info">
-          <p class="sp-name">${p.name}</p>
-          ${_rvCfg.reviewsEnabled && (p.reviewCount || 0) >= _rvCfg.reviewsMinCount && p.avgRating
-            ? `<div class="sp-stars-row">${_starsHTML(p.avgRating, 16)}<span class="s4l-stars-count">${p.reviewCount}</span></div>`
-            : ''}
-        </div>
-      </a>
-      <div class="sp-card-footer">
-        <div class="sp-price-row">
-          <span class="sp-price">£${price}</span>
-          ${compareEl}
-        </div>
-        ${basketBtn}
-      </div>
-    </div>`;
+  return window.s4lProductCardHTML(p, { reviewsConfig: _rvCfg, showBasketButton: true });
 }
 
 // ── Build a horizontal scroll row ─────────────────────────
@@ -294,7 +276,7 @@ function renderBrowseMode() {
 function applyFilters() {
   const browseMode = isBrowseMode();
 
-  if (shopControls) shopControls.style.display = browseMode ? 'none' : '';
+  setControlsVisible(!browseMode);
   updateChip();
 
   if (browseMode) {

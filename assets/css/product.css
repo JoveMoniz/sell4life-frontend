@@ -222,6 +222,43 @@ body {
   margin: 4px 0 0;
 }
 
+.pd-delivery-estimate {
+  display: none;
+  font-size: 0.82rem;
+  color: #0b6b6a;
+  font-weight: 600;
+  margin: 4px 0 0;
+}
+
+/* ── Delivery & Returns info ────────────────────────────────── */
+
+.pd-returns-info {
+  margin: 14px 0 18px;
+  padding: 14px 16px;
+  background: #f6fdfc;
+  border: 1px solid #ddeaea;
+  border-radius: 10px;
+}
+
+.pd-returns-item {
+  font-size: 0.85rem;
+  color: #555;
+  line-height: 1.6;
+  margin: 0;
+  padding: 3px 0;
+}
+
+.pd-returns-good {
+  color: #0b6b6a;
+  font-weight: 600;
+}
+
+.pd-returns-info a {
+  color: #0b6b6a;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
 /* ── Seller strip ─────────────────────────────────────────── */
 
 .pd-seller-strip {

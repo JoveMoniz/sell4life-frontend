@@ -246,30 +246,34 @@
 
       if (isVendor) {
         try {
-          const r = await fetch(`${window.API_BASE}/vendor/orders/pending-count`,
-            { headers: { Authorization: `Bearer ${token}` }, credentials: 'include' });
-          if (r.ok) {
-            const { count } = await r.json();
-            if (count > 0) {
-              bar.querySelector('.s4l-pill-vendor .s4l-pill-inner').textContent = count > 99 ? '99+' : count;
-              bar.querySelector('.s4l-pill-vendor').classList.add('s4l-show');
-              bar.querySelector('.s4l-sep-v').classList.add('s4l-show');
-            }
+          const [or, mr] = await Promise.allSettled([
+            fetch(`${window.API_BASE}/vendor/orders/pending-count`, { headers: { Authorization: `Bearer ${token}` }, credentials: 'include' }),
+            fetch(`${window.API_BASE}/messages/unread-count?view=vendor`, { headers: { Authorization: `Bearer ${token}` }, credentials: 'include' }),
+          ]);
+          const orderCount   = (or.status === 'fulfilled' && or.value.ok) ? (await or.value.json()).count  || 0 : 0;
+          const messageCount = (mr.status === 'fulfilled' && mr.value.ok) ? (await mr.value.json()).unread || 0 : 0;
+          const total = orderCount + messageCount;
+          if (total > 0) {
+            bar.querySelector('.s4l-pill-vendor .s4l-pill-inner').textContent = total > 99 ? '99+' : total;
+            bar.querySelector('.s4l-pill-vendor').classList.add('s4l-show');
+            bar.querySelector('.s4l-sep-v').classList.add('s4l-show');
           }
         } catch {}
       }
 
       const since = localStorage.getItem('s4l_orders_seen') || 0;
       try {
-        const r = await fetch(`${window.API_BASE}/account/unseen-orders?since=${since}`,
-          { headers: { Authorization: `Bearer ${token}` }, credentials: 'include' });
-        if (r.ok) {
-          const { count } = await r.json();
-          if (count > 0) {
-            bar.querySelector('.s4l-pill-buyer .s4l-pill-inner').textContent = count > 99 ? '99+' : count;
-            bar.querySelector('.s4l-pill-buyer').classList.add('s4l-show');
-            bar.querySelector('.s4l-sep-b').classList.add('s4l-show');
-          }
+        const [or, mr] = await Promise.allSettled([
+          fetch(`${window.API_BASE}/account/unseen-orders?since=${since}`, { headers: { Authorization: `Bearer ${token}` }, credentials: 'include' }),
+          isVendor ? null : fetch(`${window.API_BASE}/messages/unread-count?view=buyer`, { headers: { Authorization: `Bearer ${token}` }, credentials: 'include' }),
+        ]);
+        const orderCount   = (or.status === 'fulfilled' && or.value?.ok) ? (await or.value.json()).count  || 0 : 0;
+        const messageCount = (!isVendor && mr.status === 'fulfilled' && mr.value?.ok) ? (await mr.value.json()).unread || 0 : 0;
+        const total = orderCount + messageCount;
+        if (total > 0) {
+          bar.querySelector('.s4l-pill-buyer .s4l-pill-inner').textContent = total > 99 ? '99+' : total;
+          bar.querySelector('.s4l-pill-buyer').classList.add('s4l-show');
+          bar.querySelector('.s4l-sep-b').classList.add('s4l-show');
         }
       } catch {}
     }

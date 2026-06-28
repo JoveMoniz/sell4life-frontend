@@ -10,7 +10,7 @@
     <title>Admin Orders | Sell4Life</title>
 
     <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png" />
-    <link rel="stylesheet" href="/assets/css/admin.css" />
+    <link rel="stylesheet" href="/assets/css/admin.css?v=20260625e" />
     <style>#logoutBtn { padding: 5px 10px; font-size: 12px; font-weight: 500; }</style>
   </head>
 
@@ -54,11 +54,12 @@
           <button class="filter-btn" data-status="Pending">Pending</button>
           <button class="filter-btn" data-status="Processing">Processing</button>
           <button class="filter-btn danger" data-status="Cancel Requested">Cancel Req</button>
-          <button class="filter-btn danger" data-status="Refund Requested">Refund Req</button>
+          <button class="filter-btn danger" data-status="Return Requested">Return Req</button>
 
           <!-- LOWER PRIORITY -->
           <button class="filter-btn" data-status="Shipped">Shipped</button>
           <button class="filter-btn" data-status="Delivered">Delivered</button>
+          <button class="filter-btn" data-status="Refunded">Refunded</button>
           <button class="filter-btn" data-status="Cancelled">Cancelled</button>
         </div>
       </div>
@@ -89,7 +90,7 @@
     <script src="/assets/js/config-global.js"></script>
     <script src="/assets/js/live-updates.js"></script>
     <script src="/assets/js/require-admin.js"></script>
-    <script type="module" src="/assets/js/admin-orders.js?v=20260521"></script>
+    <script type="module" src="/assets/js/admin-orders.js?v=20260621"></script>
     <script type="module" src="/assets/js/admin-logout.js"></script>
   </body>
 </html>

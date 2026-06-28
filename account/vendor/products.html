@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -9,7 +9,7 @@
     <title>My Products | Sell4Life</title>
 
     <link rel="stylesheet" href="/assets/css/layout.css" />
-    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260606" />
+    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260622b" />
     <style id="s4l-fouc">html{visibility:hidden}</style>
   </head>
 
@@ -21,7 +21,7 @@
       <main class="vendor-main">
         <div class="vendor-container">
           <a href="/account/vendor/dashboard.html" class="vendor-back-link">
-            ← Back to dashboard
+             Back to dashboard
           </a>
 
           <div class="vp-page-header">
@@ -34,16 +34,20 @@
           </div>
 
           <div class="vp-bulk-bar" id="vp-bulk-bar" hidden>
-            <label class="vp-bulk-select-all">
+            <label class="vp-bulk-select-all" title="Select all visible products">
               <input type="checkbox" id="vp-select-all" />
-              <span id="vp-bulk-count">0 selected</span>
+              <span>Select All</span>
             </label>
+            <span id="vp-bulk-count" class="vp-bulk-count-badge">0 selected</span>
             <div class="vp-bulk-actions">
               <button type="button" class="vp-bulk-btn vp-bulk-btn-edit" id="btn-bulk-price">£ Price</button>
               <button type="button" class="vp-bulk-btn vp-bulk-btn-edit" id="btn-bulk-stock">Stock</button>
+              <button type="button" class="vp-bulk-btn" id="btn-bulk-coming-soon">ðŸ• Coming Soon</button>
               <button type="button" class="vp-bulk-btn" id="btn-bulk-archive">Archive</button>
               <button type="button" class="vp-bulk-btn" id="btn-bulk-unarchive" hidden>Restore</button>
               <button type="button" class="vp-bulk-btn vp-bulk-btn-danger" id="btn-bulk-delete">Delete</button>
+              <button type="button" class="vp-bulk-btn" id="btn-bulk-restore-trash" hidden>Restore</button>
+              <button type="button" class="vp-bulk-btn vp-bulk-btn-danger" id="btn-bulk-empty-trash" hidden>Delete Forever</button>
             </div>
             <button type="button" class="vp-bulk-clear" id="btn-bulk-clear" title="Clear selection">&#10005;</button>
           </div>
@@ -63,6 +67,7 @@
               <button type="button" class="vp-filter-btn" data-status="active">Active</button>
               <button type="button" class="vp-filter-btn" data-status="draft">Draft</button>
               <button type="button" class="vp-filter-btn" data-status="archived">Archived</button>
+              <button type="button" class="vp-filter-btn" data-status="trash">Trash</button>
             </div>
             <select id="vp-sort" class="vp-sort">
               <option value="newest">Newest</option>
@@ -99,7 +104,7 @@
 
     <script src="/assets/js/config-global.js"></script>
     <script src="/assets/js/vendor-guard.js"></script>
-    <script src="/assets/js/layout.js?v=20260606"></script>
-    <script src="/assets/js/vendor-products.js?v=20260605"></script>
+    <script src="/assets/js/layout.js?v=20260627"></script>
+    <script src="/assets/js/vendor-products.js?v=20260622b"></script>
   </body>
 </html>

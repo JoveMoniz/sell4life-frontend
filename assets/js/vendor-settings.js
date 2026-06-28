@@ -98,6 +98,27 @@ function renderForm(v) {
       </div>
     </div>
 
+    <!-- Returns -->
+    <div class="settings-section">
+      <div class="settings-section-title">Returns</div>
+
+      <div class="settings-field">
+        <label class="settings-label" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="set-free-returns" ${v.freeReturns ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer" />
+          Offer free returns to your customers
+        </label>
+        <div class="settings-hint">If off, buyers may be asked to pay return postage for change-of-mind returns (faulty/incorrect items are always covered). Shown on your product pages and at checkout.</div>
+      </div>
+    </div>
+
+    <!-- Tax Information (HMRC) — shown only when approaching/required -->
+    <div id="hmrc-tax-section" style="display:none">
+      <div class="settings-section">
+        <div class="settings-section-title">Tax Information (HMRC)</div>
+        <div id="hmrc-tax-body" style="color:#6b7280;font-size:13px">Loading…</div>
+      </div>
+    </div>
+
     <!-- Save Store Settings -->
     <div class="settings-save-bar">
       <button class="settings-save-btn" id="settings-save">Save Changes</button>
@@ -257,6 +278,9 @@ function renderForm(v) {
   // Account section
   attachAccountHandlers();
   loadAccountProfile();
+
+  // Load HMRC tax section asynchronously (fetches status from API)
+  loadTaxInfoSection();
 }
 
 /* ======================================================
@@ -272,6 +296,7 @@ async function saveSettings() {
     storeDescription: document.getElementById('set-desc')?.value?.trim(),
     storeLogo:        document.getElementById('set-logo')?.value?.trim(),
     storeBanner:      document.getElementById('set-banner')?.value?.trim(),
+    freeReturns:      !!document.getElementById('set-free-returns')?.checked,
   };
 
   if (!body.storeName) {
@@ -412,6 +437,195 @@ function attachAccountHandlers() {
     } catch (_) { setAcctMsg('vs-msg-pass', 'Network error.', 'error'); }
     finally { btn.disabled = false; }
   });
+}
+
+/* ======================================================
+   TAX INFORMATION (HMRC)
+====================================================== */
+async function loadTaxInfoSection() {
+  const section = document.getElementById('hmrc-tax-section');
+  const body    = document.getElementById('hmrc-tax-body');
+  if (!section || !body) return;
+
+  section.style.display = '';
+
+  try {
+    const res = await authFetch(`${API}/vendor/tax-info`);
+    if (!res.ok) { body.textContent = 'Could not load tax information.'; return; }
+    const d = await res.json();
+    const status = d.reportingStatus || 'none';
+
+    let statusBanner = '';
+    if (status === 'required') {
+      statusBanner = `<div style="background:#fef2f2;border-left:4px solid #ef4444;border-radius:5px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#991b1b">
+        <strong>Action required</strong> — your store has crossed the HMRC reporting threshold. You must submit your tax details below.
+      </div>`;
+    } else if (status === 'approaching') {
+      statusBanner = `<div style="background:#fffbeb;border-left:4px solid #f59e0b;border-radius:5px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#92400e">
+        <strong>Approaching threshold</strong> — please submit your tax details soon to avoid delays.
+      </div>`;
+    } else {
+      statusBanner = `<div style="font-size:13px;color:#6b7280;margin-bottom:12px">
+        You can provide your tax information in advance. If your store later approaches the HMRC reporting threshold, this will save time.
+      </div>`;
+    }
+
+    const transactionCount = d.hmrcReporting?.transactionCount || 0;
+    const grossTotal = Number(d.hmrcReporting?.grossPayoutTotal || 0).toFixed(2);
+    const year = d.hmrcReporting?.year || new Date().getFullYear();
+
+    const progressInfo = status !== 'none'
+      ? `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#374151">
+          ${year} progress: <strong>${transactionCount}</strong> transactions · <strong>£${grossTotal}</strong> gross payout
+          <span style="color:#9ca3af">(thresholds: 30 transactions or £1,700)</span>
+         </div>`
+      : '';
+
+    if (d.taxInfoCompleted && d.taxInfo) {
+      const confirmedDate = d.taxInfo.confirmedAt
+        ? new Date(d.taxInfo.confirmedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+        : 'unknown date';
+      const taxIdTypeLabel = { ni: 'National Insurance Number', utr: 'UTR Number', other: 'Other Tax ID' }[d.taxInfo.taxIdType] || d.taxInfo.taxIdType || '—';
+
+      body.innerHTML = `
+        ${statusBanner}${progressInfo}
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:12px 16px;margin-bottom:14px">
+          <div style="font-weight:700;color:#166534;margin-bottom:4px">Tax details submitted</div>
+          <div style="font-size:12px;color:#374151">Submitted on ${confirmedDate}</div>
+          <div style="font-size:12px;color:#374151;margin-top:4px">${taxIdTypeLabel}: ${esc(d.taxInfo.maskedTaxId || '—')}</div>
+        </div>
+        <button type="button" id="hmrc-resubmit-btn" style="font-size:12px;padding:4px 12px;background:#f9fafb;border:1px solid #d1d5db;border-radius:5px;cursor:pointer;color:#374151">Update tax details</button>
+        <div id="hmrc-form-wrap" style="display:none;margin-top:14px"></div>`;
+
+      document.getElementById('hmrc-resubmit-btn').addEventListener('click', () => {
+        document.getElementById('hmrc-form-wrap').style.display = '';
+        document.getElementById('hmrc-resubmit-btn').style.display = 'none';
+        renderTaxForm('hmrc-form-wrap');
+      });
+    } else {
+      body.innerHTML = `${statusBanner}${progressInfo}<div id="hmrc-form-wrap"></div>`;
+      renderTaxForm('hmrc-form-wrap');
+    }
+  } catch (err) {
+    console.error('Tax info section error:', err);
+    body.textContent = 'Could not load tax information.';
+  }
+}
+
+function renderTaxForm(containerId) {
+  const wrap = document.getElementById(containerId);
+  if (!wrap) return;
+
+  wrap.innerHTML = `
+    <div style="font-size:13px;color:#374151;margin-bottom:14px">
+      Please provide your details for HMRC digital platform reporting. All information is encrypted and stored securely.
+    </div>
+    <div class="settings-field">
+      <label class="settings-label" for="hmrc-legal-name">Legal Full Name <span style="color:#b91c1c">*</span></label>
+      <input class="settings-input" id="hmrc-legal-name" type="text" placeholder="As shown on your tax documents" maxlength="200" />
+    </div>
+    <div class="settings-field">
+      <label class="settings-label" for="hmrc-dob">Date of Birth <span style="color:#9ca3af;font-size:11px">(optional)</span></label>
+      <input class="settings-input" id="hmrc-dob" type="date" />
+    </div>
+    <div class="settings-field">
+      <label class="settings-label" for="hmrc-addr1">Address Line 1 <span style="color:#b91c1c">*</span></label>
+      <input class="settings-input" id="hmrc-addr1" type="text" placeholder="Street address" maxlength="200" />
+    </div>
+    <div class="settings-field">
+      <label class="settings-label" for="hmrc-addr2">Address Line 2</label>
+      <input class="settings-input" id="hmrc-addr2" type="text" placeholder="Apt, suite, etc." maxlength="200" />
+    </div>
+    <div class="settings-field">
+      <label class="settings-label" for="hmrc-city">City <span style="color:#b91c1c">*</span></label>
+      <input class="settings-input" id="hmrc-city" type="text" maxlength="100" />
+    </div>
+    <div class="settings-field">
+      <label class="settings-label" for="hmrc-postcode">Postcode <span style="color:#b91c1c">*</span></label>
+      <input class="settings-input" id="hmrc-postcode" type="text" maxlength="20" style="max-width:160px" />
+    </div>
+    <div class="settings-field">
+      <label class="settings-label" for="hmrc-country">Country <span style="color:#b91c1c">*</span></label>
+      <input class="settings-input" id="hmrc-country" type="text" value="United Kingdom" maxlength="100" />
+    </div>
+    <div class="settings-field">
+      <label class="settings-label" for="hmrc-id-type">Tax ID Type <span style="color:#b91c1c">*</span></label>
+      <select class="settings-input" id="hmrc-id-type" style="max-width:280px">
+        <option value="">— Select —</option>
+        <option value="ni">National Insurance Number (NI)</option>
+        <option value="utr">Unique Taxpayer Reference (UTR)</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="settings-field">
+      <label class="settings-label" for="hmrc-id-value">Tax ID Value <span style="color:#b91c1c">*</span></label>
+      <input class="settings-input" id="hmrc-id-value" type="text" placeholder="e.g. AB 12 34 56 C or 1234567890" maxlength="40" />
+      <div class="settings-hint">Enter your NI number, UTR, or other tax identifier. This will be encrypted and never shared publicly.</div>
+    </div>
+    <div class="settings-save-bar" style="margin-top:0">
+      <button class="settings-save-btn" id="hmrc-submit-btn">Submit Tax Information</button>
+      <span class="settings-msg" id="hmrc-msg"></span>
+    </div>`;
+
+  document.getElementById('hmrc-submit-btn').addEventListener('click', submitTaxInfo);
+}
+
+async function submitTaxInfo() {
+  const btn = document.getElementById('hmrc-submit-btn');
+  const msg = document.getElementById('hmrc-msg');
+
+  const body = {
+    legalName:    document.getElementById('hmrc-legal-name')?.value?.trim(),
+    dateOfBirth:  document.getElementById('hmrc-dob')?.value?.trim() || '',
+    addrLine1:    document.getElementById('hmrc-addr1')?.value?.trim(),
+    addrLine2:    document.getElementById('hmrc-addr2')?.value?.trim() || '',
+    addrCity:     document.getElementById('hmrc-city')?.value?.trim(),
+    addrPostcode: document.getElementById('hmrc-postcode')?.value?.trim(),
+    addrCountry:  document.getElementById('hmrc-country')?.value?.trim(),
+    taxIdType:    document.getElementById('hmrc-id-type')?.value?.trim(),
+    taxIdValue:   document.getElementById('hmrc-id-value')?.value?.trim(),
+  };
+
+  const missingLabels = [];
+  if (!body.legalName)    missingLabels.push('Legal Name');
+  if (!body.addrLine1)    missingLabels.push('Address Line 1');
+  if (!body.addrCity)     missingLabels.push('City');
+  if (!body.addrPostcode) missingLabels.push('Postcode');
+  if (!body.addrCountry)  missingLabels.push('Country');
+  if (!body.taxIdType)    missingLabels.push('Tax ID Type');
+  if (!body.taxIdValue)   missingLabels.push('Tax ID Value');
+
+  if (missingLabels.length) {
+    if (msg) { msg.textContent = `Please fill in: ${missingLabels.join(', ')}`; msg.className = 'settings-msg error'; }
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+  if (msg) { msg.textContent = ''; msg.className = 'settings-msg'; }
+
+  try {
+    const res = await authFetch(`${API}/vendor/tax-info`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      if (msg) { msg.textContent = data.error || 'Submission failed.'; msg.className = 'settings-msg error'; }
+    } else {
+      if (msg) { msg.textContent = 'Tax information saved.'; msg.className = 'settings-msg success'; }
+      // Reload the section to show submitted state
+      const section = document.getElementById('hmrc-tax-section');
+      const taxBody = document.getElementById('hmrc-tax-body');
+      if (taxBody) taxBody.innerHTML = '<span style="color:#6b7280">Loading…</span>';
+      setTimeout(() => loadTaxInfoSection(), 600);
+    }
+  } catch (_) {
+    if (msg) { msg.textContent = 'Network error.'; msg.className = 'settings-msg error'; }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Submit Tax Information';
+  }
 }
 
 /* ======================================================

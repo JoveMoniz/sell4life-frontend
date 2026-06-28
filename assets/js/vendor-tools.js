@@ -210,7 +210,8 @@ async function loadXLSX() {
 
 const S4L_FIELDS = [
   { key: 'name',         label: 'Product Name',        required: true  },
-  { key: 'variant',      label: 'Variant (Color/Size)', required: false },
+  { key: 'attr1value',   label: 'Variant Attribute 1 — Column', required: false, isAttr: true, attrNameKey: 'attr1name', attrDefault: 'Colour' },
+  { key: 'attr2value',   label: 'Variant Attribute 2 — Column', required: false, isAttr: true, attrNameKey: 'attr2name', attrDefault: '' },
   { key: 'price',        label: 'Price (£)',            required: true  },
   { key: 'comparePrice', label: 'Compare Price',        required: false },
   { key: 'shippingCost', label: 'Shipping Cost',        required: false },
@@ -234,7 +235,7 @@ const AUTO_HINTS = {
   sku:          ['sku','product code','item code','barcode','upc','isbn','ref','product id'],
   description:  ['description','desc','details','product description','body','notes','overview','long description'],
   image1:       ['image','image1','image 1','image url','photo','picture','img','main image','thumbnail'],
-  variant:      ['variant','variation','option','color','colour','size','style'],
+  attr1value:   ['variant','variation','option','color','colour','specification','spec'],
   image2:       ['image2','image 2','photo2','picture2','secondary image','image url 2'],
 };
 
@@ -244,6 +245,12 @@ let _wb       = null;  // workbook
 let _headers  = [];    // column headers from selected sheet
 let _rows     = [];    // data rows (array of objects)
 let _mapping  = {};    // { s4l_key: 'ExcelColumnHeader' }
+let _attrNames = { attr1name: 'Colour', attr2name: '' }; // free-text attribute names
+let _stripSuffix = false; // strip trailing numeric code from title
+
+function stripTrailingCode(name) {
+  return String(name).replace(/\s+\d{3,8}$/, '').trim();
+}
 
 /* ── Auto-detect column mapping ──────────────────── */
 
@@ -343,6 +350,8 @@ function loadSheet(sheetName) {
   renderMapper();
   renderPreview();
   showActions();
+  const titleOpts = document.getElementById('csv-title-opts');
+  if (titleOpts) titleOpts.style.display = '';
 }
 
 /* ── Parse uploaded file ─────────────────────────── */
@@ -383,11 +392,16 @@ function renderMapper() {
     `<option value="${h}">${h || '— Skip —'}</option>`
   ).join('');
 
-  inner.innerHTML = S4L_FIELDS.map(({ key, label, required }) => `
+  inner.innerHTML = S4L_FIELDS.map(({ key, label, required, isAttr, attrNameKey, attrDefault }) => `
     <div class="csv-map-row">
       <label class="csv-map-label">
         ${label}${required ? '<span class="csv-required-mark"> *</span>' : ''}
       </label>
+      ${isAttr ? `
+        <input type="text" class="csv-map-select csv-attr-name-input" data-attr-key="${attrNameKey}"
+          placeholder="Attribute name, e.g. ${attrDefault || 'Model'}" value="${_attrNames[attrNameKey] || ''}"
+          style="margin-bottom:4px" />
+      ` : ''}
       <select class="csv-map-select" data-key="${key}">
         ${opts}
       </select>
@@ -396,7 +410,7 @@ function renderMapper() {
   `).join('');
 
   // Apply auto-detected values
-  inner.querySelectorAll('.csv-map-select').forEach(sel => {
+  inner.querySelectorAll('.csv-map-select[data-key]').forEach(sel => {
     const key = sel.dataset.key;
     if (_mapping[key]) sel.value = _mapping[key];
     sel.addEventListener('change', () => {
@@ -406,6 +420,15 @@ function renderMapper() {
       renderPreview();
     });
     updateMapPreview(key);
+  });
+
+  // Attribute name text inputs
+  inner.querySelectorAll('.csv-attr-name-input').forEach(input => {
+    const attrKey = input.dataset.attrKey;
+    input.addEventListener('input', () => {
+      _attrNames[attrKey] = input.value.trim();
+      renderPreview();
+    });
   });
 
   grid.style.display = '';
@@ -432,11 +455,15 @@ function renderPreview() {
   if (!mapped.length) { wrap.style.display = 'none'; return; }
 
   const preview = _rows.slice(0, 5);
-  const thead = `<thead><tr>${mapped.map(f => `<th>${f.label}</th>`).join('')}</tr></thead>`;
+  const thead = `<thead><tr>${mapped.map(f =>
+    `<th>${f.isAttr && _attrNames[f.attrNameKey] ? _attrNames[f.attrNameKey] : f.label}</th>`
+  ).join('')}</tr></thead>`;
   const tbody = `<tbody>${preview.map(row =>
     `<tr>${mapped.map(f => {
       const raw = String(row[_mapping[f.key]] ?? '');
-      const val = f.key === 'price' ? (applyPriceCalc(raw) || raw) : raw;
+      const val = f.key === 'price'
+        ? (applyPriceCalc(raw) || raw)
+        : (f.key === 'name' && _stripSuffix ? stripTrailingCode(raw) : raw);
       return `<td>${escCsv(val)}</td>`;
     }).join('')}</tr>`
   ).join('')}</tbody>`;
@@ -460,16 +487,27 @@ function escCsv(val) {
   return /[,"\n\r]/.test(s) ? `"${s}"` : s;
 }
 
+const CSV_OUTPUT_FIELDS = [
+  'name', 'attr1name', 'attr1value', 'attr2name', 'attr2value',
+  'price', 'comparePrice', 'shippingCost', 'stock',
+  'category', 'subcategory', 'sku', 'description', 'image1', 'image2',
+];
+
+function getOutputValue(row, key) {
+  if (key === 'attr1name') return _mapping.attr1value ? (_attrNames.attr1name || '') : '';
+  if (key === 'attr2name') return _mapping.attr2value ? (_attrNames.attr2name || '') : '';
+  const col = _mapping[key];
+  if (!col) return '';
+  const raw = String(row[col] ?? '');
+  if (key === 'price') return applyPriceCalc(raw) || raw;
+  if (key === 'name' && _stripSuffix) return stripTrailingCode(raw);
+  return raw;
+}
+
 function generateCSV() {
-  const fields = S4L_FIELDS.map(f => f.key);
-  const header = fields.join(',');
+  const header = CSV_OUTPUT_FIELDS.join(',');
   const dataRows = _rows.map(row =>
-    fields.map(key => {
-      const col = _mapping[key];
-      if (!col) return '';
-      const raw = String(row[col] ?? '');
-      return escCsv(key === 'price' ? (applyPriceCalc(raw) || raw) : raw);
-    }).join(',')
+    CSV_OUTPUT_FIELDS.map(key => escCsv(getOutputValue(row, key))).join(',')
   );
   return [header, ...dataRows].join('\n');
 }
@@ -494,7 +532,12 @@ function downloadCSV() {
 
 function resetCsv() {
   _wb = null; _headers = []; _rows = []; _mapping = {};
+  _attrNames = { attr1name: 'Colour', attr2name: '' };
+  _stripSuffix = false;
+  const stripBox = document.getElementById('csv-strip-suffix');
+  if (stripBox) stripBox.checked = false;
   document.getElementById('csv-info-bar').style.display    = 'none';
+  document.getElementById('csv-title-opts').style.display  = 'none';
   document.getElementById('csv-mapper').style.display      = 'none';
   document.getElementById('csv-price-calc').style.display  = 'none';
   document.getElementById('csv-preview').style.display     = 'none';
@@ -502,6 +545,13 @@ function resetCsv() {
   document.getElementById('csv-mapper-grid').innerHTML     = '';
   document.getElementById('csv-preview-table').innerHTML   = '';
   document.getElementById('csv-file-input').value          = '';
+}
+
+function bindTitleOpts() {
+  document.getElementById('csv-strip-suffix')?.addEventListener('change', (e) => {
+    _stripSuffix = e.target.checked;
+    renderPreview();
+  });
 }
 
 /* ── Bind CSV drop zone ──────────────────────────── */
@@ -542,3 +592,4 @@ function bindCsvDropZone() {
 
 bindCsvDropZone();
 bindPriceCalc();
+bindTitleOpts();

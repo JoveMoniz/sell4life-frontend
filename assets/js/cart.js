@@ -20,6 +20,9 @@ const toast = (msg) => window.showToast && window.showToast(msg);
 
   function saveCart() {
     localStorage.setItem('cart', JSON.stringify(cart));
+    // Notify other independently-tracked basket displays (sticky bar, product
+    // page, etc.) — without this, only cart.js's own UI updates immediately.
+    document.dispatchEvent(new Event('cartUpdated'));
   }
 
   let cart = readCart();

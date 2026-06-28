@@ -210,7 +210,7 @@
 
   /* ── main init ─────────────────────────────────────────── */
 
-  window.initReviews = async function (productId) {
+  window.initReviews = async function (productId, vendorId) {
     const section = document.getElementById('pd-reviews');
     if (!section) return;
 
@@ -255,27 +255,33 @@
     }
 
     // CTA — show existing review + edit, or write button, or sign-in nudge
-    if (token) {
-      if (myReview) {
-        section.appendChild(buildMyReviewCard(myReview, productId, () => window.initReviews(productId)));
+    // (skipped entirely for the vendor viewing their own product)
+    const myVendorId = localStorage.getItem('s4l_vendorId');
+    const isOwnProduct = !!(myVendorId && vendorId && myVendorId === String(vendorId));
+
+    if (!isOwnProduct) {
+      if (token) {
+        if (myReview) {
+          section.appendChild(buildMyReviewCard(myReview, productId, () => window.initReviews(productId, vendorId)));
+        } else {
+          const btn = document.createElement('button');
+          btn.className = 'rv-write-btn';
+          btn.textContent = '✏ Write a Review';
+          let formOpen = false;
+          btn.addEventListener('click', () => {
+            if (formOpen) return;
+            formOpen = true;
+            btn.after(buildForm(productId, () => { formOpen = false; window.initReviews(productId, vendorId); }));
+            btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          });
+          section.appendChild(btn);
+        }
       } else {
-        const btn = document.createElement('button');
-        btn.className = 'rv-write-btn';
-        btn.textContent = '✏ Write a Review';
-        let formOpen = false;
-        btn.addEventListener('click', () => {
-          if (formOpen) return;
-          formOpen = true;
-          btn.after(buildForm(productId, () => { formOpen = false; window.initReviews(productId); }));
-          btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        });
-        section.appendChild(btn);
+        const nudge = document.createElement('div');
+        nudge.className = 'rv-signin-nudge';
+        nudge.innerHTML = `<a href="/account/signin.html">Sign in</a> to leave a review.`;
+        section.appendChild(nudge);
       }
-    } else {
-      const nudge = document.createElement('div');
-      nudge.className = 'rv-signin-nudge';
-      nudge.innerHTML = `<a href="/account/signin.html">Sign in</a> to leave a review.`;
-      section.appendChild(nudge);
     }
 
     // Reviews list

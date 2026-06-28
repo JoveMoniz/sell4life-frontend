@@ -6,20 +6,23 @@ console.log('product.js loaded');
   const API = window.API_BASE;
   const IMAGE_BASE = '/assets/images/products/';
 
-  // ── Get product ID ─────────────────────────────────────────
+  // ── Get product ID / slug ──────────────────────────────────
   const params = new URLSearchParams(window.location.search);
   const productId = params.get('id');
-  if (!productId) { console.warn('No ?id=... in URL'); return; }
+  const productSlug = params.get('slug');
+  if (!productId && !productSlug) { console.warn('No ?id=... or ?slug=... in URL'); return; }
 
   // ── Load product ───────────────────────────────────────────
   let product = null;
 
   try {
-    const res = await fetch(`${API}/products/${productId}`);
+    const res = await fetch(
+      productSlug ? `${API}/products/slug/${encodeURIComponent(productSlug)}` : `${API}/products/${productId}`
+    );
     if (res.ok) product = await res.json();
   } catch (e) {}
 
-  if (!product) {
+  if (!product && productId) {
     try {
       const res = await fetch('/data/products.json', { cache: 'no-store' });
       const all = await res.json();
@@ -27,7 +30,7 @@ console.log('product.js loaded');
     } catch (e) {}
   }
 
-  if (!product) { console.error('Product not found:', productId); return; }
+  if (!product) { console.error('Product not found:', productId || productSlug); return; }
 
   const pid = product._id || product.id;
 
@@ -72,9 +75,48 @@ console.log('product.js loaded');
   // ── Shipping note ─────────────────────────────────────────
   const shippingNote = document.getElementById('pd-shipping-note');
   if (shippingNote) {
-    const sc = Number(product.shippingCost || 0);
-    shippingNote.textContent = sc > 0 ? `+ £${sc.toFixed(2)} shipping` : 'Free shipping';
+    shippingNote.textContent = window.s4lShippingText(product.shippingCost);
     shippingNote.style.display = 'block';
+  }
+
+  // ── Estimated delivery ──────────────────────────────────────
+  const deliveryEl = document.getElementById('pd-delivery-estimate');
+  if (deliveryEl) {
+    const minDays = Number(product.estDeliveryMinDays);
+    const maxDays = Number(product.estDeliveryMaxDays);
+    if (Number.isFinite(minDays) && Number.isFinite(maxDays) && minDays >= 0 && maxDays >= minDays) {
+      const fmt = (days) => {
+        const d = new Date();
+        d.setDate(d.getDate() + days);
+        return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+      };
+      deliveryEl.textContent = minDays === maxDays
+        ? `Estimated delivery: ${fmt(minDays)}`
+        : `Estimated delivery: ${fmt(minDays)} – ${fmt(maxDays)}`;
+      deliveryEl.style.display = 'block';
+    } else {
+      deliveryEl.style.display = 'none';
+    }
+  }
+
+  // ── Returns postage note ───────────────────────────────────
+  // Product-level freeReturns wins if explicitly set; otherwise inherit
+  // the vendor's store-wide default.
+  const postageNoteEl = document.getElementById('pd-returns-postage-note');
+  if (postageNoteEl) {
+    const vendorFreeReturns = typeof product.vendor === 'object' && product.vendor !== null
+      ? !!product.vendor.freeReturns
+      : false;
+    const freeReturns = typeof product.freeReturns === 'boolean' ? product.freeReturns : vendorFreeReturns;
+    const returnCost = Number(product.shippingCost || 0);
+    if (freeReturns) {
+      postageNoteEl.textContent = '✓ Free returns — this seller covers return postage for change-of-mind returns.';
+    } else if (returnCost > 0) {
+      postageNoteEl.textContent = `For change-of-mind returns, return postage (approx. £${returnCost.toFixed(2)}) may be paid by the buyer.`;
+    } else {
+      postageNoteEl.textContent = 'For change-of-mind returns, return postage may be paid by the buyer.';
+    }
+    postageNoteEl.classList.toggle('pd-returns-good', freeReturns);
   }
 
   // ── Compare / RRP price ────────────────────────────────────
@@ -210,6 +252,62 @@ console.log('product.js loaded');
       const sellerInfo = document.querySelector('.pd-seller-info');
       if (sellerInfo) sellerInfo.appendChild(refurbBadge);
     }
+
+    // ── Ask Seller button ──────────────────────────────────────
+    const askBtn      = document.getElementById('pd-ask-seller');
+    const askBackdrop = document.getElementById('ask-modal-backdrop');
+    const askCancel   = document.getElementById('ask-modal-cancel');
+    const askSubmit   = document.getElementById('ask-modal-submit');
+    const askBody     = document.getElementById('ask-modal-body');
+    const askMsg      = document.getElementById('ask-modal-msg');
+    const askTitle    = document.getElementById('ask-modal-product-name');
+
+    if (askBtn && pid) {
+      askBtn.style.display = 'inline-flex';
+      if (askTitle) askTitle.textContent = product.name;
+
+      askBtn.addEventListener('click', () => {
+        if (!localStorage.getItem('s4l_token')) {
+          window.location.href = `/account/signin.html?next=${encodeURIComponent(window.location.href)}`;
+          return;
+        }
+        askBackdrop?.classList.add('open');
+        askBody?.focus();
+      });
+
+      askCancel?.addEventListener('click', () => {
+        askBackdrop?.classList.remove('open');
+        if (askMsg) { askMsg.textContent = ''; askMsg.className = 'ask-modal-msg'; }
+        if (askBody) askBody.value = '';
+      });
+
+      askBackdrop?.addEventListener('click', (e) => {
+        if (e.target === askBackdrop) askCancel?.click();
+      });
+
+      askSubmit?.addEventListener('click', async () => {
+        const text = askBody?.value.trim();
+        if (!text) { if (askMsg) { askMsg.textContent = 'Please write a message.'; askMsg.className = 'ask-modal-msg err'; } return; }
+        askSubmit.disabled = true;
+        if (askMsg) { askMsg.textContent = ''; askMsg.className = 'ask-modal-msg'; }
+        try {
+          const res = await fetch(`${API}/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('s4l_token')}` },
+            body: JSON.stringify({ productId: pid, body: text }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Failed to send.');
+          if (askMsg) { askMsg.textContent = 'Message sent!'; askMsg.className = 'ask-modal-msg ok'; }
+          if (askBody) askBody.value = '';
+          setTimeout(() => askCancel?.click(), 1500);
+        } catch (err) {
+          if (askMsg) { askMsg.textContent = err.message; askMsg.className = 'ask-modal-msg err'; }
+        } finally {
+          askSubmit.disabled = false;
+        }
+      });
+    }
   } else {
     if (sellerStrip) sellerStrip.style.display = 'none';
     if (dividerBeforeSeller) dividerBeforeSeller.style.display = 'none';
@@ -250,7 +348,7 @@ console.log('product.js loaded');
         if (found !== -1) variantImageMap[i] = found + 1;
       });
     }
-    [product.videoUrl, product.videoUrl2].forEach((url) => {
+    [product.videoUrl, product.videoUrl2, product.videoUrl3, product.videoUrl4, product.videoUrl5].forEach((url) => {
       if (!url) return;
       const vDiv = document.createElement('div');
       vDiv.className = 'video-slide-src';
@@ -310,7 +408,7 @@ console.log('product.js loaded');
           return `<button type="button" class="pd-variant-pill" data-attr="${attrName}" data-val="${val}">${val}</button>`;
         }).join('');
         const selector = `<div class="pd-variant-pills">${buttons}${hasSwatch ? '<span class="pd-swatch-selected-name"></span>' : ''}</div>`;
-        return `<div class="pd-variant-group"><div class="pd-variant-label">${attrName}</div>${selector}</div>`;
+        return `<div class="pd-variant-group"><div class="pd-variant-label">Choose ${attrName}</div>${selector}</div>`;
       }).join('');
 
       variantsEl.innerHTML = html;
@@ -648,6 +746,9 @@ console.log('product.js loaded');
 
   // ── Reviews ────────────────────────────────────────────────
   if (typeof window.initReviews === 'function') {
-    window.initReviews(productId);
+    const _reviewVendorId = typeof product.vendor === 'object'
+      ? (product.vendor?._id || product.vendor?.id)
+      : product.vendor;
+    window.initReviews(pid, _reviewVendorId);
   }
 })();

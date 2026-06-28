@@ -35,27 +35,18 @@
 }
 
 /* ── Card star row ──────────────────────────────────────── */
-.sp-stars-row,
-.cp-stars-row {
+.sp-stars-row {
   display: flex;
   align-items: center;
   gap: 4px;
   margin: 2px 0 4px;
 }
 
-/* Home page featured cards: match h3's 14px horizontal margin */
-.product-card .sp-stars-row {
-  margin-left: 14px;
-  margin-right: 14px;
-}
-
-.sp-stars-row .s4l-star,
-.cp-stars-row .s4l-star {
+.sp-stars-row .s4l-star {
   font-size: 11px;
 }
 
-.sp-stars-row .s4l-stars-count,
-.cp-stars-row .s4l-stars-count {
+.sp-stars-row .s4l-stars-count {
   font-size: 11px;
   color: #0b6b6a;
   font-weight: 600;
@@ -611,6 +602,66 @@
 
 .arv-btn-delete { border-color: #6b7280; color: #6b7280; background: #f9fafb; }
 .arv-btn-delete:hover { background: #6b7280; color: #fff; }
+
+/* ── Mobile ── */
+@media (max-width: 600px) {
+  /* Body: remove side padding so cards go full-width */
+  .arv-body {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /* Settings card: full-width, no side border/radius, wrap items */
+  .arv-toggle-row {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 14px 16px;
+    overflow: hidden;
+    border-left: none;
+    border-right: none;
+    border-radius: 0;
+  }
+
+  /* "Reviews & Ratings" label: own full-width row */
+  .arv-toggle-label {
+    width: 100%;
+    flex-shrink: 0;
+  }
+
+  /* "Show stars publicly after N reviews [Save]": own full-width row */
+  .arv-min-row {
+    width: 100%;
+    margin-left: 0;
+    flex-wrap: wrap;
+    gap: 6px;
+    box-sizing: border-box;
+  }
+
+  /* Save button: full width so it can never overflow */
+  .arv-save-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Filter bar: add side padding to match card content */
+  .arv-filter-bar {
+    flex-wrap: wrap;
+    padding: 0 16px;
+  }
+
+  /* Review cards: full-width, no side border/radius */
+  .arv-row {
+    border-left: none;
+    border-right: none;
+    border-radius: 0;
+    padding: 14px 16px;
+  }
+
+  /* Logout button: no text wrap */
+  #logoutBtn {
+    white-space: nowrap;
+  }
+}
 
 .arv-status-pill {
   font-size: 11px;

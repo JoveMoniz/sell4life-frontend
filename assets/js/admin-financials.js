@@ -82,6 +82,11 @@ function renderCards(s) {
       <div class="fin-card-sub">returned to buyers</div>
     </div>
     <div class="fin-card">
+      <div class="fin-card-label">Goodwill Refunds (Platform-Paid)</div>
+      <div class="fin-card-value negative">${fmt(s.totalGoodwillPlatform)}</div>
+      <div class="fin-card-sub">${Number(s.totalGoodwillVendor) > 0 ? `+ ${fmt(s.totalGoodwillVendor)} vendor-paid goodwill` : 'absorbed by Sell4Life, not vendors'}</div>
+    </div>
+    <div class="fin-card">
       <div class="fin-card-label">Platform Revenue</div>
       <div class="fin-card-value positive">${fmt(s.totalCommission)}</div>
       <div class="fin-card-sub">${effectiveRate}% effective commission</div>
@@ -94,7 +99,7 @@ function renderCards(s) {
     <div class="fin-card">
       <div class="fin-card-label">Net Profit</div>
       <div class="fin-card-value ${profitClass}">${fmt(s.netProfit)}</div>
-      <div class="fin-card-sub">revenue − Stripe</div>
+      <div class="fin-card-sub">revenue − Stripe − platform goodwill</div>
     </div>
     <div class="fin-card">
       <div class="fin-card-label">Payouts Pending</div>

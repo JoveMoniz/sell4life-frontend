@@ -7,20 +7,28 @@
 
     <!-- External CSS -->
     <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png" />
-    <link rel="stylesheet" href="/assets/css/layout.css?v=20260532" />
+    <link rel="stylesheet" href="/assets/css/layout.css?v=20260624" />
     <link rel="stylesheet" href="/assets/css/product.css?v=20260206-dev" />
-    <link rel="stylesheet" href="/assets/css/shop.css?v=20260206-dev" />
-    <link rel="stylesheet" href="/assets/css/quick-add.css" />
-    <link rel="stylesheet" href="/assets/css/reviews.css" />
+    <link rel="stylesheet" href="/assets/css/shop.css?v=20260624" />
+    <link rel="stylesheet" href="/assets/css/quick-add.css?v=20260622b" />
+    <link rel="stylesheet" href="/assets/css/reviews.css?v=20260622b" />
+    <link rel="stylesheet" href="/assets/css/product-card.css?v=20260622b" />
     <style id="s4l-fouc">html{visibility:hidden}</style>
   </head>
 
   <body class="s4l-loading">
     <h1 id="shop-title" class="shop-title">Our Products</h1>
 
-    <!-- Filter/sort controls (hidden in browse mode) -->
-    <div class="shop-controls">
-      <div id="shop-cat-pills" class="shop-cat-pills"></div>
+    <!-- Filter/sort controls (hidden in browse mode). Default hidden via
+         the shop-controls-pending class — shop.js only ever needs to *show*
+         it, so there's no window where it's visible before JS decides the
+         mode (was causing a flash of the category pills on load). -->
+    <div class="shop-controls shop-controls-pending">
+      <div class="shop-cat-pills-outer">
+        <button type="button" class="shop-cat-pills-arrow arrow-left" id="shop-cat-pills-left" aria-label="Scroll categories left">‹</button>
+        <div id="shop-cat-pills" class="shop-cat-pills"></div>
+        <button type="button" class="shop-cat-pills-arrow arrow-right" id="shop-cat-pills-right" aria-label="Scroll categories right">›</button>
+      </div>
       <div class="shop-controls-right">
         <div id="shop-active-filter" class="shop-active-filter">
           Showing: <span id="shop-filter-label"></span>
@@ -45,7 +53,8 @@
     <!-- Page scripts LAST -->
     <script src="/assets/js/config-global.js"></script>
     <script>
-      window.__pageScripts = ['/assets/js/shop.js'];
+      window.__pageScripts = ['/assets/js/shipping-label.js', '/assets/js/product-card.js', '/assets/js/shop.js?v=20260623'];
     </script>
   </body>
 </html>
+

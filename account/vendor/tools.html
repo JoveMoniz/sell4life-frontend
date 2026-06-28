@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -7,7 +7,7 @@
     <title>Vendor Tools | Sell4Life</title>
     <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png" />
     <link rel="stylesheet" href="/assets/css/layout.css" />
-    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260529" />
+    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260622b" />
     <style id="s4l-fouc">html{visibility:hidden}</style>
   </head>
   <body class="s4l-loading">
@@ -16,17 +16,17 @@
 
       <main class="vendor-main">
         <div class="vendor-container">
-          <a href="/account/vendor/dashboard.html" class="vendor-back-link">← Back to Dashboard</a>
+          <a href="/account/vendor/dashboard.html" class="vendor-back-link"> Back to Dashboard</a>
           <h1 class="vendor-title">Vendor Tools</h1>
 
-          <!-- ── Image Converter ── -->
+          <!-- â”€â”€ Image Converter â”€â”€ -->
           <section class="vp-section" style="margin-bottom:40px">
             <h2 class="vp-section-title">Image Converter</h2>
             <p style="color:#6b7280;font-size:0.9rem;margin-bottom:16px">Convert HEIC, PNG, or JPEG images to web-ready JPG or WebP. Drag &amp; drop multiple files at once.</p>
 
             <div id="tool-drop-zone" class="tool-drop-zone">
               <input type="file" id="tool-file-input" accept="image/*,.heic,.heif" multiple style="display:none" />
-              <span class="tool-drop-icon">🖼</span>
+              <span class="tool-drop-icon"></span>
               <span class="tool-drop-text">Drop images here or <u>click to browse</u></span>
             </div>
 
@@ -48,14 +48,14 @@
             <div id="tool-results" class="tool-results"></div>
           </section>
 
-          <!-- ── Spreadsheet → CSV Converter ── -->
+          <!-- â”€â”€ Spreadsheet  CSV Converter â”€â”€ -->
           <section class="vp-section">
-            <h2 class="vp-section-title">Spreadsheet → CSV Converter</h2>
+            <h2 class="vp-section-title">Spreadsheet  CSV Converter</h2>
             <p style="color:#6b7280;font-size:0.9rem;margin-bottom:16px">Upload an Excel or CSV file and map columns to Sell4Life product fields.</p>
 
             <div id="csv-drop-zone" class="tool-drop-zone">
               <input type="file" id="csv-file-input" accept=".xlsx,.xls,.csv,.ods" style="display:none" />
-              <span class="tool-drop-icon">📊</span>
+              <span class="tool-drop-icon"></span>
               <span class="tool-drop-text">Drop spreadsheet here or <u>click to browse</u></span>
             </div>
 
@@ -72,9 +72,9 @@
                 <label>Currency rate:</label>
                 <select id="csv-currency">
                   <option value="1">GBP (× 1.00)</option>
-                  <option value="0.79">USD → GBP (× 0.79)</option>
-                  <option value="0.86">EUR → GBP (× 0.86)</option>
-                  <option value="custom">Custom rate…</option>
+                  <option value="0.79">USD  GBP (× 0.79)</option>
+                  <option value="0.86">EUR  GBP (× 0.86)</option>
+                  <option value="custom">Custom rate</option>
                 </select>
               </div>
               <div id="csv-custom-rate-wrap" class="csv-calc-row" style="display:none">
@@ -86,6 +86,15 @@
                 <input type="number" id="csv-markup" min="0" max="999" value="0" style="width:80px" /> %
               </div>
               <div id="csv-calc-example" class="csv-calc-example"></div>
+            </div>
+
+            <div id="csv-title-opts" class="csv-price-calc" style="display:none">
+              <h3 class="csv-section-label">Title Cleanup</h3>
+              <label style="display:flex;align-items:center;gap:8px;font-size:0.88rem;color:#374151;cursor:pointer">
+                <input type="checkbox" id="csv-strip-suffix" />
+                Strip trailing number from product title (e.g. "Earphone Sleeves 8800"  "Earphone Sleeves")
+              </label>
+              <p style="color:#9ca3af;font-size:0.8rem;margin:6px 0 0">Many supplier exports (e.g. CJ Dropshipping) append a unique numeric code to each variant's title, which stops same-product rows from being grouped into one listing. Check this if your titles end in a number that isn't a meaningful part of the product name.</p>
             </div>
 
             <div id="csv-mapper" class="csv-mapper" style="display:none">
@@ -101,9 +110,9 @@
             </div>
 
             <div id="csv-actions" class="csv-actions" style="display:none">
-              <button id="csv-download-btn" class="vp-btn vp-btn-primary">↓ Download CSV</button>
-              <a href="#" class="csv-go-import vp-btn">→ Import to Products</a>
-              <button id="csv-reset-btn" class="vp-btn vp-btn-ghost">✕ Reset</button>
+              <button id="csv-download-btn" class="vp-btn vp-btn-primary"> Download CSV</button>
+              <a href="#" class="csv-go-import vp-btn"> Import to Products</a>
+              <button id="csv-reset-btn" class="vp-btn vp-btn-ghost">âœ• Reset</button>
             </div>
           </section>
         </div>
@@ -112,7 +121,7 @@
 
     <script src="/assets/js/config-global.js"></script>
     <script src="/assets/js/vendor-guard.js"></script>
-    <script src="/assets/js/layout.js?v=20260603"></script>
+    <script src="/assets/js/layout.js?v=20260627"></script>
     <script>
       window.__pageScripts = ['/assets/js/vendor-tools.js'];
     </script>

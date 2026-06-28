@@ -2,6 +2,19 @@
   --s4l-primary: #0b6b6a;
 }
 
+.sidebar-msg-badge {
+  display: inline-block;
+  background: #f28c28;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 5px;
+  vertical-align: middle;
+  line-height: 16px;
+}
+
 /* layout.css sets overflow-x:hidden on body which breaks position:sticky.
    clip achieves the same visual result without creating a scroll container. */
 html,
@@ -495,6 +508,19 @@ Vendor Products
   padding: 10px 16px;
   margin-bottom: 16px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.vp-bulk-count-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #f0fafa;
+  color: #0b6b6a;
+  border: 1px solid #cdeae9;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .vp-bulk-select-all {
@@ -1160,6 +1186,23 @@ Vendor Products
   border-bottom: none;
 }
 
+/* vendor order details — adds checkbox column */
+.order-item--selectable {
+  grid-template-columns: 20px 60px 1fr auto;
+  align-items: start;
+  gap: 12px;
+  padding: 14px 0;
+}
+
+.order-item--selectable input[type="checkbox"] {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #0b6b6a;
+  flex-shrink: 0;
+}
+
 .order-item img {
   width: 60px;
   height: 60px;
@@ -1181,6 +1224,82 @@ Vendor Products
   font-weight: 600;
   color: #0b7d6e;
   text-align: right;
+  padding-top: 2px;
+  white-space: nowrap;
+}
+
+/* tracking card at bottom of vendor order details */
+.tracking-card {
+  margin-top: 20px;
+  padding: 16px 18px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+.tracking-card h3 {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+  color: #111827;
+  font-weight: 600;
+}
+.tracking-card .tracking-hint {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0 0 12px;
+}
+.tracking-card .tracking-fields {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.tracking-card .tracking-fields input {
+  padding: 7px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  background: #fff;
+}
+.tracking-card .tracking-fields input:focus {
+  outline: none;
+  border-color: #0b6b6a;
+  box-shadow: 0 0 0 3px rgba(11,107,106,.1);
+}
+.tracking-card .btn-save-tracking {
+  padding: 7px 16px;
+  background: #0b6b6a;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background .15s;
+}
+.tracking-card .btn-save-tracking:hover   { background: #085756; }
+.tracking-card .btn-save-tracking:disabled { background: #9ca3af; cursor: not-allowed; }
+.tracking-card .tracking-msg {
+  font-size: 0.8rem;
+  min-height: 18px;
+  margin: 8px 0 0;
+}
+.tracking-card .select-all-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.tracking-card .select-all-label {
+  font-size: 0.82rem;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* ===============================
@@ -2926,6 +3045,9 @@ Vendor Products
   background: #fff;
   border: 1px solid #e4e7ec;
   border-radius: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 80;
 }
 
 .vp-search {
@@ -2964,7 +3086,7 @@ Vendor Products
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  transition: background 0.12s, color 0.12s, border-color 0.12s, transform 0.15s ease, box-shadow 0.15s ease;
   white-space: nowrap;
   touch-action: manipulation;
 }
@@ -2978,6 +3100,58 @@ Vendor Products
   background: var(--s4l-primary);
   border-color: var(--s4l-primary);
   color: #fff;
+}
+
+.vp-filter-btn.vp-drop-target-active {
+  background: #f59e0b;
+  border-color: #d97706;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(245,158,11,0.35);
+  transform: scale(1.14);
+}
+
+.vendor-product-card.vp-dragging,
+.vp-list-row.vp-dragging {
+  opacity: 0.4;
+}
+
+.vp-hover-actions {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 6;
+}
+
+.vendor-product-card.vp-selected:hover .vp-hover-actions,
+.vp-list-row.vp-selected:hover .vp-hover-actions {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.vp-hover-action-btn {
+  background: #0b6b6a;
+  color: #fff;
+  border: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: 6px;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.22);
+  transition: background 0.12s ease, transform 0.12s ease;
+}
+
+.vp-hover-action-btn:hover {
+  background: #094f4e;
+  transform: scale(1.06);
 }
 
 .vp-sort {
@@ -3039,6 +3213,45 @@ Vendor Products
   margin-bottom: 10px;
 }
 
+.vp-supplier-link {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(17,24,39,0.78);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  text-decoration: none;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 5;
+}
+
+.vendor-product-card:hover .vp-supplier-link {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.vp-supplier-link-list {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 22px;
+  height: 22px;
+  font-size: 0.72rem;
+}
+
+.vp-list-row:hover .vp-supplier-link-list {
+  opacity: 1;
+  transform: scale(1);
+}
+
 .vp-img-wrap img {
   width: 100%;
   height: 100%;
@@ -3073,6 +3286,53 @@ Vendor Products
   background: #fef3c7;
   color: #92400e;
   margin-top: 4px;
+}
+
+.vp-badge-trash {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.vendor-product-card.vp-trashed,
+.vp-list-row.vp-trashed {
+  opacity: 0.85;
+}
+
+.btn-restore {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid #0b6b6a;
+  background: #f0fafa;
+  color: #0b6b6a;
+  font-weight: 600;
+  transition: background 0.12s;
+}
+
+.btn-restore:hover {
+  background: #d9f0ef;
+}
+
+.btn-delete-forever {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid #991b1b;
+  background: #b91c1c;
+  color: #fff;
+  transition: background 0.12s;
+}
+
+.btn-delete-forever:hover {
+  background: #991b1b;
+}
+
+.btn-restore:disabled,
+.btn-delete-forever:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-coming-soon-toggle {
@@ -3300,6 +3560,7 @@ Vendor Products
 }
 
 .vp-list-row {
+  position: relative;
   display: grid;
   grid-template-columns: 64px 1fr 80px 110px 110px auto;
   align-items: center;
@@ -3379,6 +3640,7 @@ Vendor Products
 @media (max-width: 900px) {
   .vp-toolbar {
     gap: 8px;
+    top: 52px;
   }
 
   /* List row: 3-col layout */

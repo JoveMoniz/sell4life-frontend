@@ -15,7 +15,27 @@
     <a href="/account/vendor/orders.html">Orders</a>
     <a href="/account/vendor/transactions.html">Transactions</a>
     <a href="/account/vendor/payouts.html">Payouts</a>
+    <a href="/account/vendor/messages.html">Messages <span id="sidebar-msg-badge"></span></a>
     <a href="/account/vendor/settings.html">Store Settings</a>
     <a href="/account/signin.html" class="vendor-logout">Logout</a>
   </nav>
 </aside>
+
+<script>
+(async function () {
+  const tok = localStorage.getItem('s4l_token');
+  if (!tok) return;
+  try {
+    const r = await fetch((window.API_BASE || '') + '/messages/unread-count?view=vendor', {
+      headers: { Authorization: 'Bearer ' + tok },
+    });
+    if (!r.ok) return;
+    const { unread } = await r.json();
+    const badge = document.getElementById('sidebar-msg-badge');
+    if (badge && unread > 0) {
+      badge.textContent = unread > 99 ? '99+' : unread;
+      badge.className = 'sidebar-msg-badge';
+    }
+  } catch {}
+})();
+</script>

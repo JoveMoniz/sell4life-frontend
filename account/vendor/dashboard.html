@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -9,7 +9,7 @@
     <title>Vendor Dashboard | Sell4Life</title>
 
     <link rel="stylesheet" href="/assets/css/layout.css" />
-    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260529" />
+    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260622b" />
     <style id="s4l-fouc">html{visibility:hidden}</style>
   </head>
 
@@ -21,9 +21,11 @@
       <!-- Main dashboard area -->
       <main class="vendor-main">
         <div class="vendor-container">
-          <a href="/index.html" class="vendor-back-link">← Back to home</a>
+          <a href="/index.html" class="vendor-back-link"> Back to home</a>
 
           <h1 class="vendor-title">Vendor Dashboard</h1>
+
+          <div id="hmrc-banner"></div>
 
           <div class="period-filter">
             <button type="button" class="period-btn active" data-period="all">All Time</button>
@@ -162,7 +164,7 @@
               <div class="vendor-pending-message">
                 <h2>Account Pending Approval</h2>
                 <p>Your vendor account is under review. Once approved by an admin, you'll have full access to all vendor features.</p>
-                <a href="/index.html" class="vendor-back-link">← Back to home</a>
+                <a href="/index.html" class="vendor-back-link"> Back to home</a>
               </div>
             `;
             return;
@@ -173,7 +175,7 @@
               <div class="vendor-pending-message vendor-suspended-message">
                 <h2>Account Suspended</h2>
                 <p>Your vendor account has been suspended. Please contact support for assistance.</p>
-                <a href="/index.html" class="vendor-back-link">← Back to home</a>
+                <a href="/index.html" class="vendor-back-link"> Back to home</a>
               </div>
             `;
             return;
@@ -184,8 +186,8 @@
       })();
     </script>
 
-    <script src="/assets/js/layout.js?v=20260603"></script>
-    <script src="/assets/js/live-updates.js?v=20260522"></script>
-    <script src="/assets/js/vendor-dashboard.js?v=20260522c"></script>
+    <script src="/assets/js/layout.js?v=20260627"></script>
+    <script src="/assets/js/live-updates.js?v=20260621"></script>
+    <script src="/assets/js/vendor-dashboard.js?v=20260626"></script>
   </body>
 </html>

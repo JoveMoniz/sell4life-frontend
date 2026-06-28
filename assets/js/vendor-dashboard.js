@@ -279,6 +279,37 @@ function initRefundTimers() {
 }
 
 /* ======================================================
+   HMRC BANNER
+====================================================== */
+function renderHmrcBanner(vendor) {
+  const el = document.getElementById('hmrc-banner');
+  if (!el) return;
+
+  const status = vendor?.reportingStatus || 'none';
+  if (status === 'none' || vendor?.taxInfoCompletedAt) { el.innerHTML = ''; return; }
+
+  const DISMISS_KEY = 'hmrc_approaching_' + new Date().getFullYear();
+
+  if (status === 'approaching') {
+    if (sessionStorage.getItem(DISMISS_KEY)) { el.innerHTML = ''; return; }
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fffbeb;border-left:4px solid #f59e0b;border-radius:6px;padding:12px 16px;margin-bottom:18px;font-size:13px;color:#92400e">
+        <span><strong>Approaching HMRC threshold</strong> — your store is nearing the reporting limit. Please provide your tax details before it's required. <a href="/account/vendor/settings.html#tax-info" style="color:#b45309;font-weight:600;text-decoration:underline">Complete now</a></span>
+        <button type="button" onclick="sessionStorage.setItem('${DISMISS_KEY}','1');this.closest('#hmrc-banner').innerHTML=''" style="background:none;border:none;cursor:pointer;font-size:18px;color:#92400e;padding:0 4px;line-height:1;flex-shrink:0" aria-label="Dismiss">×</button>
+      </div>`;
+  } else if (status === 'required') {
+    el.innerHTML = `
+      <div style="background:#fef2f2;border-left:4px solid #ef4444;border-radius:6px;padding:12px 16px;margin-bottom:18px;font-size:13px;color:#991b1b">
+        <strong>Action required</strong> — your store has reached the HMRC digital platform reporting threshold. You must submit your tax information. <a href="/account/vendor/settings.html#tax-info" style="color:#7f1d1d;font-weight:600;text-decoration:underline">Submit now</a>
+      </div>`;
+  }
+}
+
+document.addEventListener('vendorLoaded', function(e) {
+  renderHmrcBanner(e.detail?.vendor);
+});
+
+/* ======================================================
    INIT
 ====================================================== */
 loadVendorDashboard();

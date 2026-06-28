@@ -104,7 +104,7 @@
   <body class="s4l-loading">
 
     <div class="create-wrap">
-      <a href="/sell/" class="create-back">← Back</a>
+      <a href="/sell/" class="create-back"> Back</a>
       <h1 class="create-title">Create Your Store</h1>
       <p class="create-sub">Fill in your store details. We'll review your application within 48 hours.</p>
 
@@ -117,21 +117,21 @@
         <div class="form-field">
           <label for="storeSlug">Store URL</label>
           <input type="text" id="storeSlug" placeholder="e.g. jakes-electronics" required pattern="[a-z0-9-]+" />
-          <span class="hint">sell4life.com/stores/<span id="slug-preview">…</span></span>
+          <span class="hint">sell4life.com/stores/<span id="slug-preview"></span></span>
         </div>
 
         <div class="form-field">
           <label for="storeDescription">Store description <span class="label-optional">(optional)</span></label>
-          <textarea id="storeDescription" placeholder="Tell buyers what you sell…"></textarea>
+          <textarea id="storeDescription" placeholder="Tell buyers what you sell"></textarea>
         </div>
 
         <div class="form-field">
           <label for="storeType">Seller type</label>
           <select id="storeType">
-            <option value="casual">Casual — personal items &amp; occasional listings</option>
-            <option value="refurbished">Refurbished — certified refurbishers &amp; repair businesses</option>
-            <option value="professional">Professional — small businesses, brands &amp; regular retailers</option>
-            <option value="enterprise">Enterprise — manufacturers, wholesalers &amp; large retailers</option>
+            <option value="casual">Casual  personal items &amp; occasional listings</option>
+            <option value="refurbished">Refurbished  certified refurbishers &amp; repair businesses</option>
+            <option value="professional">Professional  small businesses, brands &amp; regular retailers</option>
+            <option value="enterprise">Enterprise  manufacturers, wholesalers &amp; large retailers</option>
           </select>
           <span class="hint" id="tier-hint"></span>
         </div>
@@ -166,7 +166,7 @@
     </script>
     <script src="/assets/js/config-global.js"></script>
     <script>
-      // Auth guard — must be logged in to apply
+      // Auth guard  must be logged in to apply
       const token = localStorage.getItem('s4l_token');
       if (!token) {
         window.location.replace('/account/signin.html');
@@ -184,7 +184,7 @@
         } catch { /* silent */ }
       })();
     </script>
-    <script src="/assets/js/layout.js?v=20260603"></script>
+    <script src="/assets/js/layout.js?v=20260627"></script>
     <script src="/assets/js/vendor-create.js"></script>
   </body>
 </html>

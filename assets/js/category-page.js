@@ -10,22 +10,10 @@
   // ======================================================
   const API_URL = `${window.API_BASE}/products`;
   const CATEGORY_JSON_URL = '/data/category.json';
-  const IMAGE_BASE = '/assets/images/products/';
-  const FALLBACK_IMAGE = '/assets/images/products/sell4life-placeholder.png';
 
   // Reviews config (fetched once; used in card rendering)
   let _rvCfg = { reviewsEnabled: false, reviewsMinCount: 3 };
   fetch(`${window.API_BASE}/reviews/config`).then(r => r.ok ? r.json() : null).then(d => { if (d) _rvCfg = d; }).catch(() => {});
-
-  function _starsHTML(rating, size) {
-    let html = '<span class="s4l-stars">';
-    for (let i = 1; i <= 5; i++) {
-      const diff = rating - (i - 1);
-      const cls = diff >= 1 ? 'filled' : diff >= 0.25 ? 'half' : 'empty';
-      html += `<span class="s4l-star ${cls}" style="font-size:${size}px">★</span>`;
-    }
-    return html + '</span>';
-  }
 
   // ======================================================
   // HELPERS
@@ -34,22 +22,6 @@
   const $ = (sel, root = document) => root.querySelector(sel);
 
   const normalize = (str = '') => str.toLowerCase().replace(/\s+/g, '-');
-
-  const makePrice = (p) => {
-    const currency = p.currency || '£';
-    const value = Number(p.price || 0);
-    return currency + value.toFixed(2);
-  };
-
-  const getProductId = (p) => p._id || p.id;
-
-  const resolveImage = (p) => {
-    const img = p.images?.[0] || '';
-
-    if (!img) return FALLBACK_IMAGE;
-
-    return img.startsWith('http') ? img : IMAGE_BASE + img;
-  };
 
   // ======================================================
   // LOAD PRODUCTS (API + FALLBACK)
@@ -75,55 +47,10 @@
     }
   }
 
-  // ======================================================
-  // HTML BUILDERS
-  // ======================================================
-
-  function productCardHtml(p) {
-    const id = getProductId(p);
-
-    // Store for quick-add modal lookup
-    window._qaProducts = window._qaProducts || {};
-    window._qaProducts[id] = p;
-
-    const basketBtn = p.comingSoon ? '' : `
-      <button class="cp-quick-add-btn" data-id="${id}" title="Add to basket">
-        <svg width="21" height="24" viewBox="0 0 24 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M7 13C7 5 17 5 17 13"/>
-          <path d="M1 12H23V23Q23 27 19 27H5Q1 27 1 23V12Z"/>
-        </svg>
-        <span class="cp-qa-clr" title="Remove from basket">CLR</span>
-      </button>`;
-
-    return `
-      <div class="cp-card-wrap product-card${p.comingSoon ? ' card-coming-soon' : ''}">
-        <a href="/product/product.html?id=${encodeURIComponent(id)}">
-          <div style="position:relative">
-            <img src="${resolveImage(p)}" alt="${p.name}">
-            ${p.comingSoon ? '<div class="sp-coming-soon-badge">🕐 Coming Soon</div>' : ''}
-          </div>
-          <h3>${p.name}</h3>
-          ${_rvCfg.reviewsEnabled && (p.reviewCount || 0) >= _rvCfg.reviewsMinCount && p.avgRating
-            ? `<div class="cp-stars-row">${_starsHTML(p.avgRating, 16)}<span class="s4l-stars-count">${p.reviewCount}</span></div>`
-            : ''}
-        </a>
-        <div class="sp-card-footer">
-          <p class="product-price" style="margin:0">${makePrice(p)}</p>
-          ${basketBtn}
-        </div>
-      </div>
-    `;
-  }
-
-  function featuredCardHtml(p) {
-    return `
-      <a class="featured-item" href="/product/product.html?id=${encodeURIComponent(getProductId(p))}">
-        <img src="${resolveImage(p)}" alt="${p.name}">
-        <h3>${p.name}</h3>
-        <div class="price">${makePrice(p)}</div>
-      </a>
-    `;
-  }
+  // Single source of truth is window.s4lProductCardHTML (product-card.js),
+  // shared with shop/store/home so every page shows products identically,
+  // including the shipping label.
+  const productCardHtml = (p) => window.s4lProductCardHTML(p, { reviewsConfig: _rvCfg, showBasketButton: true });
 
   // ======================================================
   // RESOLVE CATEGORY FROM URL
@@ -137,6 +64,23 @@
 
   const categoryId = getCategoryIdFromPath();
   if (!categoryId) return;
+
+  // ======================================================
+  // REDIRECT IF CATEGORY HAS NO PRODUCTS
+  // ======================================================
+
+  try {
+    const _dbKey = { 'home-garden': 'home', 'health-beauty': 'health' };
+    const dbCat  = _dbKey[categoryId] || categoryId;
+    const cntRes = await fetch(`${window.API_BASE}/products/category/counts`);
+    if (cntRes.ok) {
+      const counts = await cntRes.json();
+      if ((counts[dbCat] || 0) === 0) {
+        location.replace('/shop/');
+        return;
+      }
+    }
+  } catch { /* non-fatal — proceed to show the page */ }
 
   // ======================================================
   // LOAD DATA
@@ -197,7 +141,7 @@
     const featured = catProducts.slice(0, 2);
 
     featuredWrap.innerHTML = featured.length
-      ? featured.map(featuredCardHtml).join('')
+      ? featured.map(productCardHtml).join('')
       : `<p class="empty-note">No featured products yet.</p>`;
     window.s4l_markOwnListings?.();
   }

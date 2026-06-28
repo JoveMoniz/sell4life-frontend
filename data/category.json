@@ -69,5 +69,125 @@
       { "id": "supplements", "name": "Supplements", "image": "/assets/images/category/health-beauty/supplements.png" },
       { "id": "grooming", "name": "Grooming", "image": "/assets/images/category/health-beauty/grooming.png" }
     ]
+  },
+
+  {
+    "id": "sports",
+    "name": "Sports & Outdoors",
+    "image": "/assets/images/category/sports/sports.png",
+    "subcategories": [
+      { "id": "fitness", "name": "Fitness Equipment", "image": "/assets/images/category/sports/fitness.png" },
+      { "id": "cycling", "name": "Cycling", "image": "/assets/images/category/sports/cycling.png" },
+      { "id": "team-sports", "name": "Team Sports", "image": "/assets/images/category/sports/team-sports.png" },
+      { "id": "camping-hiking", "name": "Camping & Hiking", "image": "/assets/images/category/sports/camping-hiking.png" }
+    ]
+  },
+
+  {
+    "id": "automotive",
+    "name": "Automotive & Vehicles",
+    "image": "/assets/images/category/automotive/automotive.png",
+    "subcategories": [
+      { "id": "car-electronics", "name": "Car Electronics", "image": "/assets/images/category/automotive/car-electronics.png" },
+      { "id": "car-care", "name": "Car Care & Cleaning", "image": "/assets/images/category/automotive/car-care.png" },
+      { "id": "car-parts", "name": "Car Parts", "image": "/assets/images/category/automotive/car-parts.png" },
+      { "id": "motorbike", "name": "Motorbike", "image": "/assets/images/category/automotive/motorbike.png" }
+    ]
+  },
+
+  {
+    "id": "food",
+    "name": "Food & Drink",
+    "image": "/assets/images/category/food/food.png",
+    "subcategories": [
+      { "id": "fresh-bakery", "name": "Fresh & Bakery", "image": "/assets/images/category/food/fresh-bakery.png" },
+      { "id": "pantry", "name": "Pantry & Cooking", "image": "/assets/images/category/food/pantry.png" },
+      { "id": "snacks-drinks", "name": "Snacks & Drinks", "image": "/assets/images/category/food/snacks-drinks.png" },
+      { "id": "world-foods", "name": "World & Specialty Foods", "image": "/assets/images/category/food/world-foods.png" }
+    ]
+  },
+
+  {
+    "id": "baby",
+    "name": "Baby & Kids",
+    "image": "/assets/images/category/baby/baby.png",
+    "subcategories": [
+      { "id": "feeding", "name": "Feeding", "image": "/assets/images/category/baby/feeding.png" },
+      { "id": "nappies-changing", "name": "Nappies & Changing", "image": "/assets/images/category/baby/nappies-changing.png" },
+      { "id": "prams-car-seats", "name": "Prams & Car Seats", "image": "/assets/images/category/baby/prams-car-seats.png" },
+      { "id": "nursery", "name": "Nursery & Bedtime", "image": "/assets/images/category/baby/nursery.png" }
+    ]
+  },
+
+  {
+    "id": "pets",
+    "name": "Pet Supplies",
+    "image": "/assets/images/category/pets/pets.png",
+    "subcategories": [
+      { "id": "dog", "name": "Dog Supplies", "image": "/assets/images/category/pets/dog.png" },
+      { "id": "cat", "name": "Cat Supplies", "image": "/assets/images/category/pets/cat.png" },
+      { "id": "fish-aquarium", "name": "Fish & Aquarium", "image": "/assets/images/category/pets/fish-aquarium.png" },
+      { "id": "small-animals", "name": "Small Animals & Birds", "image": "/assets/images/category/pets/small-animals.png" }
+    ]
+  },
+
+  {
+    "id": "arts",
+    "name": "Arts, Crafts & Hobbies",
+    "image": "/assets/images/category/arts/arts.png",
+    "subcategories": [
+      { "id": "painting", "name": "Painting & Drawing", "image": "/assets/images/category/arts/painting.png" },
+      { "id": "craft-supplies", "name": "Craft Supplies", "image": "/assets/images/category/arts/craft-supplies.png" },
+      { "id": "music-instruments", "name": "Musical Instruments", "image": "/assets/images/category/arts/music-instruments.png" },
+      { "id": "collecting", "name": "Collecting & Modelling", "image": "/assets/images/category/arts/collecting.png" }
+    ]
+  },
+
+  {
+    "id": "office",
+    "name": "Office & Stationery",
+    "image": "/assets/images/category/office/office.png",
+    "subcategories": [
+      { "id": "pens-paper", "name": "Pens & Paper", "image": "/assets/images/category/office/pens-paper.png" },
+      { "id": "printers-ink", "name": "Printers & Ink", "image": "/assets/images/category/office/printers-ink.png" },
+      { "id": "desk-storage", "name": "Desk & Storage", "image": "/assets/images/category/office/desk-storage.png" },
+      { "id": "office-furniture", "name": "Office Furniture", "image": "/assets/images/category/office/office-furniture.png" }
+    ]
+  },
+
+  {
+    "id": "antiques",
+    "name": "Antiques & Collectibles",
+    "image": "/assets/images/category/antiques/antiques.png",
+    "subcategories": [
+      { "id": "furniture", "name": "Antique Furniture", "image": "/assets/images/category/antiques/furniture.png" },
+      { "id": "jewellery-watches", "name": "Vintage Jewellery & Watches", "image": "/assets/images/category/antiques/jewellery-watches.png" },
+      { "id": "coins-stamps", "name": "Coins & Stamps", "image": "/assets/images/category/antiques/coins-stamps.png" },
+      { "id": "memorabilia", "name": "Memorabilia & Ephemera", "image": "/assets/images/category/antiques/memorabilia.png" }
+    ]
+  },
+
+  {
+    "id": "travel",
+    "name": "Travel & Luggage",
+    "image": "/assets/images/category/travel/travel.png",
+    "subcategories": [
+      { "id": "suitcases", "name": "Suitcases", "image": "/assets/images/category/travel/suitcases.png" },
+      { "id": "backpacks-bags", "name": "Backpacks & Bags", "image": "/assets/images/category/travel/backpacks-bags.png" },
+      { "id": "travel-accessories", "name": "Travel Accessories", "image": "/assets/images/category/travel/travel-accessories.png" },
+      { "id": "packing-organisation", "name": "Packing & Organisation", "image": "/assets/images/category/travel/packing-organisation.png" }
+    ]
+  },
+
+  {
+    "id": "software",
+    "name": "Software & Digital",
+    "image": "/assets/images/category/software/software.png",
+    "subcategories": [
+      { "id": "pc-mac-software", "name": "PC & Mac Software", "image": "/assets/images/category/software/pc-mac-software.png" },
+      { "id": "security-vpn", "name": "Security & VPN", "image": "/assets/images/category/software/security-vpn.png" },
+      { "id": "creative-software", "name": "Creative Software", "image": "/assets/images/category/software/creative-software.png" },
+      { "id": "gift-cards", "name": "Gift Cards & Digital Codes", "image": "/assets/images/category/software/gift-cards.png" }
+    ]
   }
 ]

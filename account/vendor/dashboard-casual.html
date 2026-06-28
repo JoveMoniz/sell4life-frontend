@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <title>My Store | Sell4Life</title>
     <link rel="stylesheet" href="/assets/css/layout.css" />
-    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260529" />
+    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260622b" />
     <style>
       .casual-hero {
         background: linear-gradient(135deg, #0b6b6a 0%, #0d8280 100%);
@@ -162,24 +162,26 @@
 
       <main class="vendor-main">
         <div class="vendor-container">
-          <a href="/index.html" class="vendor-back-link">← Back to home</a>
+          <a href="/index.html" class="vendor-back-link"> Back to home</a>
+
+          <div id="hmrc-banner"></div>
 
           <div class="casual-hero">
-            <h1 id="store-greeting">Welcome back!</h1>
+            <h1 id="store-greeting">Welcome!</h1>
             <p id="store-sub">Here's what's happening with your store today.</p>
           </div>
 
           <div class="casual-stats">
             <div class="casual-stat">
-              <div class="stat-num" id="c-products">—</div>
+              <div class="stat-num" id="c-products"></div>
               <div class="stat-label">Active Listings</div>
             </div>
             <div class="casual-stat">
-              <div class="stat-num" id="c-orders">—</div>
+              <div class="stat-num" id="c-orders"></div>
               <div class="stat-label">Orders</div>
             </div>
             <div class="casual-stat">
-              <div class="stat-num" id="c-revenue">—</div>
+              <div class="stat-num" id="c-revenue"></div>
               <div class="stat-label">Total Earned</div>
             </div>
           </div>
@@ -192,27 +194,27 @@
 
           <div class="casual-orders" id="orders-section">
             <h2>Recent Orders</h2>
-            <div id="c-order-list"><p class="no-orders">Loading…</p></div>
+            <div id="c-order-list"><p class="no-orders">Loading</p></div>
           </div>
 
           <div class="casual-actions">
             <a href="/account/vendor/add-product-casual.html" class="casual-action-card">
-              <span class="card-icon">＋</span>
+              <span class="card-icon"></span>
               <span class="card-title">Add Product</span>
               <span class="card-desc">List something new</span>
             </a>
             <a href="/account/vendor/products.html" class="casual-action-card">
-              <span class="card-icon">📦</span>
+              <span class="card-icon"></span>
               <span class="card-title">My Listings</span>
               <span class="card-desc">Edit or remove items</span>
             </a>
             <a href="/account/vendor/orders.html" class="casual-action-card">
-              <span class="card-icon">🛍</span>
+              <span class="card-icon"></span>
               <span class="card-title">Orders</span>
               <span class="card-desc">Mark items as shipped</span>
             </a>
             <a href="/account/vendor/settings.html" class="casual-action-card">
-              <span class="card-icon">⚙️</span>
+              <span class="card-icon"></span>
               <span class="card-title">Store Settings</span>
               <span class="card-desc">Name, logo, description</span>
             </a>
@@ -293,16 +295,40 @@
         }
       }
 
-      // Populate greeting from vendor data
+      function renderHmrcBanner(vendor) {
+        const el = document.getElementById('hmrc-banner');
+        if (!el) return;
+        const status = vendor?.reportingStatus || 'none';
+        if (status === 'none' || vendor?.taxInfoCompletedAt) { el.innerHTML = ''; return; }
+        const DISMISS_KEY = 'hmrc_approaching_' + new Date().getFullYear();
+        if (status === 'approaching') {
+          if (sessionStorage.getItem(DISMISS_KEY)) { el.innerHTML = ''; return; }
+          el.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fffbeb;border-left:4px solid #f59e0b;border-radius:6px;padding:12px 16px;margin-bottom:18px;font-size:13px;color:#92400e"><span><strong>Approaching HMRC threshold</strong>  please provide your tax details soon. <a href="/account/vendor/settings.html" style="color:#b45309;font-weight:600;text-decoration:underline">Complete now</a></span><button type="button" onclick="sessionStorage.setItem('${DISMISS_KEY}','1');this.closest('#hmrc-banner').innerHTML=''" style="background:none;border:none;cursor:pointer;font-size:18px;color:#92400e;padding:0 4px;line-height:1;flex-shrink:0" aria-label="Dismiss">×</button></div>`;
+        } else if (status === 'required') {
+          el.innerHTML = `<div style="background:#fef2f2;border-left:4px solid #ef4444;border-radius:6px;padding:12px 16px;margin-bottom:18px;font-size:13px;color:#991b1b"><strong>Action required</strong>  you must submit your tax information for HMRC reporting. <a href="/account/vendor/settings.html" style="color:#7f1d1d;font-weight:600;text-decoration:underline">Submit now</a></div>`;
+        }
+      }
+
+      // Populate greeting and render HMRC banner from vendor data
       document.addEventListener('vendorLoaded', function(e) {
         const v = e.detail?.vendor;
         if (v?.storeName) {
-          document.getElementById('store-greeting').textContent = `Welcome back, ${v.storeName}!`;
+          const key = 's4l_dash_visited_' + v._id;
+          const isFirstVisit = !localStorage.getItem(key);
+          localStorage.setItem(key, '1');
+          const greeting = isFirstVisit
+            ? `Welcome to your store, ${v.storeName}!`
+            : `Welcome back, ${v.storeName}!`;
+          document.getElementById('store-greeting').textContent = greeting;
+          if (isFirstVisit) {
+            document.getElementById('store-sub').textContent = "You're all set — start by adding your first product.";
+          }
         }
+        renderHmrcBanner(v);
       });
 
       loadCasualDashboard();
     </script>
-    <script src="/assets/js/layout.js?v=20260603"></script>
+    <script src="/assets/js/layout.js?v=20260627"></script>
   </body>
 </html>

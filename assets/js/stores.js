@@ -33,7 +33,7 @@
     }
   }
 
-  // ── Avatar initials or logo ────────────────────────────────
+  // ── Avatar initials or logo (small round badge) ─────────────
   function avatarHTML(store) {
     if (store.storeLogo) {
       return `<img src="${store.storeLogo}" alt="${store.storeName}" loading="lazy" />`;
@@ -44,6 +44,14 @@
       .map((w) => w[0])
       .join('')
       .toUpperCase();
+  }
+
+  // ── Wide banner strip (falls back to plain colour) ──────────
+  function bannerHTML(store) {
+    if (store.storeBanner) {
+      return `<img src="${store.storeBanner}" alt="" loading="lazy" />`;
+    }
+    return '';
   }
 
   // ── Render cards ───────────────────────────────────────────
@@ -60,7 +68,7 @@
       .map(
         (s) => `
       <div class="store-card" data-id="${s._id}">
-        <div class="store-card-avatar">${avatarHTML(s)}</div>
+        <div class="store-card-avatar">${bannerHTML(s)}<div class="store-card-logo">${avatarHTML(s)}</div></div>
         <div class="store-card-body">
           <div class="store-card-name">${s.storeName}</div>
           <div class="store-card-slug">@${s.storeSlug}</div>

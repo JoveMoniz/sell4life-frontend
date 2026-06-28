@@ -29,10 +29,25 @@
     return text.replace(new RegExp(`(${esc})`, 'gi'), '<strong>$1</strong>');
   }
 
+  function sortMatches(matches, q) {
+    const qLower = q.toLowerCase();
+    return [...matches].sort((a, b) => {
+      const aName = (a.name || '').toLowerCase();
+      const bName = (b.name || '').toLowerCase();
+      const aStarts = aName.startsWith(qLower);
+      const bStarts = bName.startsWith(qLower);
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+      return aName.localeCompare(bName);
+    });
+  }
+
   function render(box, matches, q) {
     if (!matches.length) return hide(box);
 
-    box.innerHTML = matches.slice(0, 5).map((m) => {
+    const sorted = sortMatches(matches, q);
+
+    box.innerHTML = sorted.slice(0, 5).map((m) => {
       const img = m.images?.[0]
         ? m.images[0].startsWith('http')
           ? m.images[0]
