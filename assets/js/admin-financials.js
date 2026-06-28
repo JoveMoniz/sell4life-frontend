@@ -26,7 +26,7 @@ async function loadFinancials(period = 'all') {
   const countEl = document.getElementById('vendor-count');
 
   if (cardsEl) cardsEl.innerHTML = '<div class="fin-loading">Loading…</div>';
-  if (tableEl) tableEl.innerHTML = '<tr><td colspan="8" class="fin-loading">Loading…</td></tr>';
+  if (tableEl) tableEl.innerHTML = '<tr><td colspan="9" class="fin-loading">Loading…</td></tr>';
 
   try {
     const url = `${API}/admin/vendors/financials${period !== 'all' ? '?period=' + period : ''}`;
@@ -60,9 +60,10 @@ function renderCards(s) {
 
   const profit = Number(s.netProfit || 0);
   const profitClass = profit >= 0 ? 'positive' : 'negative';
-  const effectiveRate = s.totalGross > 0
-    ? (Number(s.totalCommission) / Number(s.totalGross) * 100).toFixed(1).replace(/\.0$/, '')
-    : 0;
+  const effectiveRate =
+    s.totalGross > 0
+      ? ((Number(s.totalCommission) / Number(s.totalGross)) * 100).toFixed(1).replace(/\.0$/, '')
+      : 0;
 
   el.innerHTML = `
     <div class="fin-card">
@@ -81,6 +82,11 @@ function renderCards(s) {
       <div class="fin-card-sub">returned to buyers</div>
     </div>
     <div class="fin-card">
+      <div class="fin-card-label">Goodwill Refunds (Platform-Paid)</div>
+      <div class="fin-card-value negative">${fmt(s.totalGoodwillPlatform)}</div>
+      <div class="fin-card-sub">${Number(s.totalGoodwillVendor) > 0 ? `+ ${fmt(s.totalGoodwillVendor)} vendor-paid goodwill` : 'absorbed by Sell4Life, not vendors'}</div>
+    </div>
+    <div class="fin-card">
       <div class="fin-card-label">Platform Revenue</div>
       <div class="fin-card-value positive">${fmt(s.totalCommission)}</div>
       <div class="fin-card-sub">${effectiveRate}% effective commission</div>
@@ -93,7 +99,7 @@ function renderCards(s) {
     <div class="fin-card">
       <div class="fin-card-label">Net Profit</div>
       <div class="fin-card-value ${profitClass}">${fmt(s.netProfit)}</div>
-      <div class="fin-card-sub">revenue − Stripe</div>
+      <div class="fin-card-sub">revenue − Stripe − platform goodwill</div>
     </div>
     <div class="fin-card">
       <div class="fin-card-label">Payouts Pending</div>
@@ -138,13 +144,24 @@ function renderVendorTable(vendors) {
       const vatBadge = v.vatRegistered
         ? '<span style="font-size:10px;background:#dbeafe;color:#1d4ed8;padding:1px 5px;border-radius:8px;margin-left:4px">VAT</span>'
         : '';
-      const tierColors = { casual:'#6b7280', refurbished:'#0369a1', professional:'#e07b00', enterprise:'#7c3aed' };
-      const tierBg     = { casual:'#f3f4f6', refurbished:'#e0f2fe', professional:'#fff3e0', enterprise:'#ede9fe' };
+      const tierColors = {
+        casual: '#6b7280',
+        refurbished: '#0369a1',
+        professional: '#e07b00',
+        enterprise: '#7c3aed',
+      };
+      const tierBg = {
+        casual: '#f3f4f6',
+        refurbished: '#e0f2fe',
+        professional: '#fff3e0',
+        enterprise: '#ede9fe',
+      };
       const tier = v.type || 'casual';
-      const tierBadge = `<span style="font-size:10px;background:${tierBg[tier]||'#f3f4f6'};color:${tierColors[tier]||'#6b7280'};padding:1px 6px;border-radius:8px;margin-left:4px;text-transform:capitalize">${tier}</span>`;
-      const reserveCell = v.reservedBalance > 0
-        ? `<span style="color:#f59e0b;font-weight:600">${fmt(v.reservedBalance)}</span>`
-        : `<span style="color:#9ca3af">${fmt(0)}</span>`;
+      const tierBadge = `<span style="font-size:10px;background:${tierBg[tier] || '#f3f4f6'};color:${tierColors[tier] || '#6b7280'};padding:1px 6px;border-radius:8px;margin-left:4px;text-transform:capitalize">${tier}</span>`;
+      const reserveCell =
+        v.reservedBalance > 0
+          ? `<span style="color:#f59e0b;font-weight:600">${fmt(v.reservedBalance)}</span>`
+          : `<span style="color:#9ca3af">${fmt(0)}</span>`;
       return `<tr>
       <td>
         <strong>${v.storeName}</strong>${vatBadge}${tierBadge}
@@ -224,20 +241,9 @@ document.addEventListener('click', (e) => {
 });
 
 /* ======================================================
-   INIT + AUTO-REFRESH
+   INIT
 ====================================================== */
 loadFinancials();
 
-const REFRESH_INTERVAL = 20;
-let refreshTimer = REFRESH_INTERVAL;
-
 const refreshEl = document.getElementById('fin-refresh-indicator');
-
-setInterval(() => {
-  refreshTimer--;
-  if (refreshTimer <= 0) {
-    refreshTimer = REFRESH_INTERVAL;
-    loadFinancials(currentPeriod);
-  }
-  if (refreshEl) refreshEl.textContent = `Refreshes in ${refreshTimer}s`;
-}, 1000);
+if (refreshEl) refreshEl.textContent = '';

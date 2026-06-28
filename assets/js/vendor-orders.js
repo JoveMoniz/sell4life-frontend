@@ -83,6 +83,12 @@ function renderOrderCard(o, vendorId) {
           'Return Approved', 'Return Rejected', 'Returned', 'Cancel Approved'].includes(a.type)
   );
 
+  const goodwillItem = vendorItems.find(i => i.goodwillRefund && i.refundStatus === 'scheduled');
+  const goodwillBadge = goodwillItem ? `
+    <div class="goodwill-badge" style="font-size:0.78rem;color:#92400e;margin-top:2px">
+      Goodwill refund scheduled<span class="refund-timer" data-time="${goodwillItem.refundScheduledAt}"></span>
+    </div>` : '';
+
   return `
 <div class="order-row">
 
@@ -109,6 +115,7 @@ function renderOrderCard(o, vendorId) {
       refundScheduledAt,
       paymentStatus: vendorPaymentStatus,
     })}
+    ${goodwillBadge}
   </span>
 
   <div class="order-actions">

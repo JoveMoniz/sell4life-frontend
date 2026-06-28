@@ -8,6 +8,9 @@
     return;
   }
 
+  let _rvCfg = { reviewsEnabled: false, reviewsMinCount: 3 };
+  fetch(`${BASE}/reviews/config`).then(r => r.ok ? r.json() : null).then(d => { if (d) _rvCfg = d; }).catch(() => {});
+
   function showError(msg) {
     const el = document.getElementById('store-error');
     if (el) { el.textContent = msg; el.style.display = 'block'; }
@@ -40,24 +43,10 @@
     heading.textContent = `Products (${products.length})`;
     section.style.display = 'block';
 
-    grid.innerHTML = products.map(p => {
-      const img = p.images?.[0]
-        ? `<img src="${p.images[0]}" alt="${p.name}" loading="lazy" />`
-        : '<span class="no-img">📦</span>';
-      const href = p.slug ? `/product/product.html?slug=${p.slug}` : `/product/product.html?id=${p._id}`;
-      const shipping = Number(p.shippingCost || 0) === 0
-        ? '<span class="store-product-shipping">Free shipping</span>'
-        : `<span class="store-product-shipping">+ £${Number(p.shippingCost).toFixed(2)} shipping</span>`;
-      return `
-        <a class="store-product-card" href="${href}">
-          <div class="store-product-img">${img}</div>
-          <div class="store-product-body">
-            <div class="store-product-name">${p.name}</div>
-            <div class="store-product-price">£${Number(p.price).toFixed(2)}</div>
-            ${shipping}
-          </div>
-        </a>`;
-    }).join('');
+    grid.innerHTML = products
+      .map(p => window.s4lProductCardHTML(p, { reviewsConfig: _rvCfg, showBasketButton: true }))
+      .join('');
+    window.s4l_markOwnListings?.();
   }
 
   async function load() {
@@ -85,6 +74,12 @@
       }
 
       avatarHTML(store);
+      const heroEl = document.querySelector('.store-profile-hero');
+      if (heroEl && store.storeBanner) {
+        heroEl.style.backgroundImage = `linear-gradient(rgba(11,107,106,0.55), rgba(11,107,106,0.55)), url('${store.storeBanner}')`;
+        heroEl.style.backgroundSize = 'cover';
+        heroEl.style.backgroundPosition = 'center';
+      }
       document.getElementById('store-hero').style.display = 'block';
       renderProducts(products || []);
     } catch (err) {

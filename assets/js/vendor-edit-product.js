@@ -23,6 +23,8 @@ const CLD_PRESET = 'lhhkniqv';
 
 const uploadedUrls   = Object.fromEntries(Array.from({ length: 20 }, (_, i) => [i + 1, null]));
 const pendingUploads = new Set();
+// Slot currently being dragged for reordering (null when not dragging)
+let _dragSrcSlot = null;
 
 // ======================================================
 // SUBCATEGORY MAP  (16 categories, 300+ subcategories)
@@ -48,6 +50,7 @@ const subcategoriesMap = {
     "Screen Protectors","Power Banks","Tablets & E-Readers","Tablet Accessories",
     "Laptops","Desktop Computers","Computer Monitors","PC Components (CPU, GPU, RAM)",
     "Storage (SSDs, HDDs, USB Drives)","Keyboards & Mice","Laptop Bags & Sleeves",
+    "Laptop Stands & Accessories","Mobile Phone Stands & Holders",
     "Computer Accessories",
     "TVs","Projectors & Screens","Blu-ray & DVD Players","Remote Controls",
     "Headphones & Earphones","Speakers","Soundbars & Home Cinema","DAC & Amplifiers",
@@ -402,6 +405,9 @@ const TAG_SUGGESTIONS = {
     'power banks': ['power bank', 'portable charger', 'battery pack', 'usb power bank', 'travel charger'],
     'tablets & e-readers': ['tablet', 'ipad', 'android tablet', 'e-reader', 'kindle'],
     'laptops': ['laptop', 'notebook', 'gaming laptop', 'business laptop', 'ultrabook'],
+    'laptop stands & accessories': ['laptop stand', 'laptop riser', 'cooling pad', 'docking station', 'laptop hub', 'laptop holder'],
+    'mobile phone stands & holders': ['phone stand', 'phone holder', 'phone mount', 'car phone holder', 'pop socket', 'phone grip'],
+    'laptop bags & sleeves': ['laptop bag', 'laptop sleeve', 'laptop case', 'laptop backpack'],
     'headphones & earphones': ['headphones', 'earphones', 'wireless earbuds', 'bluetooth headphones', 'noise cancelling', 'over ear headphones', 'in ear'],
     'speakers': ['bluetooth speaker', 'portable speaker', 'wireless speaker', 'waterproof speaker'],
     'tvs': ['tv', 'smart tv', '4k tv', 'oled tv', 'led tv', 'television', 'flat screen'],
@@ -723,6 +729,7 @@ async function handleFile(n, file) {
   const blobUrl = URL.createObjectURL(file);
   preview.src = blobUrl;
   zone.classList.add('has-image');
+  zone.draggable = true;
   overlay.style.display = 'flex';
   pendingUploads.add(n);
 
@@ -748,7 +755,7 @@ function clearSlot(n) {
   const preview = document.getElementById(`preview-${n}`);
   const overlay = document.getElementById(`overlay-${n}`);
   const input   = document.getElementById(`img-input-${n}`);
-  if (zone)    zone.classList.remove('has-image');
+  if (zone)    { zone.classList.remove('has-image'); zone.draggable = false; }
   if (preview) preview.src = '';
   if (overlay) overlay.style.display = 'none';
   if (input)   input.value = '';
@@ -765,8 +772,103 @@ function preloadSlot(n, url) {
   uploadedUrls[n] = url;
   preview.src = url;
   zone.classList.add('has-image');
+  zone.draggable = true;
   const cb = zone.querySelector('.img-slot-check');
   if (cb) cb.style.display = '';
+}
+
+// Re-renders a slot's DOM (preview, has-image class, draggable, checkbox)
+// purely from the current uploadedUrls[n] value — used after reordering.
+function renderSlotImage(n) {
+  const zone    = document.querySelector(`.ap-upload-zone[data-slot="${n}"]`);
+  const preview = document.getElementById(`preview-${n}`);
+  if (!zone || !preview) return;
+  const url = uploadedUrls[n];
+  const cb  = zone.querySelector('.img-slot-check');
+  if (url) {
+    preview.src = url;
+    zone.classList.add('has-image');
+    zone.draggable = true;
+    if (cb) cb.style.display = '';
+  } else {
+    preview.src = '';
+    zone.classList.remove('has-image');
+    zone.draggable = false;
+    if (cb) { cb.checked = false; cb.style.display = 'none'; }
+  }
+}
+
+// FLIP animation: slides each affected preview image from its old screen
+// position to its new one, so reordering visibly "moves" rather than snaps.
+function flipAnimateSlots(changedSlots, rectsBefore, urlBeforeBySlot) {
+  changedSlots.forEach((n) => {
+    const newUrl = uploadedUrls[n];
+    if (!newUrl) return;
+    const oldSlot = Object.keys(urlBeforeBySlot).find(k => urlBeforeBySlot[k] === newUrl);
+    if (oldSlot == null || !rectsBefore[oldSlot]) return;
+
+    const img = document.getElementById(`preview-${n}`);
+    if (!img) return;
+    const newRect = img.getBoundingClientRect();
+    const dx = rectsBefore[oldSlot].left - newRect.left;
+    const dy = rectsBefore[oldSlot].top  - newRect.top;
+    if (!dx && !dy) return;
+
+    img.style.transition = 'none';
+    img.style.transform  = `translate(${dx}px, ${dy}px)`;
+    img.style.zIndex     = '30';
+    void img.offsetWidth; // force reflow so the start position is applied
+    img.style.transition = 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)';
+    img.style.transform  = 'translate(0, 0)';
+    img.addEventListener('transitionend', function done() {
+      img.style.transition = '';
+      img.style.transform  = '';
+      img.style.zIndex     = '';
+      img.removeEventListener('transitionend', done);
+    });
+  });
+}
+
+// Drag-and-drop reorder: dropping on a filled slot swaps the two images;
+// dropping on an empty slot moves the image there and closes the gap left
+// behind, shifting everything else up to stay contiguous.
+function reorderImages(fromSlot, toSlot) {
+  if (fromSlot === toSlot || !uploadedUrls[fromSlot]) return;
+
+  const allSlots = Array.from({ length: 20 }, (_, i) => i + 1);
+
+  // Snapshot positions + url-by-slot before any DOM/state changes
+  const rectsBefore = {};
+  allSlots.forEach((n) => {
+    const img = document.getElementById(`preview-${n}`);
+    if (img) rectsBefore[n] = img.getBoundingClientRect();
+  });
+  const urlBeforeBySlot = { ...uploadedUrls };
+
+  let changedSlots;
+
+  if (uploadedUrls[toSlot]) {
+    const tmp = uploadedUrls[fromSlot];
+    uploadedUrls[fromSlot] = uploadedUrls[toSlot];
+    uploadedUrls[toSlot] = tmp;
+    changedSlots = [fromSlot, toSlot];
+  } else {
+    const filledSlots = allSlots.filter(n => uploadedUrls[n]);
+    const movingUrl    = uploadedUrls[fromSlot];
+    const orderedUrls  = filledSlots.filter(n => n !== fromSlot).map(n => uploadedUrls[n]);
+    const insertIndex  = filledSlots.filter(n => n !== fromSlot && n <= toSlot).length;
+    orderedUrls.splice(insertIndex, 0, movingUrl);
+
+    changedSlots = [];
+    allSlots.forEach((n, i) => {
+      const newVal = orderedUrls[i] || null;
+      if (uploadedUrls[n] !== newVal) changedSlots.push(n);
+      uploadedUrls[n] = newVal;
+    });
+  }
+
+  changedSlots.forEach(n => renderSlotImage(n));
+  requestAnimationFrame(() => flipAnimateSlots(changedSlots, rectsBefore, urlBeforeBySlot));
 }
 
 function bindSlot(n) {
@@ -791,6 +893,16 @@ function bindSlot(n) {
     input.click();
   });
 
+  zone.draggable = !!uploadedUrls[n];
+
+  zone.addEventListener('dragstart', (e) => {
+    if (!uploadedUrls[n]) { e.preventDefault(); return; }
+    _dragSrcSlot = n;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(n));
+  });
+  zone.addEventListener('dragend', () => { _dragSrcSlot = null; });
+
   zone.addEventListener('dragover', (e) => {
     e.preventDefault();
     zone.classList.add('drag-over');
@@ -799,6 +911,11 @@ function bindSlot(n) {
   zone.addEventListener('drop', (e) => {
     e.preventDefault();
     zone.classList.remove('drag-over');
+    if (_dragSrcSlot != null) {
+      reorderImages(_dragSrcSlot, n);
+      _dragSrcSlot = null;
+      return;
+    }
     const file = e.dataTransfer.files[0];
     if (file) handleFile(n, file);
   });
@@ -864,8 +981,12 @@ async function uploadVideoToCloudinary(file) {
   return data.secure_url;
 }
 
+function videoUrlId(n) {
+  return n === 1 ? 'product-video-url' : `product-video-url${n}`;
+}
+
 async function handleVideoFile(n, file) {
-  const urlId   = n === 1 ? 'product-video-url' : 'product-video-url2';
+  const urlId   = videoUrlId(n);
   const zone    = document.querySelector(`.ap-video-zone[data-video="${n}"]`);
   const preview = document.getElementById(`video-preview-${n}`);
   const overlay = document.getElementById(`video-overlay-${n}`);
@@ -891,7 +1012,7 @@ async function handleVideoFile(n, file) {
 }
 
 function clearVideoSlot(n) {
-  const urlId   = n === 1 ? 'product-video-url' : 'product-video-url2';
+  const urlId   = videoUrlId(n);
   const zone    = document.querySelector(`.ap-video-zone[data-video="${n}"]`);
   const preview = document.getElementById(`video-preview-${n}`);
   const urlInput = document.getElementById(urlId);
@@ -911,7 +1032,7 @@ function preloadVideoSlot(n, url) {
 }
 
 function bindVideoSlots() {
-  [1, 2].forEach((n) => {
+  [1, 2, 3, 4, 5].forEach((n) => {
     const zone      = document.querySelector(`.ap-video-zone[data-video="${n}"]`);
     const fileInput = document.getElementById(`video-file-${n}`);
     const removeBtn = zone?.querySelector('.ap-remove-btn');
@@ -1223,7 +1344,11 @@ function getVariants() {
 
 function loadVariants(variants) {
   if (!variants || !variants.length) return;
-  const keys = Object.keys(variants[0].attributes || {});
+  // Union of attribute keys across ALL variants — using only variants[0] would
+  // drop an attribute column (e.g. Model) if the first row happened to be missing it.
+  const keySet = new Set();
+  variants.forEach((v) => Object.keys(v.attributes || {}).forEach((k) => keySet.add(k)));
+  const keys = [...keySet];
   const wrap = document.getElementById('attr-names-wrap');
   if (wrap) wrap.innerHTML = '';
   (keys.length ? keys : ['Colour']).forEach(k => addAttrInput(k, false));
@@ -1337,12 +1462,15 @@ function openGenModal() {
       return arrs[0].flatMap(v => combos(arrs.slice(1)).map(r => [v, ...r]));
     }
     const tbody = document.getElementById('variant-rows');
+    const normKey = (v) => String(v || '').trim().toLowerCase();
     const allCombos = combos(arrays);
-    const newKeys = new Set(allCombos.map(c => c.join('\x00')));
+    const newKeys = new Set(allCombos.map(c => c.map(normKey).join('\x00')));
     // Snapshot image/colour/price from existing rows, keyed by first attribute value
+    // (case/whitespace-insensitive so retyping "black" vs "Black" in the modal still inherits)
     const snap = {};
     tbody.querySelectorAll('tr').forEach(row => {
-      const first = row.querySelector('[name="vr-attr"]')?.value.trim();
+      const rawFirst = row.querySelector('[name="vr-attr"]')?.value.trim();
+      const first = normKey(rawFirst);
       if (!first || snap[first]) return;
       snap[first] = {
         image: row.querySelector('[name="vr-image"]')?.value.trim() || '',
@@ -1355,18 +1483,18 @@ function openGenModal() {
     });
     // Remove rows that are not in the new combination set (old colour-only rows)
     Array.from(tbody.querySelectorAll('tr')).forEach(row => {
-      const key = Array.from(row.querySelectorAll('[name="vr-attr"]')).map(i => i.value.trim()).join('\x00');
+      const key = Array.from(row.querySelectorAll('[name="vr-attr"]')).map(i => normKey(i.value)).join('\x00');
       if (!newKeys.has(key)) row.remove();
     });
     // Add missing combinations, inheriting image/colour from matching colour snapshot
     const existingKeys = new Set(
       Array.from(tbody.querySelectorAll('tr')).map(row =>
-        Array.from(row.querySelectorAll('[name="vr-attr"]')).map(i => i.value.trim()).join('\x00')
+        Array.from(row.querySelectorAll('[name="vr-attr"]')).map(i => normKey(i.value)).join('\x00')
       )
     );
     allCombos.forEach(combo => {
-      if (existingKeys.has(combo.join('\x00'))) return;
-      const s = snap[combo[0]] || {};
+      if (existingKeys.has(combo.map(normKey).join('\x00'))) return;
+      const s = snap[normKey(combo[0])] || {};
       addVariantRow({ attrs: combo, image: s.image, color: s.color, price: s.price, stock: s.stock, sku: s.sku, displayMode: s.displayMode });
     });
     overlay.remove();
@@ -1917,6 +2045,12 @@ async function loadProduct() {
     if (p.dimensions?.width)     setVal('product-width',  p.dimensions.width);
     if (p.dimensions?.height)    setVal('product-height', p.dimensions.height);
     if (p.dimensions?.length)    setVal('product-length', p.dimensions.length);
+    if (p.estDeliveryMinDays !== undefined) setVal('product-delivery-min', p.estDeliveryMinDays);
+    if (p.estDeliveryMaxDays !== undefined) setVal('product-delivery-max', p.estDeliveryMaxDays);
+    const freeReturnsCb = document.getElementById('product-free-returns');
+    if (freeReturnsCb) freeReturnsCb.checked = typeof p.freeReturns === 'boolean' ? p.freeReturns : !!p.vendorFreeReturns;
+    setVal('product-supplier', p.supplier);
+    setVal('product-supplier-url', p.supplierUrl);
 
     // Refurbished fields
     if (p.conditionGrade)     { const el = document.getElementById('refurb-condition-grade'); if (el) el.value = p.conditionGrade; }
@@ -1936,6 +2070,9 @@ async function loadProduct() {
     // Video
     if (p.videoUrl)  { setVal('product-video-url',  p.videoUrl);  preloadVideoSlot(1, p.videoUrl);  }
     if (p.videoUrl2) { setVal('product-video-url2', p.videoUrl2); preloadVideoSlot(2, p.videoUrl2); }
+    if (p.videoUrl3) { setVal('product-video-url3', p.videoUrl3); preloadVideoSlot(3, p.videoUrl3); }
+    if (p.videoUrl4) { setVal('product-video-url4', p.videoUrl4); preloadVideoSlot(4, p.videoUrl4); }
+    if (p.videoUrl5) { setVal('product-video-url5', p.videoUrl5); preloadVideoSlot(5, p.videoUrl5); }
 
     // Variants
     if (p.variants && p.variants.length) loadVariants(p.variants);
@@ -2021,12 +2158,20 @@ if (form) {
       allowBackorder:   document.getElementById('allow-backorder')?.checked,
       weight:           numOrNull('product-weight'),
       dimensions,
+      estDeliveryMinDays: numOrNull('product-delivery-min'),
+      estDeliveryMaxDays: numOrNull('product-delivery-max'),
+      freeReturns:      !!document.getElementById('product-free-returns')?.checked,
+      supplier:         val('product-supplier') || '',
+      supplierUrl:      val('product-supplier-url') || '',
       seoTitle:         val('product-seo-title') || undefined,
       seoDescription:   val('product-seo-desc')  || undefined,
       active,
       comingSoon:       !!(document.getElementById('coming-soon')?.checked),
       videoUrl:         val('product-video-url')  || '',
       videoUrl2:        val('product-video-url2') || '',
+      videoUrl3:        val('product-video-url3') || '',
+      videoUrl4:        val('product-video-url4') || '',
+      videoUrl5:        val('product-video-url5') || '',
       variantDisplay:   document.getElementById('vb-color-mode')?.checked !== false ? 'color' : 'image',
       variants:         getVariants(),
       addOns:           getAddOns(),

@@ -154,9 +154,9 @@ function ensureRefundModal() {
   document.body.appendChild(modal);
 }
 
-function openRefundModal(itemId, itemName, maxQty, price) {
+function openRefundModal(itemId, itemName, maxQty, price, postageDeduction) {
   ensureRefundModal();
-  _refundTarget = { itemId, maxQty, price };
+  _refundTarget = { itemId, maxQty, price, postageDeduction: Number(postageDeduction || 0) };
 
   document.getElementById('modalItemName').textContent = itemName;
   document.getElementById('modalMaxQty').textContent   = maxQty;
@@ -175,8 +175,11 @@ function updateModalAmount() {
   const qty = Number(document.getElementById('modalQtyInput')?.value || 0);
   const el  = document.getElementById('modalRefundAmt');
   if (el) {
-    const amt = (qty * _refundTarget.price).toFixed(2);
-    el.textContent = qty > 0 ? `Refund amount: £${amt}` : '';
+    const deduction = _refundTarget.postageDeduction || 0;
+    const amt = Math.max(0, qty * _refundTarget.price - deduction).toFixed(2);
+    el.textContent = qty > 0
+      ? `Refund amount: £${amt}` + (deduction > 0 ? ` (return postage of £${deduction.toFixed(2)} deducted — change of mind, no free returns)` : '')
+      : '';
   }
 }
 
@@ -444,10 +447,24 @@ async function loadOrder() {
         const refundableQty = returnedQty - Number(item.refundedQuantity || 0);
         const showRefund    = canItemRefund(item);
         const returnSt      = item.returnStatus || '';
+        // A refund already scheduled/processed for this item (e.g. via a goodwill
+        // refund) makes approving/rejecting the return moot — grey them out.
+        const alreadyRefunded = ['scheduled', 'processing', 'partially_refunded', 'processed'].includes(item.refundStatus);
 
         const actionBtns = [];
 
-        if (returnSt === 'requested') {
+        if (returnSt === 'requested' && alreadyRefunded) {
+          actionBtns.push(
+            `<button disabled title="Already refunded — approving/rejecting no longer applies"
+              style="padding:3px 8px;background:#e5e7eb;color:#9ca3af;border:none;border-radius:4px;cursor:not-allowed;font-size:0.75rem;margin-right:4px">
+              Approve
+            </button>`,
+            `<button disabled title="Already refunded — approving/rejecting no longer applies"
+              style="padding:3px 8px;background:#e5e7eb;color:#9ca3af;border:none;border-radius:4px;cursor:not-allowed;font-size:0.75rem">
+              Reject
+            </button>`
+          );
+        } else if (returnSt === 'requested') {
           actionBtns.push(
             `<button class="approve-return-btn"
               data-item-id="${item._id}"
@@ -509,11 +526,77 @@ async function loadOrder() {
                 data-item-name="${(item.name || '').replace(/"/g, '&quot;')}"
                 data-max-qty="${refundableQty}"
                 data-price="${price}"
+                data-postage-deduction="${item.returnReasonCategory === 'change_of_mind' && !item.freeReturns ? Number(item.shippingCost || 0) : 0}"
                 style="padding:3px 8px;background:#b91c1c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.75rem;margin-top:2px">
                 Refund
               </button>`
             );
           }
+        }
+
+        // ── Goodwill refund (no return required) ──────────────
+        const maxGoodwill = Math.max(0,
+          price * qty
+          + Number(item.shippingAmount || 0)
+          - Number(item.discountAmount || 0)
+          - Number(item.refundedAmount || 0)
+        );
+        const goodwillEligible = ['paid', 'partially_refunded'].includes(order.paymentStatus)
+          && item.refundStatus === 'none'
+          && item.status !== 'Cancelled'
+          && maxGoodwill > 0;
+
+        if (goodwillEligible) {
+          actionBtns.push(`
+            <div style="margin-top:4px">
+              <button class="btn-show-admin-goodwill-form" data-item-id="${item._id}"
+                style="padding:3px 8px;background:#fff;color:#0b6b6a;border:1px solid #0b6b6a;border-radius:4px;cursor:pointer;font-size:0.75rem">
+                Goodwill Refund
+              </button>
+              <div class="admin-goodwill-form" id="admin-goodwill-form-${item._id}" style="display:none;margin-top:6px;padding:8px;border:1px solid #e5e7eb;border-radius:6px;min-width:220px">
+                <label style="display:block;margin-bottom:4px;font-size:0.75rem">
+                  Amount (max £${maxGoodwill.toFixed(2)}):
+                  <input class="admin-goodwill-amount-inp" type="number" min="0.01" max="${maxGoodwill.toFixed(2)}" step="0.01" value="${maxGoodwill.toFixed(2)}"
+                    style="display:block;width:100%;margin-top:2px;padding:4px;border:1px solid #d1d5db;border-radius:4px;box-sizing:border-box;font-size:0.78rem" />
+                </label>
+                <label style="display:block;margin-bottom:4px;font-size:0.75rem">
+                  Paid by:
+                  <select class="admin-goodwill-paidby-sel" style="display:block;width:100%;margin-top:2px;padding:4px;border:1px solid #d1d5db;border-radius:4px;font-size:0.78rem">
+                    <option value="platform" selected>Sell4Life (platform absorbs cost)</option>
+                    <option value="vendor">Vendor (deducted from their payout)</option>
+                  </select>
+                </label>
+                <label style="display:block;margin-bottom:6px;font-size:0.75rem">
+                  Reason (required):
+                  <input class="admin-goodwill-reason-inp" type="text" placeholder="e.g. goodwill gesture, dispute resolution"
+                    style="display:block;width:100%;margin-top:2px;padding:4px;border:1px solid #d1d5db;border-radius:4px;box-sizing:border-box;font-size:0.78rem" />
+                </label>
+                <p style="font-size:0.7rem;color:#9ca3af;margin:0 0 6px">Scheduled 24h out — cancellable until then. No item return required.</p>
+                <div style="display:flex;gap:6px">
+                  <button class="btn-submit-admin-goodwill" data-item-id="${item._id}" data-max="${maxGoodwill.toFixed(2)}"
+                    style="padding:4px 10px;background:#0b6b6a;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.75rem">
+                    Schedule
+                  </button>
+                  <button class="btn-cancel-admin-goodwill-form" data-item-id="${item._id}"
+                    style="padding:4px 10px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;font-size:0.75rem">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>`);
+        }
+
+        if (item.goodwillRefund && item.refundStatus === 'scheduled') {
+          actionBtns.push(`
+            <div style="margin-top:4px;padding:6px;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;font-size:0.72rem;color:#92400e;min-width:200px">
+              Goodwill £${Number(item.goodwillRefundAmount || 0).toFixed(2)} (${item.goodwillPaidBy || 'vendor'}) scheduled —
+              <strong class="goodwill-countdown" data-time="${item.refundScheduledAt}"></strong>
+              <div style="font-size:0.68rem;color:#a16207;margin-top:2px">Executes ${new Date(item.refundScheduledAt).toLocaleString()}</div>
+              <button class="btn-cancel-admin-goodwill" data-item-id="${item._id}"
+                style="display:block;margin-top:4px;padding:3px 8px;background:#fff;border:1px solid #b91c1c;color:#b91c1c;border-radius:4px;cursor:pointer;font-size:0.72rem">
+                Cancel
+              </button>
+            </div>`);
         }
 
         const itemHistory = Array.isArray(item.returnHistory) && item.returnHistory.length
@@ -522,9 +605,10 @@ async function loadOrder() {
               .join('<br>')
           : '';
 
+        const titleHtml = `<div class="admin-title-wrap"><span class="admin-title">${item.name}</span></div>`;
         const nameCell = itemHistory
-          ? `${item.name}<br><details style="font-size:0.75rem;color:#6b7280;margin-top:4px"><summary style="cursor:pointer">History</summary>${itemHistory}</details>`
-          : item.name;
+          ? `${titleHtml}<details style="font-size:0.75rem;color:#6b7280;margin-top:4px"><summary style="cursor:pointer">History</summary>${itemHistory}</details>`
+          : titleHtml;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -545,6 +629,17 @@ async function loadOrder() {
 
     /* ========= TIMER ========= */
     initRefundTimers();
+    initGoodwillTimers();
+
+    /* ========= SCROLL LONG TITLES — same pattern as cart/checkout ========= */
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.admin-title-wrap').forEach((wrap) => {
+        const span = wrap.querySelector('.admin-title');
+        if (span && span.scrollWidth > wrap.offsetWidth + 2) {
+          span.classList.add('scrollable');
+        }
+      });
+    });
   } catch (err) {
     console.error(err);
     result.textContent = 'Failed to load order';
@@ -576,6 +671,36 @@ function initRefundTimers() {
 
   update();
   setInterval(update, 1000);
+}
+
+/* ======================================================
+   GOODWILL REFUND COUNTDOWNS (one per scheduled item)
+====================================================== */
+let goodwillTimerInterval;
+
+function initGoodwillTimers() {
+  const els = document.querySelectorAll('.goodwill-countdown');
+  if (!els.length) {
+    if (goodwillTimerInterval) clearInterval(goodwillTimerInterval);
+    return;
+  }
+
+  function update() {
+    const now = Date.now();
+    els.forEach((el) => {
+      const target = new Date(el.dataset.time).getTime();
+      const diff = target - now;
+      if (diff <= 0) { el.textContent = 'Processing…'; return; }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      el.textContent = `${h}h ${m}m ${s}s`;
+    });
+  }
+
+  update();
+  if (goodwillTimerInterval) clearInterval(goodwillTimerInterval);
+  goodwillTimerInterval = setInterval(update, 1000);
 }
 
 /* ================================
@@ -642,6 +767,91 @@ document.addEventListener('click', async (e) => {
     return;
   }
 
+  /* --- Goodwill refund: show/hide form --- */
+  const showGoodwillBtn = e.target.closest('.btn-show-admin-goodwill-form');
+  if (showGoodwillBtn) {
+    const form = document.getElementById(`admin-goodwill-form-${showGoodwillBtn.dataset.itemId}`);
+    if (form) form.style.display = 'block';
+    return;
+  }
+  const cancelGoodwillFormBtn = e.target.closest('.btn-cancel-admin-goodwill-form');
+  if (cancelGoodwillFormBtn) {
+    const form = document.getElementById(`admin-goodwill-form-${cancelGoodwillFormBtn.dataset.itemId}`);
+    if (form) form.style.display = 'none';
+    return;
+  }
+
+  /* --- Goodwill refund: submit --- */
+  const submitGoodwillBtn = e.target.closest('.btn-submit-admin-goodwill');
+  if (submitGoodwillBtn) {
+    const itemId = submitGoodwillBtn.dataset.itemId;
+    const max    = Number(submitGoodwillBtn.dataset.max || 0);
+    const form   = document.getElementById(`admin-goodwill-form-${itemId}`);
+    const amount = Number(form?.querySelector('.admin-goodwill-amount-inp')?.value);
+    const paidBy = form?.querySelector('.admin-goodwill-paidby-sel')?.value || 'platform';
+    const reason = form?.querySelector('.admin-goodwill-reason-inp')?.value.trim();
+
+    if (!Number.isFinite(amount) || amount <= 0 || amount > max + 0.001) {
+      await showAlert(`Enter an amount between £0.01 and £${max.toFixed(2)}`);
+      return;
+    }
+    if (!reason) {
+      await showAlert('Please explain the reason for this goodwill refund');
+      return;
+    }
+
+    const payerLabel = paidBy === 'vendor' ? "the vendor's payout" : 'Sell4Life (the platform)';
+    const confirmed = await showConfirm(`Schedule a £${amount.toFixed(2)} goodwill refund, paid by ${payerLabel}? No item return required. Executes in 24h unless cancelled.`);
+    if (!confirmed) return;
+
+    submitGoodwillBtn.disabled = true;
+    submitGoodwillBtn.textContent = '...';
+
+    try {
+      const res = await authFetch(`${API_BASE}/admin/orders/${orderId}/items/${itemId}/goodwill-refund`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ amount, reason, paidBy }),
+      });
+      const data = await res.json();
+      if (!res.ok) { await showAlert(data.error || 'Failed to schedule goodwill refund'); return; }
+      loadOrder();
+    } catch (err) {
+      await showAlert('Something went wrong');
+    } finally {
+      submitGoodwillBtn.disabled = false;
+      submitGoodwillBtn.textContent = 'Schedule';
+    }
+    return;
+  }
+
+  /* --- Goodwill refund: cancel scheduled --- */
+  const cancelGoodwillBtn = e.target.closest('.btn-cancel-admin-goodwill');
+  if (cancelGoodwillBtn) {
+    const itemId = cancelGoodwillBtn.dataset.itemId;
+
+    const confirmed = await showConfirm('Cancel this scheduled goodwill refund?');
+    if (!confirmed) return;
+
+    cancelGoodwillBtn.disabled = true;
+    cancelGoodwillBtn.textContent = '...';
+
+    try {
+      const res = await authFetch(`${API_BASE}/admin/orders/${orderId}/items/${itemId}/goodwill-refund/cancel`, {
+        method: 'PATCH',
+      });
+      const data = await res.json();
+      if (!res.ok) { await showAlert(data.error || 'Failed to cancel'); return; }
+      loadOrder();
+    } catch (err) {
+      await showAlert('Something went wrong');
+    } finally {
+      cancelGoodwillBtn.disabled = false;
+      cancelGoodwillBtn.textContent = 'Cancel';
+    }
+    return;
+  }
+
   /* --- Open refund modal --- */
   const refundItemBtn = e.target.closest('.refund-item-btn');
   if (refundItemBtn) {
@@ -650,6 +860,7 @@ document.addEventListener('click', async (e) => {
       refundItemBtn.dataset.itemName,
       Number(refundItemBtn.dataset.maxQty),
       Number(refundItemBtn.dataset.price),
+      Number(refundItemBtn.dataset.postageDeduction),
     );
     return;
   }
@@ -783,6 +994,9 @@ if (cancelRefundBtn) {
   });
 }
 
-startLiveUpdates(() => {
-  loadOrder();
-});
+// Disabled for now — 20s auto-refresh was causing the page to flash/reset
+// every cycle, especially noticeable when the backend is slow. Re-enable by
+// uncommenting once backend speed is no longer an issue.
+// startLiveUpdates(() => {
+//   loadOrder();
+// });

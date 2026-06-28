@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>HMRC Reports | Admin</title>
+    <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png" />
+    <link rel="stylesheet" href="/assets/css/admin.css?v=20260625e" />
+    <style>
+      #logoutBtn { padding: 5px 10px; font-size: 12px; font-weight: 500; }
+
+      .hmrc-body {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 20px 60px;
+      }
+
+      .hmrc-toolbar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 14px 0 8px;
+        flex-wrap: wrap;
+      }
+      .hmrc-toolbar label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #374151;
+      }
+      .hmrc-year-select {
+        padding: 5px 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 13px;
+        background: #fff;
+        cursor: pointer;
+      }
+      .btn-export {
+        padding: 6px 16px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        background: #fff;
+        font-size: 13px;
+        cursor: pointer;
+        margin-left: auto;
+      }
+      .btn-export:hover { border-color: #0b6b6a; color: #0b6b6a; }
+
+      .hmrc-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 12px;
+        margin: 14px 0 20px;
+      }
+      .hmrc-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 14px 18px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.05);
+      }
+      .hmrc-card-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: #6b7280;
+        margin-bottom: 6px;
+      }
+      .hmrc-card-value {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #111827;
+        line-height: 1.1;
+      }
+      .hmrc-card-value.green  { color: #15803d; }
+      .hmrc-card-value.red    { color: #b91c1c; }
+      .hmrc-card-value.amber  { color: #b45309; }
+
+      .hmrc-section-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #374151;
+        margin: 0 0 10px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .hmrc-table-wrap { overflow-x: auto; }
+      .hmrc-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        min-width: 700px;
+      }
+      .hmrc-table th {
+        text-align: left;
+        padding: 8px 10px;
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #6b7280;
+        white-space: nowrap;
+      }
+      .hmrc-table td {
+        padding: 9px 10px;
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: middle;
+      }
+      .hmrc-table tr:last-child td { border-bottom: none; }
+      .hmrc-table tr:hover td { background: #f9fafb; }
+      .hmrc-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+      .status-badge {
+        display: inline-block;
+        padding: 2px 9px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .status-badge.completed   { background: #dcfce7; color: #166534; }
+      .status-badge.incomplete  { background: #fee2e2; color: #991b1b; }
+
+      .hmrc-empty { color: #9ca3af; text-align: center; padding: 30px; font-size: 14px; }
+      .hmrc-note  { font-size: 12px; color: #6b7280; margin: 6px 0 0; }
+    </style>
+  </head>
+
+  <body class="admin">
+
+    <div class="admin-sticky">
+      <div class="admin-top">
+        <header class="admin-header">
+          <a href="/index.html" class="admin-logo">
+            <span class="logo-dollar">$</span>
+            <span class="logo-text">ell</span>
+            <span class="logo-four">4</span>
+            <span class="logo-text">Life</span>
+          </a>
+        </header>
+        <div class="admin-title">
+          <a href="/account/admin/index.html" class="admin-back">← dashboard</a>
+          <h1>HMRC Reports</h1>
+        </div>
+        <button id="logoutBtn">Log out</button>
+      </div>
+    </div>
+
+    <div class="hmrc-body">
+
+      <div class="hmrc-toolbar">
+        <label for="hmrc-year">Year</label>
+        <select id="hmrc-year" class="hmrc-year-select"></select>
+        <button type="button" class="btn-export" id="btn-export-csv">Export CSV</button>
+      </div>
+      <p class="hmrc-note">CSV export includes decrypted tax information and is logged. Use only for HMRC submission.</p>
+
+      <div class="hmrc-summary" id="hmrc-summary">
+        <div class="hmrc-empty">Loading…</div>
+      </div>
+
+      <div class="hmrc-section-title">Vendors Crossing Reporting Threshold</div>
+
+      <div class="hmrc-table-wrap">
+        <table class="hmrc-table">
+          <thead>
+            <tr>
+              <th>Store</th>
+              <th>Email</th>
+              <th class="hmrc-num">Transactions</th>
+              <th class="hmrc-num">Gross Payout</th>
+              <th>Tax Info</th>
+              <th>Submitted On</th>
+              <th>Masked ID</th>
+              <th>ID Type</th>
+            </tr>
+          </thead>
+          <tbody id="hmrc-tbody">
+            <tr><td colspan="8" class="hmrc-empty">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <script src="/assets/js/config-global.js"></script>
+    <script src="/assets/js/require-admin.js"></script>
+    <script type="module" src="/assets/js/admin-hmrc-reports.js?v=20260626"></script>
+    <script type="module" src="/assets/js/admin-logout.js?v=20260621"></script>
+  </body>
+</html>

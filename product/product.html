@@ -12,8 +12,9 @@
   <link rel="stylesheet" href="/assets/css/layout.css" />
   <link rel="stylesheet" href="/assets/css/product.css" />
   <link rel="stylesheet" href="/assets/css/gallery-slider.css" />
-  <link rel="stylesheet" href="/assets/css/quick-add.css" />
-  <link rel="stylesheet" href="/assets/css/reviews.css" />
+  <link rel="stylesheet" href="/assets/css/quick-add.css?v=20260622b" />
+  <link rel="stylesheet" href="/assets/css/reviews.css?v=20260622b" />
+  <link rel="stylesheet" href="/assets/css/messages.css?v=20260623" />
     <style id="s4l-fouc">html{visibility:hidden}</style>
   </head>
 <body class="s4l-loading">
@@ -55,6 +56,15 @@
         <span class="pd-stock-badge" id="pd-stock-badge"></span>
       </div>
       <p class="pd-shipping-note" id="pd-shipping-note"></p>
+      <p class="pd-delivery-estimate" id="pd-delivery-estimate"></p>
+
+      <!-- Delivery & Returns info — postage line depends on the seller's free-returns setting -->
+      <div class="pd-returns-info">
+        <p class="pd-returns-item pd-returns-good">&#10003; Free delivery included.</p>
+        <p class="pd-returns-item pd-returns-good">&#10003; 14-day returns available.</p>
+        <p class="pd-returns-item" id="pd-returns-postage-note">For change-of-mind returns, return postage may be paid by the buyer.</p>
+        <p class="pd-returns-item">Faulty, damaged, incorrect or misdescribed items are covered by our <a href="/returns-refunds.html">Returns &amp; Refunds Policy</a>.</p>
+      </div>
 
       <!-- Variants (hidden until product loads) -->
       <div class="pd-divider" id="pd-divider-variants" style="display:none"></div>
@@ -63,20 +73,6 @@
       <!-- Add-ons (hidden until product loads) -->
       <div class="pd-divider" id="pd-divider-addons" style="display:none"></div>
       <div id="pd-addons"></div>
-
-      <div class="pd-divider"></div>
-
-      <!-- Short description (tagline) -->
-      <p class="product-short-desc" id="pd-short-desc"></p>
-
-      <!-- Bullet points -->
-      <div id="pd-bullets"></div>
-
-      <!-- Full description with read more -->
-      <div class="pd-desc-wrap" id="pd-desc-wrap">
-        <p class="product-desc"></p>
-        <button type="button" class="pd-read-more" id="pd-read-more">Read more ▾</button>
-      </div>
 
       <div class="pd-divider" id="pd-divider-before-seller"></div>
 
@@ -93,7 +89,26 @@
         </div>
       </div>
 
+      <!-- Ask Seller button (shown by product.js when vendor is known) -->
+      <button type="button" class="ask-seller-btn" id="pd-ask-seller">
+        &#9993; Ask Seller
+      </button>
+
       <div class="pd-divider" id="pd-divider-after-seller"></div>
+
+      <!-- Ask Seller modal -->
+      <div class="ask-modal-backdrop" id="ask-modal-backdrop">
+        <div class="ask-modal">
+          <h3>Ask the Seller</h3>
+          <p id="ask-modal-product-name"></p>
+          <textarea id="ask-modal-body" placeholder="Type your question…" maxlength="2000"></textarea>
+          <div class="ask-modal-msg" id="ask-modal-msg"></div>
+          <div class="ask-modal-actions">
+            <button type="button" class="ask-modal-cancel" id="ask-modal-cancel">Cancel</button>
+            <button type="button" class="ask-modal-submit" id="ask-modal-submit">Send</button>
+          </div>
+        </div>
+      </div>
 
       <!-- Quantity stepper -->
       <div class="pd-qty-wrap">
@@ -109,6 +124,20 @@
       <div class="product-actions">
         <button type="button" class="btn-add">Add to Basket</button>
         <button type="button" class="btn-buy">Buy Now</button>
+      </div>
+
+      <div class="pd-divider"></div>
+
+      <!-- Short description (tagline) -->
+      <p class="product-short-desc" id="pd-short-desc"></p>
+
+      <!-- Bullet points -->
+      <div id="pd-bullets"></div>
+
+      <!-- Full description with read more -->
+      <div class="pd-desc-wrap" id="pd-desc-wrap">
+        <p class="product-desc"></p>
+        <button type="button" class="pd-read-more" id="pd-read-more">Read more ▾</button>
       </div>
 
     </div>
@@ -128,8 +157,9 @@
 
   <script>
     window.__pageScripts = [
+      "/assets/js/shipping-label.js",
       "/assets/js/gallery-slider.js",
-      "/assets/js/product.js?v=20260614"
+      "/assets/js/product.js?v=20260623"
     ];
   </script>
 

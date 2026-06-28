@@ -33,7 +33,8 @@ async function loadCategories() {
     container.innerHTML = categories.map(cat => `
       <a href="/shop/?category=${cat.id}" class="home-cat-item">
         <div class="home-cat-icon">
-          <img src="${cat.image}" alt="${cat.name}" loading="lazy" />
+          <img src="${cat.image}" alt="${cat.name}" loading="lazy"
+            onerror="this.onerror=null;this.src='/assets/images/products/sell4life-placeholder.png'" />
         </div>
         <span class="home-cat-label">${cat.name}</span>
       </a>`
@@ -154,49 +155,9 @@ async function loadFeaturedProducts() {
     return;
   }
 
-  window._qaProducts = window._qaProducts || {};
-
-  container.innerHTML = featured.map(p => {
-    const id    = p._id || p.id;
-    const price = Number(p.price || 0).toFixed(2);
-    const raw   = p.images?.[0] || '';
-    const img   = raw
-      ? (raw.startsWith('http') ? raw : `/assets/images/products/${raw}`)
-      : '/assets/images/products/sell4life-placeholder.png';
-
-    window._qaProducts[id] = p;
-
-    const basketBtn = p.comingSoon ? '' : `
-      <button class="sp-quick-add-btn" data-id="${id}" title="Add to basket">
-        <svg width="21" height="24" viewBox="0 0 24 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M7 13C7 5 17 5 17 13"/>
-          <path d="M1 12H23V23Q23 27 19 27H5Q1 27 1 23V12Z"/>
-        </svg>
-        <span class="sp-qa-clr" title="Remove from basket">CLR</span>
-      </button>`;
-
-    return `
-      <div class="sp-card-wrap${p.comingSoon ? ' sp-card-wrap-soon' : ''}">
-        <a href="/product/product.html?id=${id}" class="product-card">
-          <div class="fp-img-wrap">
-            <img src="${img}" alt="${p.name}" loading="lazy"
-              onerror="this.src='/assets/images/products/sell4life-placeholder.png'" />
-            ${p.comingSoon ? '<div class="sp-coming-soon-badge">🕐 Coming Soon</div>' : ''}
-          </div>
-          <h3>${p.name}</h3>
-          ${_rvCfg.reviewsEnabled && (p.reviewCount || 0) >= _rvCfg.reviewsMinCount && p.avgRating
-            ? `<div class="sp-stars-row">${window.s4lStarsHTML ? window.s4lStarsHTML(p.avgRating, 11) : ''}
-               <span class="s4l-stars-count">(${p.reviewCount})</span></div>`
-            : ''}
-        </a>
-        <div class="sp-card-footer">
-          <div class="sp-price-row">
-            <span class="sp-price">£${price}</span>
-          </div>
-          ${basketBtn}
-        </div>
-      </div>`;
-  }).join('');
+  container.innerHTML = featured
+    .map(p => window.s4lProductCardHTML(p, { reviewsConfig: _rvCfg, showBasketButton: true }))
+    .join('');
   window.s4l_markOwnListings?.();
 }
 

@@ -87,9 +87,22 @@ function render(data, wrap) {
        </p>`
     : '';
 
+  const hmrcBlocked = data.reportingStatus === 'required' && !data.taxInfoCompletedAt;
+
   const requestSection = data.hasPendingRequest
     ? `<div class="payout-pending-note">
         You have a payout request pending. Once processed by admin it will appear in the history below.
+       </div>`
+    : hmrcBlocked
+    ? `<div class="payout-request-box">
+        <h3>Request a Payout</h3>
+        <div style="background:#fef2f2;border-left:4px solid #ef4444;border-radius:6px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#991b1b">
+          <strong>Payout requests are paused.</strong> Your store has crossed the HMRC reporting threshold and you must submit your tax information before requesting a payout.
+          <a href="/account/vendor/settings.html" style="display:block;margin-top:6px;color:#7f1d1d;font-weight:600;text-decoration:underline">Submit tax information in Settings →</a>
+        </div>
+        <button type="button" class="payout-request-btn" disabled title="Submit your tax information to unlock payouts">
+          Request ${fmt(b.pendingBalance)}
+        </button>
        </div>`
     : `<div class="payout-request-box">
         <h3>Request a Payout</h3>

@@ -158,7 +158,8 @@ function buildVendorPanel(v) {
           <div><strong>Orders:</strong> ${v.orders || 0}</div>
           <div><strong>Gross:</strong> £${(v.grossRevenue || 0).toFixed(2)}</div>
           <div><strong>Refunds:</strong> £${(v.refunds || 0).toFixed(2)}</div>
-          <div><strong>Commission (${Math.round((v.commissionRate || 0.08) * 100)}%):</strong> <span style="color:#1d4ed8;font-weight:600">£${Number(v.commission || 0).toFixed(2)}</span></div>
+          <div><strong>Commission:</strong> <span style="color:#1d4ed8;font-weight:600">£${Number(v.commission || 0).toFixed(2)}</span></div>
+          <div><strong>Current rate:</strong> <span style="color:#6b7280;font-weight:600">${Math.round((v.commissionRate || 0.08) * 100)}%</span> <span style="font-size:0.72rem;color:#9ca3af">applies to new orders</span></div>
           <div><strong>Net to Vendor:</strong> £${Number(v.netAfterCommission || 0).toFixed(2)}</div>
           <div><strong>VAT:</strong> ${v.vatRegistered ? `Registered${v.vatNumber ? ` · <code style="font-size:0.78rem">${v.vatNumber}</code>` : ''}` : 'Not registered'}</div>
         </div>

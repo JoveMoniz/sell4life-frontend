@@ -35,22 +35,21 @@
 }
 
 /* ── Card star row ──────────────────────────────────────── */
-.sp-stars-row,
-.cp-stars-row {
+.sp-stars-row {
   display: flex;
   align-items: center;
   gap: 4px;
   margin: 2px 0 4px;
 }
 
-.sp-stars-row .s4l-star,
-.cp-stars-row .s4l-star {
+.sp-stars-row .s4l-star {
   font-size: 11px;
 }
 
-.sp-stars-row .s4l-stars-count,
-.cp-stars-row .s4l-stars-count {
+.sp-stars-row .s4l-stars-count {
   font-size: 11px;
+  color: #0b6b6a;
+  font-weight: 600;
 }
 
 /* ── Product page — rating summary row ──────────────────── */
@@ -386,6 +385,30 @@
   font-size: 14px;
   padding: 24px 0;
 }
+
+/* ── "Your Review" card on product page ─────────────────── */
+.rv-my-review {
+  background: #f0faf9;
+  border: 1px solid #a7d9d8;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+
+.rv-my-review-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.rv-my-review-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0b6b6a;
+}
+
+.rv-my-review-stars { margin-bottom: 6px; }
 
 /* ── Admin reviews page ─────────────────────────────────── */
 .arv-header {

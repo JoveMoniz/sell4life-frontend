@@ -8,6 +8,7 @@ const _isPro = (TIER_RANK_VP[localStorage.getItem('s4l_vendorType')] || 1) >= 3;
 
 let _allProducts = [];
 let _archivedProducts = [];
+let _trashedProducts = [];
 let _currentView = 'grid';
 let _currentStatus = 'all';
 let _currentSort = 'newest';
@@ -47,6 +48,18 @@ function stockMeta(stock) {
   return { cls: '', label: `Stock: ${stock}` };
 }
 
+function moveTargets(p) {
+  if (p.archived) return [{ status: 'active', label: 'Activate' }, { status: 'draft', label: 'Draft' }];
+  if (p.active === false) return [{ status: 'active', label: 'Activate' }, { status: 'archived', label: 'Archive' }];
+  return [{ status: 'draft', label: 'Draft' }, { status: 'archived', label: 'Archive' }];
+}
+
+function renderHoverActions(p) {
+  return `<div class="vp-hover-actions">
+    ${moveTargets(p).map(t => `<button type="button" class="vp-hover-action-btn" data-target="${t.status}">${t.label}</button>`).join('')}
+  </div>`;
+}
+
 /* ── Render: grid card ───────────────────────────── */
 
 function renderCard(p) {
@@ -57,14 +70,16 @@ function renderCard(p) {
   const sel = _selected.has(id);
 
   return `
-    <div class="vendor-product-card${sel ? ' vp-selected' : ''}" data-id="${id}">
+    <div class="vendor-product-card${sel ? ' vp-selected' : ''}" data-id="${id}" draggable="true">
+      ${renderHoverActions(p)}
       <label class="vp-select-wrap" title="Select">
         <input type="checkbox" class="vp-select-cb" data-id="${id}"${sel ? ' checked' : ''} />
       </label>
       <div class="vp-img-wrap">
-        <img src="${getImage(p)}" alt="${p.name || 'product'}" loading="lazy" />
+        <img src="${getImage(p)}" alt="${p.name || 'product'}" loading="lazy" draggable="false" />
         <span class="vp-badge ${active ? 'vp-badge-active' : 'vp-badge-draft'}">${active ? 'Active' : 'Draft'}</span>
         ${p.comingSoon ? '<span class="vp-badge vp-badge-coming-soon">🕐 Coming Soon</span>' : ''}
+        ${p.supplierUrl ? `<a href="${p.supplierUrl}" target="_blank" rel="noopener" class="vp-supplier-link" title="Open supplier listing" draggable="false">🔗</a>` : ''}
       </div>
 
       <div class="vp-card-body">
@@ -81,8 +96,8 @@ function renderCard(p) {
       </div>
 
       <div class="vendor-product-actions">
-        <a href="/account/vendor/edit-product.html?id=${id}" class="btn-edit">Edit</a>
-        <a href="/product/product.html?id=${id}" class="btn-view-store" target="_blank" rel="noopener">View</a>
+        <a href="/account/vendor/edit-product.html?id=${id}" class="btn-edit" draggable="false">Edit</a>
+        <a href="/product/product.html?id=${id}" class="btn-view-store" target="_blank" rel="noopener" draggable="false">View</a>
         ${_isPro ? `<button class="btn-duplicate" data-id="${id}" title="Duplicate as draft">Copy</button>` : ''}
         ${p.archived
           ? `<button class="btn-unarchive" data-id="${id}">Unarchive</button>`
@@ -104,11 +119,13 @@ function renderListRow(p) {
   const sel = _selected.has(id);
 
   return `
-    <div class="vp-list-row${sel ? ' vp-selected' : ''}" data-id="${id}">
+    <div class="vp-list-row${sel ? ' vp-selected' : ''}" data-id="${id}" draggable="true">
+      ${renderHoverActions(p)}
       <label class="vp-select-wrap vp-select-wrap-list" title="Select">
         <input type="checkbox" class="vp-select-cb" data-id="${id}"${sel ? ' checked' : ''} />
       </label>
-      <img src="${getImage(p)}" alt="${p.name || 'product'}" class="vp-list-img" loading="lazy" />
+      <img src="${getImage(p)}" alt="${p.name || 'product'}" class="vp-list-img" loading="lazy" draggable="false" />
+      ${p.supplierUrl ? `<a href="${p.supplierUrl}" target="_blank" rel="noopener" class="vp-supplier-link vp-supplier-link-list" title="Open supplier listing" draggable="false">🔗</a>` : ''}
 
       <div class="vp-list-info">
         <div class="vp-list-name">${p.name || 'Unnamed product'}</div>
@@ -127,14 +144,83 @@ function renderListRow(p) {
       <div class="stock ${cls}">${label}</div>
 
       <div class="vp-list-actions">
-        <a href="/account/vendor/edit-product.html?id=${id}" class="btn-edit">Edit</a>
-        <a href="/product/product.html?id=${id}" class="btn-view-store" target="_blank" rel="noopener">View</a>
+        <a href="/account/vendor/edit-product.html?id=${id}" class="btn-edit" draggable="false">Edit</a>
+        <a href="/product/product.html?id=${id}" class="btn-view-store" target="_blank" rel="noopener" draggable="false">View</a>
         ${_isPro ? `<button class="btn-duplicate" data-id="${id}" title="Duplicate as draft">Copy</button>` : ''}
         ${p.archived
           ? `<button class="btn-unarchive" data-id="${id}">Unarchive</button>`
           : `<button class="btn-coming-soon-toggle${p.comingSoon ? ' is-coming-soon' : ''}" data-id="${id}" title="${p.comingSoon ? 'Disable Coming Soon' : 'Enable Coming Soon'}">🕐 ${p.comingSoon ? 'Unblock' : 'Coming Soon'}</button>
         <button class="btn-archive" data-id="${id}">Archive</button>`}
         <button class="btn-delete" data-id="${id}">Delete</button>
+      </div>
+    </div>
+  `;
+}
+
+/* ── Render: trash (grid + list) ──────────────────── */
+
+function deletedDateLabel(p) {
+  if (!p.deletedAt) return '';
+  return new Date(p.deletedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function renderTrashCard(p) {
+  const id  = p._id || p.id;
+  const sel = _selected.has(id);
+
+  return `
+    <div class="vendor-product-card vp-trashed${sel ? ' vp-selected' : ''}" data-id="${id}">
+      <label class="vp-select-wrap" title="Select">
+        <input type="checkbox" class="vp-select-cb" data-id="${id}"${sel ? ' checked' : ''} />
+      </label>
+      <div class="vp-img-wrap">
+        <img src="${getImage(p)}" alt="${p.name || 'product'}" loading="lazy" />
+        <span class="vp-badge vp-badge-trash">Deleted ${deletedDateLabel(p)}</span>
+      </div>
+
+      <div class="vp-card-body">
+        <h3 class="vp-name">${p.name || 'Unnamed product'}</h3>
+        ${p.category ? `<div class="product-cat">${fmt(p.category)}${p.subcategory ? ' / ' + fmt(p.subcategory) : ''}</div>` : ''}
+        <div class="vp-price-row">
+          <span class="price">£${Number(p.price || 0).toFixed(2)}</span>
+        </div>
+      </div>
+
+      <div class="vendor-product-actions">
+        <button class="btn-restore" data-id="${id}">Restore</button>
+        <button class="btn-delete-forever" data-id="${id}">Delete Forever</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderTrashListRow(p) {
+  const id  = p._id || p.id;
+  const sel = _selected.has(id);
+
+  return `
+    <div class="vp-list-row vp-trashed${sel ? ' vp-selected' : ''}" data-id="${id}">
+      <label class="vp-select-wrap vp-select-wrap-list" title="Select">
+        <input type="checkbox" class="vp-select-cb" data-id="${id}"${sel ? ' checked' : ''} />
+      </label>
+      <img src="${getImage(p)}" alt="${p.name || 'product'}" class="vp-list-img" loading="lazy" />
+
+      <div class="vp-list-info">
+        <div class="vp-list-name">${p.name || 'Unnamed product'}</div>
+        <div class="product-cat">Deleted ${deletedDateLabel(p)}</div>
+      </div>
+
+      <span class="vp-badge vp-badge-trash">Trash</span>
+
+      <div class="vp-list-price">
+        <span class="price">£${Number(p.price || 0).toFixed(2)}</span>
+      </div>
+
+      <div class="stock"></div>
+
+      <div class="vp-list-actions">
+        <button class="btn-restore" data-id="${id}">Restore</button>
+        <button class="btn-delete-forever" data-id="${id}">Delete Forever</button>
       </div>
     </div>
   `;
@@ -160,16 +246,30 @@ function renderProducts() {
   const container = document.getElementById('vendor-products');
   if (!container) return;
 
-  // Toggle bulk bar buttons for archived mode
-  const bulkArchive   = document.getElementById('btn-bulk-archive');
-  const bulkUnarchive = document.getElementById('btn-bulk-unarchive');
   const isArchiveMode = _currentStatus === 'archived';
-  if (bulkArchive)   bulkArchive.hidden   = isArchiveMode;
-  if (bulkUnarchive) bulkUnarchive.hidden = !isArchiveMode;
+  const isTrashMode   = _currentStatus === 'trash';
 
-  let items = isArchiveMode ? [..._archivedProducts] : [..._allProducts];
+  // Toggle bulk bar buttons depending on the active tab
+  const bulkPrice      = document.getElementById('btn-bulk-price');
+  const bulkStock      = document.getElementById('btn-bulk-stock');
+  const bulkComingSoon = document.getElementById('btn-bulk-coming-soon');
+  const bulkArchive    = document.getElementById('btn-bulk-archive');
+  const bulkUnarchive  = document.getElementById('btn-bulk-unarchive');
+  const bulkDelete     = document.getElementById('btn-bulk-delete');
+  const bulkRestoreTr  = document.getElementById('btn-bulk-restore-trash');
+  const bulkEmptyTrash = document.getElementById('btn-bulk-empty-trash');
+  if (bulkPrice)      bulkPrice.hidden      = isTrashMode;
+  if (bulkStock)      bulkStock.hidden      = isTrashMode;
+  if (bulkComingSoon) bulkComingSoon.hidden = isArchiveMode || isTrashMode;
+  if (bulkArchive)   bulkArchive.hidden   = isArchiveMode || isTrashMode;
+  if (bulkUnarchive) bulkUnarchive.hidden = !isArchiveMode || isTrashMode;
+  if (bulkDelete)    bulkDelete.hidden    = isTrashMode;
+  if (bulkRestoreTr)  bulkRestoreTr.hidden  = !isTrashMode;
+  if (bulkEmptyTrash) bulkEmptyTrash.hidden = !isTrashMode;
 
-  if (!isArchiveMode && _currentStatus !== 'all') {
+  let items = isTrashMode ? [..._trashedProducts] : isArchiveMode ? [..._archivedProducts] : [..._allProducts];
+
+  if (!isArchiveMode && !isTrashMode && _currentStatus !== 'all') {
     const want = _currentStatus === 'active';
     items = items.filter(p => (p.active !== false) === want);
   }
@@ -202,6 +302,11 @@ function renderProducts() {
   if (!items.length) {
     container.className = 'vendor-products-grid';
 
+    if (isTrashMode) {
+      container.innerHTML = `<div class="vp-empty"><p>Trash is empty.</p></div>`;
+      return;
+    }
+
     if (isArchiveMode) {
       container.innerHTML = `
         <div class="vp-empty">
@@ -233,7 +338,11 @@ function renderProducts() {
   }
 
   container.className = `vendor-products-grid${_currentView === 'list' ? ' vp-list' : ''}`;
-  container.innerHTML = (_currentView === 'list' ? items.map(renderListRow) : items.map(renderCard)).join('');
+  if (isTrashMode) {
+    container.innerHTML = (_currentView === 'list' ? items.map(renderTrashListRow) : items.map(renderTrashCard)).join('');
+  } else {
+    container.innerHTML = (_currentView === 'list' ? items.map(renderListRow) : items.map(renderCard)).join('');
+  }
 }
 
 /* ── Toolbar wiring ──────────────────────────────── */
@@ -248,12 +357,13 @@ function bindToolbar() {
   }
 
   document.querySelectorAll('.vp-filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       document.querySelectorAll('.vp-filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       _currentStatus = btn.dataset.status;
       _selected.clear();
       updateBulkBar();
+      if (_currentStatus === 'trash') await fetchTrash();
       renderProducts();
     });
   });
@@ -274,6 +384,263 @@ function bindToolbar() {
       renderProducts();
     });
   });
+
+  bindDropZones();
+}
+
+/* ── Trash ─────────────────────────────────────────── */
+
+async function fetchTrash() {
+  const token = localStorage.getItem('s4l_token');
+  if (!token) return;
+  try {
+    const res = await fetch(`${window.API_BASE}/vendor/products?trashed=true`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error();
+    _trashedProducts = await res.json();
+  } catch {
+    window.showToast?.('Could not load Trash', 'error');
+  }
+}
+
+// Lighter than loadVendorProducts() — re-syncs Active/Draft/Archived lists
+// after a restore without re-binding toolbar listeners or flashing the skeleton.
+async function refreshMainLists() {
+  const token = localStorage.getItem('s4l_token');
+  if (!token) return;
+  try {
+    const res = await fetch(`${window.API_BASE}/vendor/products`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error();
+    const all = await res.json();
+    _allProducts = all.filter(p => !p.archived);
+
+    const apiArchived = all.filter(p => p.archived);
+    const cached       = _loadArchivedCache();
+    const merged       = new Map();
+    cached.forEach(p    => merged.set(p._id || p.id, p));
+    apiArchived.forEach(p => merged.set(p._id || p.id, p));
+    const activeIds = new Set(_allProducts.map(p => p._id || p.id));
+    _archivedProducts = [...merged.values()].filter(p => !activeIds.has(p._id || p.id));
+    _saveArchivedCache();
+  } catch {}
+}
+
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.btn-restore');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const token = localStorage.getItem('s4l_token');
+  if (!token) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Restoring…';
+
+  try {
+    const res = await fetch(`${window.API_BASE}/products/${id}/restore`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error();
+    _trashedProducts = _trashedProducts.filter(p => (p._id || p.id) !== id);
+    await refreshMainLists();
+    renderProducts();
+    window.showToast?.('Product restored');
+  } catch {
+    btn.disabled = false;
+    btn.textContent = 'Restore';
+    window.showToast?.('Restore failed', 'error');
+  }
+});
+
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.btn-delete-forever');
+  if (!btn) return;
+  const id = btn.dataset.id;
+
+  const confirmed = await window.confirmAction?.('Permanently delete this product? This cannot be undone.');
+  if (!confirmed) return;
+
+  const token = localStorage.getItem('s4l_token');
+  if (!token) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Deleting…';
+
+  try {
+    const res = await fetch(`${window.API_BASE}/products/${id}/permanent`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Delete failed');
+    _trashedProducts = _trashedProducts.filter(p => (p._id || p.id) !== id);
+    renderProducts();
+    window.showToast?.('Product permanently deleted');
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Delete Forever';
+    window.showToast?.(err.message || 'Delete failed', 'error');
+  }
+});
+
+async function bulkTrashAction(action) {
+  if (_selected.size === 0) return;
+  const token = localStorage.getItem('s4l_token');
+  const ids = [..._selected];
+  const n = ids.length;
+
+  const msg = action === 'restore'
+    ? `Restore ${n} product${n > 1 ? 's' : ''}?`
+    : `Permanently delete ${n} product${n > 1 ? 's' : ''}? This cannot be undone.`;
+  const confirmed = await window.confirmAction?.(msg);
+  if (!confirmed) return;
+
+  let ok = 0;
+  await Promise.all(ids.map(async (id) => {
+    try {
+      const url = action === 'restore'
+        ? `${window.API_BASE}/products/${id}/restore`
+        : `${window.API_BASE}/products/${id}/permanent`;
+      const res = await fetch(url, {
+        method: action === 'restore' ? 'PATCH' : 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        _trashedProducts = _trashedProducts.filter(p => (p._id || p.id) !== id);
+        _selected.delete(id);
+        ok++;
+      }
+    } catch {}
+  }));
+
+  if (action === 'restore') await refreshMainLists();
+  renderProducts();
+  updateBulkBar();
+  window.showToast?.(`${ok} product${ok !== 1 ? 's' : ''} ${action === 'restore' ? 'restored' : 'permanently deleted'}`);
+}
+
+document.getElementById('btn-bulk-restore-trash')?.addEventListener('click', () => bulkTrashAction('restore'));
+document.getElementById('btn-bulk-empty-trash')?.addEventListener('click',   () => bulkTrashAction('permanent'));
+
+/* ── Drag-and-drop / hover-buttons into Active, Draft, Archived ── */
+
+// Dragging a selected card moves the WHOLE selection, not just the one grabbed
+document.addEventListener('dragstart', (e) => {
+  const card = e.target.closest('.vendor-product-card, .vp-list-row');
+  if (!card) return;
+  const id = card.dataset.id;
+  const ids = (_selected.has(id) && _selected.size > 1) ? [..._selected] : [id];
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', JSON.stringify(ids));
+  card.classList.add('vp-dragging');
+});
+
+document.addEventListener('dragend', (e) => {
+  const card = e.target.closest('.vendor-product-card, .vp-list-row');
+  card?.classList.remove('vp-dragging');
+});
+
+function bindDropZones() {
+  const activeBtn = document.querySelector('.vp-filter-btn[data-status="active"]');
+  const draftBtn = document.querySelector('.vp-filter-btn[data-status="draft"]');
+  const archivedBtn = document.querySelector('.vp-filter-btn[data-status="archived"]');
+
+  [activeBtn, draftBtn, archivedBtn].forEach((btn) => {
+    if (!btn || btn.dataset.dropBound) return;
+    btn.dataset.dropBound = '1';
+
+    btn.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      btn.classList.add('vp-drop-target-active');
+    });
+    btn.addEventListener('dragleave', () => btn.classList.remove('vp-drop-target-active'));
+    btn.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      btn.classList.remove('vp-drop-target-active');
+      let ids;
+      try { ids = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { ids = null; }
+      if (!Array.isArray(ids) || !ids.length) return;
+      await applyStatusToIds(ids, btn.dataset.status);
+    });
+  });
+}
+
+// Click a hover-action button → applies to the whole current selection (or just this card if nothing selected)
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.vp-hover-action-btn');
+  if (!btn) return;
+  const card = btn.closest('[data-id]');
+  const id = card?.dataset.id;
+  if (!id) return;
+  const ids = _selected.size > 0 ? [..._selected] : [id];
+  await applyStatusToIds(ids, btn.dataset.target);
+});
+
+async function applyStatusToOne(id, targetStatus, token) {
+  const isArchived = !!_archivedProducts.find(p => (p._id || p.id) === id);
+
+  if (targetStatus === 'archived') {
+    if (isArchived) return;
+    const res = await fetch(`${window.API_BASE}/products/${id}/archive`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error();
+    const product = _allProducts.find(p => (p._id || p.id) === id);
+    if (product) { product.archived = true; _archivedProducts.push(product); }
+    _allProducts = _allProducts.filter(p => (p._id || p.id) !== id);
+    _saveArchivedCache();
+    return;
+  }
+
+  // 'active' or 'draft' — unarchive first if needed, then set the active flag
+  if (isArchived) {
+    const archivedProduct = _archivedProducts.find(p => (p._id || p.id) === id);
+    const res = await fetch(`${window.API_BASE}/products/${id}/unarchive`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error();
+    archivedProduct.archived = false;
+    _archivedProducts = _archivedProducts.filter(p => (p._id || p.id) !== id);
+    _allProducts.push(archivedProduct);
+    _saveArchivedCache();
+  }
+
+  const product = _allProducts.find(p => (p._id || p.id) === id);
+  if (!product) return;
+  const wantActive = targetStatus === 'active';
+
+  const res = await fetch(`${window.API_BASE}/products/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ active: wantActive }),
+  });
+  if (!res.ok) throw new Error();
+  product.active = wantActive;
+}
+
+async function applyStatusToIds(ids, targetStatus) {
+  const token = localStorage.getItem('s4l_token');
+  if (!token) return;
+
+  let ok = 0;
+  await Promise.all(ids.map(async (id) => {
+    try {
+      await applyStatusToOne(id, targetStatus, token);
+      ok++;
+    } catch {}
+  }));
+
+  renderProducts();
+  updateBulkBar();
+
+  const label = targetStatus === 'draft' ? 'moved to Draft' : targetStatus === 'archived' ? 'archived' : 'activated';
+  window.showToast?.(`${ok} product${ok !== 1 ? 's' : ''} ${label}`);
 }
 
 /* ── Bulk selection ──────────────────────────────── */
@@ -293,6 +660,16 @@ function updateBulkBar() {
     const vis = visibleIds();
     selAll.checked = vis.length > 0 && vis.every(id => _selected.has(id));
     selAll.indeterminate = !selAll.checked && _selected.size > 0;
+  }
+
+  // Coming Soon bulk button reflects whether the current selection is
+  // already all Coming Soon — so clicking it does the obvious opposite.
+  const bulkComingSoonBtn = document.getElementById('btn-bulk-coming-soon');
+  if (bulkComingSoonBtn && _selected.size > 0) {
+    const selectedProducts = [..._selected].map(id => _allProducts.find(p => (p._id || p.id) === id)).filter(Boolean);
+    const allAlreadyComingSoon = selectedProducts.length > 0 && selectedProducts.every(p => p.comingSoon);
+    bulkComingSoonBtn.textContent = allAlreadyComingSoon ? '✓ Unblock' : '🕐 Coming Soon';
+    bulkComingSoonBtn.dataset.target = allAlreadyComingSoon ? 'false' : 'true';
   }
 }
 
@@ -344,16 +721,35 @@ document.getElementById('btn-bulk-clear')?.addEventListener('click', () => {
   updateBulkBar();
 });
 
+// Shows what statuses are actually in a selection — e.g. "5 Active, 2 Draft, 1 Archived" —
+// so a bulk action from the "All" tab doesn't surprise you with items you didn't expect.
+function statusBreakdown(ids) {
+  const counts = { active: 0, draft: 0, archived: 0 };
+  ids.forEach((id) => {
+    const p = _allProducts.find((p) => (p._id || p.id) === id) || _archivedProducts.find((p) => (p._id || p.id) === id);
+    if (!p) return;
+    if (p.archived) counts.archived++;
+    else if (p.active === false) counts.draft++;
+    else counts.active++;
+  });
+  const parts = [];
+  if (counts.active)   parts.push(`${counts.active} Active`);
+  if (counts.draft)     parts.push(`${counts.draft} Draft`);
+  if (counts.archived) parts.push(`${counts.archived} Archived`);
+  return parts.length > 1 ? ` (${parts.join(', ')})` : '';
+}
+
 async function bulkAction(action) {
   if (_selected.size === 0) return;
   const token = localStorage.getItem('s4l_token');
   const ids = [..._selected];
   const n = ids.length;
+  const breakdown = statusBreakdown(ids);
   const msg = action === 'delete'
-    ? `Permanently delete ${n} product${n > 1 ? 's' : ''}? This cannot be undone.`
+    ? `Move ${n} product${n > 1 ? 's' : ''} to Trash${breakdown}? You can restore them later.`
     : action === 'unarchive'
       ? `Restore ${n} product${n > 1 ? 's' : ''}? They will be active and visible to buyers again.`
-      : `Archive ${n} product${n > 1 ? 's' : ''}? They will be hidden from buyers.`;
+      : `Archive ${n} product${n > 1 ? 's' : ''}${breakdown}? They will be hidden from buyers.`;
   const confirmed = await window.confirmAction?.(msg);
   if (!confirmed) return;
 
@@ -386,13 +782,56 @@ async function bulkAction(action) {
 
   renderProducts();
   updateBulkBar();
-  const label = action === 'delete' ? 'deleted' : action === 'unarchive' ? 'restored' : 'archived';
+  const label = action === 'delete' ? 'moved to Trash' : action === 'unarchive' ? 'restored' : 'archived';
   window.showToast?.(`${ok} product${ok !== 1 ? 's' : ''} ${label}`);
 }
 
 document.getElementById('btn-bulk-archive')?.addEventListener('click',   () => bulkAction('archive'));
 document.getElementById('btn-bulk-unarchive')?.addEventListener('click', () => bulkAction('unarchive'));
 document.getElementById('btn-bulk-delete')?.addEventListener('click',    () => bulkAction('delete'));
+
+/* ── Bulk Coming Soon ──────────────────────────────── */
+
+async function bulkSetComingSoon() {
+  if (_selected.size === 0) return;
+  const token = localStorage.getItem('s4l_token');
+  const ids = [..._selected];
+  const n = ids.length;
+
+  // Toggle direction was already computed in updateBulkBar() based on
+  // whether the selection is currently all Coming Soon.
+  const btn = document.getElementById('btn-bulk-coming-soon');
+  const target = btn?.dataset.target !== 'false';
+
+  const confirmed = await window.confirmAction?.(
+    target
+      ? `Mark ${n} product${n > 1 ? 's' : ''} as Coming Soon? Buyers won't be able to purchase them until you unblock.`
+      : `Unblock ${n} product${n > 1 ? 's' : ''}? They'll be purchasable again.`
+  );
+  if (!confirmed) return;
+
+  let ok = 0;
+  await Promise.all(ids.map(async (id) => {
+    try {
+      const res = await fetch(`${window.API_BASE}/products/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ comingSoon: target }),
+      });
+      if (res.ok) {
+        const product = _allProducts.find((p) => (p._id || p.id) === id);
+        if (product) product.comingSoon = target;
+        ok++;
+      }
+    } catch {}
+  }));
+
+  renderProducts();
+  updateBulkBar();
+  window.showToast?.(`${ok} product${ok !== 1 ? 's' : ''} ${target ? 'marked Coming Soon' : 'unblocked'}`);
+}
+
+document.getElementById('btn-bulk-coming-soon')?.addEventListener('click', bulkSetComingSoon);
 
 /* ── Bulk price/stock edit ────────────────────────────── */
 
@@ -736,7 +1175,7 @@ document.addEventListener('click', async (e) => {
 
   if (!token) { window.showToast?.('Not authenticated', 'error'); return; }
 
-  const confirmed = await window.confirmAction?.('Permanently delete this product? This cannot be undone.');
+  const confirmed = await window.confirmAction?.('Move this product to Trash? You can restore it later from the Trash tab.');
   if (!confirmed) return;
 
   try {
@@ -753,7 +1192,7 @@ document.addEventListener('click', async (e) => {
 
     _allProducts = _allProducts.filter(p => (p._id || p.id) !== id);
     renderProducts();
-    window.showToast?.('Product deleted');
+    window.showToast?.('Moved to Trash');
   } catch (err) {
     console.error(err);
     button.disabled = false;

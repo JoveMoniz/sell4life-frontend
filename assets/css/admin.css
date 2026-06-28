@@ -416,6 +416,11 @@ button {
   overflow: hidden;
   padding: 0 24px;
   transition: height 0.45s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
+  /* Reset the table's white-space:nowrap (meant for compact rows) — it
+     otherwise inherits into this expanded panel and forces long text
+     (e.g. store description) onto one unbreakable line that overflows
+     across the other detail columns instead of wrapping. */
+  white-space: normal;
 }
 /* open state */
 .order-details-row.open .inline-order-wrapper {
@@ -1616,4 +1621,36 @@ body.admin-users .admin-users-table thead th {
   border-radius: 6px;
   font-size: 0.85rem;
   cursor: pointer;
+}
+
+/* ===============================
+   PRODUCT TITLE — truncate + auto-scroll
+   (same pattern as cart/checkout)
+=============================== */
+.admin-title-wrap {
+  max-width: 220px;
+  overflow: hidden;
+}
+
+.admin-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #111827;
+  display: inline-block;
+  white-space: nowrap;
+  will-change: transform, opacity;
+}
+
+.admin-title.scrollable {
+  animation: admin-title-scroll 28s linear 1s infinite;
+}
+
+@keyframes admin-title-scroll {
+  0%   { transform: translateX(0);                             opacity: 1; }
+  8%   { transform: translateX(0);                             opacity: 1; }
+  72%  { transform: translateX(min(0px, calc(-100% + 220px))); opacity: 1; }
+  81%  { transform: translateX(min(0px, calc(-100% + 220px))); opacity: 0; }
+  82%  { transform: translateX(0);                             opacity: 0; }
+  92%  { transform: translateX(0);                             opacity: 1; }
+  100% { transform: translateX(0);                             opacity: 1; }
 }

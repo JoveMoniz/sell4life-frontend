@@ -116,7 +116,15 @@ function buildItemHTML(item) {
         </select>
       </label>
       <label style="display:block;margin-bottom:8px;font-size:0.85rem">
-        Reason (optional):
+        Why are you returning this?
+        <select class="return-category-sel" style="display:block;width:100%;margin-top:4px;padding:6px;border:1px solid #d1d5db;border-radius:4px;box-sizing:border-box">
+          <option value="">Select a reason…</option>
+          <option value="change_of_mind">I changed my mind</option>
+          <option value="faulty_damaged_wrong_misdescribed">Item is faulty, damaged, wrong, or not as described</option>
+        </select>
+      </label>
+      <label style="display:block;margin-bottom:8px;font-size:0.85rem">
+        Additional details (optional):
         <input class="return-reason-inp" type="text" placeholder="e.g. wrong size"
           style="display:block;width:100%;margin-top:4px;padding:6px;border:1px solid #d1d5db;border-radius:4px;box-sizing:border-box" />
       </label>
@@ -145,6 +153,11 @@ function buildItemHTML(item) {
         <div class="order-qty">${qty} × £${price.toFixed(2)}</div>
         ${badges ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${badges}</div>` : ''}
         ${quantityDetail ? `<div style="font-size:0.75rem;color:#6b7280;margin-top:2px">${quantityDetail}</div>` : ''}
+        ${item.trackingNumber
+          ? `<div style="font-size:0.8rem;color:#374151;margin-top:5px">
+               Tracking: <strong>${item.trackingNumber}</strong>${item.carrier ? ` via ${item.carrier}` : ''}
+             </div>`
+          : ''}
         ${cancelBtn}
         ${returnForm}
       </div>
@@ -152,6 +165,38 @@ function buildItemHTML(item) {
       <div class="order-line-price">£${line.toFixed(2)}</div>
     </div>
   `;
+}
+
+/* ======================================================
+   BUILD VENDOR SHIPMENT GROUP (buyer view)
+====================================================== */
+function buildVendorGroup(vo, groupItems) {
+  const STATUS_COLOR = {
+    Pending:            '#92400e',
+    Processing:         '#1d4ed8',
+    Shipped:            '#6d28d9',
+    Delivered:          '#15803d',
+    'Partially Delivered': '#0e7490',
+    Cancelled:          '#b91c1c',
+  };
+  const color   = STATUS_COLOR[vo.status] || '#374151';
+  const tracking = vo.trackingNumber
+    ? `<span style="font-size:0.8rem;color:#374151;margin-left:auto">
+         Tracking: <strong>${vo.trackingNumber}</strong>${vo.carrier ? ` via ${vo.carrier}` : ''}
+       </span>`
+    : '';
+
+  return `
+    <div style="border:1px solid #e5e7eb;border-radius:8px;margin-bottom:16px;overflow:hidden">
+      <div style="background:#f9fafb;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid #e5e7eb">
+        <strong style="font-size:0.88rem">${vo.vendorStoreName || 'Seller'}</strong>
+        <span style="font-size:0.78rem;font-weight:600;color:${color}">${vo.status || ''}</span>
+        ${tracking}
+      </div>
+      <div style="padding:0 4px">
+        ${groupItems.map(buildItemHTML).join('')}
+      </div>
+    </div>`;
 }
 
 /* ======================================================
@@ -230,9 +275,16 @@ async function loadOrderDetails() {
       </div>
 
       <div class="order-items">
-        ${items.length
-          ? items.map(buildItemHTML).join('')
-          : '<p>No items found.</p>'}
+        ${(() => {
+          const vendorOrders = Array.isArray(order.vendorOrders) ? order.vendorOrders : [];
+          if (vendorOrders.length > 1) {
+            return vendorOrders.map(vo => {
+              const voItems = items.filter(i => String(i.vendorId) === String(vo.vendorId));
+              return buildVendorGroup(vo, voItems);
+            }).join('');
+          }
+          return items.length ? items.map(buildItemHTML).join('') : '<p>No items found.</p>';
+        })()}
       </div>
 
       <div class="order-actions-wrapper">
@@ -320,12 +372,18 @@ function ensureReturnHandler() {
     const submitBtn = e.target.closest('.btn-submit-return');
     if (!submitBtn) return;
 
-    const itemId  = submitBtn.dataset.itemId;
-    const form    = document.getElementById(`return-form-${itemId}`);
-    const qty     = Number(form.querySelector('.return-qty-sel').value);
-    const reason  = form.querySelector('.return-reason-inp').value.trim();
-    const params  = new URLSearchParams(window.location.search);
-    const orderId = params.get('id');
+    const itemId   = submitBtn.dataset.itemId;
+    const form     = document.getElementById(`return-form-${itemId}`);
+    const qty      = Number(form.querySelector('.return-qty-sel').value);
+    const reasonCategory = form.querySelector('.return-category-sel').value;
+    const reason   = form.querySelector('.return-reason-inp').value.trim();
+    const params   = new URLSearchParams(window.location.search);
+    const orderId  = params.get('id');
+
+    if (!reasonCategory) {
+      await showAlert('Please select a reason for the return.');
+      return;
+    }
 
     submitBtn.disabled   = true;
     submitBtn.textContent = 'Submitting…';
@@ -334,7 +392,7 @@ function ensureReturnHandler() {
       const res = await authFetch(`${API}/orders/${orderId}/items/${itemId}/return-request`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ quantity: qty, reason }),
+        body:    JSON.stringify({ quantity: qty, reason, reasonCategory }),
       });
       const data = await res.json();
       if (!res.ok) { await showAlert(data.error || 'Return request failed'); return; }

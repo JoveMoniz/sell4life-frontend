@@ -150,9 +150,14 @@ function renderCards(s, v, b) {
       <div class="vl-card-sub">gross − refunds</div>
     </div>
     <div class="vl-card">
-      <div class="vl-card-label">Commission (${Math.round((s.commissionRate || 0.08) * 100)}%)</div>
+      <div class="vl-card-label">Commission Charged</div>
       <div class="vl-card-value blue">${fmt(s.totalCommission)}</div>
-      <div class="vl-card-sub">platform fee</div>
+      <div class="vl-card-sub">actual total across orders</div>
+    </div>
+    <div class="vl-card">
+      <div class="vl-card-label">Current Rate${s.commissionOverride != null ? ' <span style="color:#f59e0b;font-size:9px;font-weight:700">OVERRIDE</span>' : ''}</div>
+      <div class="vl-card-value" style="color:#6b7280">${Math.round((s.commissionRate || 0.08) * 100)}%</div>
+      <div class="vl-card-sub">applies to new orders</div>
     </div>
     <div class="vl-card">
       <div class="vl-card-label">Net to Vendor</div>
@@ -211,10 +216,13 @@ function renderTable(transactions, summary) {
         ? `<div style="font-size:10px;color:#9ca3af">${shortName}${t.qty ? ` ×${t.qty}` : ''}</div>`
         : '';
 
+      const commissionPct = t.commissionRate != null
+        ? `<div style="font-size:10px;color:#9ca3af">${Math.round(t.commissionRate * 100)}%</div>`
+        : '';
       const commission =
         t.type === 'sale' && t.commission != null
-          ? `<span class="vl-amount-neg">−${fmt(t.commission)}</span>`
-          : '<span style="color:#9ca3af">£0.00</span>';
+          ? `<span class="vl-amount-neg">−${fmt(t.commission)}</span>${commissionPct}`
+          : '<span style="color:#9ca3af">—</span>';
 
       const netToVendor =
         t.type === 'sale' && t.commission != null

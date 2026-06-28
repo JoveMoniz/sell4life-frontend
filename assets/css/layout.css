@@ -361,6 +361,7 @@ footer p {
   align-items: center;
   padding: 10px;
   cursor: pointer;
+  text-align: left; /* header sets text-align:center which would otherwise inherit down */
 }
 
 .ac-item:hover {

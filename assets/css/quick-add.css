@@ -246,8 +246,7 @@
 }
 
 /* ── Card wrapper + footer ───────────────────────────── */
-.sp-card-wrap,
-.cp-card-wrap {
+.sp-card-wrap {
   display: flex;
   flex-direction: column;
   border: 1px solid #e6eeee;
@@ -257,15 +256,13 @@
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.sp-card-wrap:hover,
-.cp-card-wrap:hover {
+.sp-card-wrap:hover {
   transform: translateY(-3px);
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.09);
 }
 
 /* Remove double border from inner card */
-.sp-card-wrap .sp-card,
-.cp-card-wrap .sp-card {
+.sp-card-wrap .sp-card {
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -280,9 +277,18 @@
   gap: 6px;
 }
 
+/* Price + shipping stack together so they don't compete with the
+   basket button for horizontal space on narrow cards */
+.sp-price-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+}
+
 /* Basket icon button */
-.sp-quick-add-btn,
-.cp-quick-add-btn {
+.sp-quick-add-btn {
   width: 34px;
   height: 34px;
   flex-shrink: 0;
@@ -301,15 +307,13 @@
   touch-action: manipulation;
 }
 
-.sp-quick-add-btn:hover:not(.has-qty),
-.cp-quick-add-btn:hover:not(.has-qty) {
+.sp-quick-add-btn:hover:not(.has-qty) {
   border-color: #0b6b6a;
   background: #e0f5f5;
 }
 
 /* ── CLR overlay ─────────────────────────────────────── */
-.sp-qa-clr,
-.cp-qa-clr {
+.sp-qa-clr {
   display: none;
   position: absolute;
   inset: 0;
@@ -326,13 +330,11 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .sp-quick-add-btn.has-qty:not(.just-added):hover .sp-qa-clr,
-  .cp-quick-add-btn.has-qty:not(.just-added):hover .cp-qa-clr {
+  .sp-quick-add-btn.has-qty:not(.just-added):hover .sp-qa-clr {
     display: flex;
   }
 
-  .sp-quick-add-btn.has-qty:not(.just-added):hover svg,
-  .cp-quick-add-btn.has-qty:not(.just-added):hover svg {
+  .sp-quick-add-btn.has-qty:not(.just-added):hover svg {
     visibility: hidden;
   }
 }
@@ -354,7 +356,6 @@
 .qa-clear-cart:hover { color: #c0392b; }
 
 /* ── In-cart state ───────────────────────────────────── */
-.sp-quick-add-btn.has-qty,
-.cp-quick-add-btn.has-qty {
+.sp-quick-add-btn.has-qty {
   border: 0.5px solid #0b6b6a;
 }

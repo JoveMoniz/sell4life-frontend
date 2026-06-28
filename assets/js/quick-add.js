@@ -315,7 +315,7 @@ window.__quickAddLoaded = true;
       if (id) qtyMap[id] = (qtyMap[id] || 0) + (item.quantity || item.qty || 1);
     });
 
-    document.querySelectorAll('.sp-quick-add-btn[data-id], .cp-quick-add-btn[data-id]')
+    document.querySelectorAll('.sp-quick-add-btn[data-id]')
       .forEach(btn => applyBtnState(btn, qtyMap[btn.dataset.id] || 0));
   }
 
@@ -328,7 +328,7 @@ window.__quickAddLoaded = true;
     if (!window._qaProducts) return;
 
     document.querySelectorAll(
-      '.sp-quick-add-btn[data-id], .cp-quick-add-btn[data-id]'
+      '.sp-quick-add-btn[data-id]'
     ).forEach((btn) => {
       if (btn.dataset.oos) return;
 
@@ -382,7 +382,7 @@ window.__quickAddLoaded = true;
   // ── Delegate clicks from card buttons ────────────────────
   document.addEventListener('click', (e) => {
 
-    const clrEl = e.target.closest('.sp-qa-clr, .cp-qa-clr');
+    const clrEl = e.target.closest('.sp-qa-clr');
     if (clrEl) {
       e.preventDefault();
       e.stopPropagation();
@@ -397,7 +397,7 @@ window.__quickAddLoaded = true;
       return;
     }
 
-    const btn = e.target.closest('.sp-quick-add-btn, .cp-quick-add-btn');
+    const btn = e.target.closest('.sp-quick-add-btn');
     if (!btn) return;
     e.preventDefault();
     e.stopPropagation();
