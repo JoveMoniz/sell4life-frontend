@@ -397,7 +397,7 @@ async function fetchShippingCosts() {
     const token = localStorage.getItem('s4l_token');
     if (!token) { if (statusEl) statusEl.textContent = 'Not authenticated.'; return; }
 
-    const CHUNK = 30;
+    const CHUNK = 10; // CJ rate limit: 1 req/sec × 10 items = ~11s per chunk, safe under Render 30s timeout
     let found = 0;
     for (let i = 0; i < items.length; i += CHUNK) {
       const chunk = items.slice(i, i + CHUNK);
