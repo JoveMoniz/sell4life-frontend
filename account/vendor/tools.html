@@ -72,8 +72,8 @@
                 <label>Currency rate:</label>
                 <select id="csv-currency">
                   <option value="1">GBP (× 1.00)</option>
-                  <option value="0.79">USD  GBP (× 0.79)</option>
-                  <option value="0.86">EUR  GBP (× 0.86)</option>
+                  <option value="0.79">USD → GBP (× 0.79)</option>
+                  <option value="0.86">EUR → GBP (× 0.86)</option>
                   <option value="custom">Custom rate</option>
                 </select>
               </div>
@@ -85,6 +85,24 @@
                 <label>Markup %:</label>
                 <input type="number" id="csv-markup" min="0" max="999" value="0" style="width:80px" /> %
               </div>
+              <div class="csv-calc-row" id="csv-dest-wrap" style="display:none">
+                <label>Ship to:</label>
+                <select id="csv-dest-country">
+                  <option value="GB">United Kingdom (GB)</option>
+                  <option value="US">United States (US)</option>
+                  <option value="DE">Germany (DE)</option>
+                  <option value="FR">France (FR)</option>
+                  <option value="AU">Australia (AU)</option>
+                  <option value="CA">Canada (CA)</option>
+                </select>
+              </div>
+              <div class="csv-calc-row" id="csv-autofetch-wrap" style="display:none">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                  <input type="checkbox" id="csv-autofetch" />
+                  Fetch real shipping cost automatically
+                </label>
+              </div>
+              <div id="csv-shipping-status" style="display:none;font-size:12px;color:#6b7280;margin-top:6px;padding:6px 10px;background:#f9fafb;border-radius:6px;border:1px solid #e5e7eb"></div>
               <div id="csv-calc-example" class="csv-calc-example"></div>
             </div>
 
@@ -97,13 +115,23 @@
               <p style="color:#9ca3af;font-size:0.8rem;margin:6px 0 0">Many supplier exports (e.g. CJ Dropshipping) append a unique numeric code to each variant's title, which stops same-product rows from being grouped into one listing. Check this if your titles end in a number that isn't a meaningful part of the product name.</p>
             </div>
 
+            <div id="csv-actions-top" class="csv-actions" style="display:none">
+              <button id="csv-download-btn-top" class="vp-btn vp-btn-primary"> Download CSV</button>
+              <a href="#" class="csv-go-import-top vp-btn"> Import to Products</a>
+              <button id="csv-reset-btn-top" class="vp-btn vp-btn-ghost">✕ Reset</button>
+            </div>
+
             <div id="csv-mapper" class="csv-mapper" style="display:none">
               <h3 class="csv-section-label">Map Columns</h3>
               <div id="csv-mapper-grid" class="csv-mapper-grid"></div>
             </div>
 
             <div id="csv-preview" class="csv-preview" style="display:none">
-              <h3 class="csv-section-label">Preview <span id="csv-row-count"></span></h3>
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+                <h3 class="csv-section-label" style="margin:0">Preview <span id="csv-row-count"></span></h3>
+                <button id="csv-select-all-btn" class="vp-btn vp-btn-ghost" style="font-size:12px;padding:3px 10px">Select All</button>
+                <button id="csv-deselect-all-btn" class="vp-btn vp-btn-ghost" style="font-size:12px;padding:3px 10px">Deselect All</button>
+              </div>
               <div class="csv-preview-scroll">
                 <table id="csv-preview-table"></table>
               </div>

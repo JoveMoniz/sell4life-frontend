@@ -76,6 +76,23 @@
                   <input type="number" id="product-shipping-cost" step="0.01" min="0" placeholder="0.00" />
                 </div>
               </div>
+              <div id="ap-markup-calc" style="display:none;margin-top:10px;padding:10px 14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:#374151">
+                <span style="font-weight:600">Calculate retail price:</span>
+                <label style="display:flex;align-items:center;gap:5px">
+                  Markup
+                  <input type="number" id="ap-markup-pct" min="0" max="999" step="0.1" value="0"
+                    style="width:70px;padding:4px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:13px" />
+                  %
+                </label>
+                <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+                  <input type="checkbox" id="ap-include-ship" checked /> + shipping
+                </label>
+                <button type="button" id="ap-apply-markup"
+                  style="padding:5px 14px;background:#0b6b6a;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px;font-weight:600">
+                  Apply to Price
+                </button>
+                <span id="ap-calc-preview" style="color:#6b7280;font-size:13px"></span>
+              </div>
             </div>
 
             <!-- IMAGES -->
@@ -732,6 +749,7 @@
     </div>
 
     <script src="/assets/js/config-global.js"></script>
+    <script src="/assets/js/markup-calc.js"></script>
     <script>
       if (localStorage.getItem('s4l_vendorType') === 'casual') {
         window.location.replace('/account/vendor/add-product-casual.html');
