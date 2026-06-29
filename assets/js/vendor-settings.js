@@ -53,7 +53,7 @@ function renderForm(v) {
         <div class="settings-slug-wrap">
           <span class="settings-slug-prefix">sell4life.com/store/</span>
           <input class="settings-input" id="set-slug" type="text" value="${esc(v.storeSlug)}" maxlength="60"
-            pattern="[a-z0-9-]+" placeholder="your-store" />
+            pattern="[-a-z0-9]+" placeholder="your-store" />
         </div>
         <div class="settings-hint">Lowercase letters, numbers and hyphens only. Changing this will break existing links to your store.</div>
       </div>
@@ -117,6 +117,12 @@ function renderForm(v) {
         <div class="settings-section-title">Tax Information (HMRC)</div>
         <div id="hmrc-tax-body" style="color:#6b7280;font-size:13px">Loading…</div>
       </div>
+    </div>
+
+    <!-- Connect Supplier -->
+    <div class="settings-section" id="supplier-connect-section">
+      <div class="settings-section-title">Connect Supplier</div>
+      <div id="supplier-section-body" style="color:#9ca3af;font-size:13px">Loading…</div>
     </div>
 
     <!-- Save Store Settings -->
@@ -281,6 +287,9 @@ function renderForm(v) {
 
   // Load HMRC tax section asynchronously (fetches status from API)
   loadTaxInfoSection();
+
+  // Load supplier connection section
+  loadSupplierSection();
 }
 
 /* ======================================================
@@ -625,6 +634,198 @@ async function submitTaxInfo() {
   } finally {
     btn.disabled = false;
     btn.textContent = 'Submit Tax Information';
+  }
+}
+
+/* ======================================================
+   CONNECT SUPPLIER
+====================================================== */
+
+async function loadSupplierSection() {
+  const body = document.getElementById('supplier-section-body');
+  if (!body) return;
+  try {
+    const res = await authFetch(`${API}/vendor/supplier/providers`);
+    if (!res.ok) { body.textContent = 'Could not load supplier connections.'; return; }
+    const { providers } = await res.json();
+    if (!providers || providers.length === 0) {
+      body.textContent = 'No supplier integrations available yet.';
+      return;
+    }
+    body.innerHTML = `
+      <p style="font-size:13px;color:#6b7280;margin:0 0 14px">
+        Connect your supplier account to automatically fetch real shipping costs when importing products via the CSV Converter.
+      </p>
+      ${providers.map(p => renderProviderCard(p)).join('')}`;
+    providers.forEach(p => attachProviderHandlers(p.providerName));
+  } catch (_) {
+    if (body) body.textContent = 'Could not load supplier connections.';
+  }
+}
+
+// Stores credentialSchema per providerName so handlers can access it
+const _providerSchemas = {};
+
+function renderProviderCard(p) {
+  const connected = p.configured;
+  const schema    = p.credentialSchema;
+  if (schema) _providerSchemas[p.providerName] = schema;
+
+  const fieldsHtml = schema
+    ? schema.map(f => `
+        <div style="margin-bottom:8px">
+          <label style="font-size:12px;color:#374151;display:block;margin-bottom:3px">${esc(f.label)}</label>
+          <input class="settings-input" id="supplier-field-${esc(p.providerName)}-${esc(f.key)}"
+            type="${esc(f.type || 'text')}" placeholder="${esc(f.placeholder || '')}" autocomplete="off" />
+        </div>`).join('')
+    : `<input class="settings-input" id="supplier-token-${esc(p.providerName)}" type="password"
+        placeholder="Paste your API token here" style="margin-bottom:6px" autocomplete="off" />`;
+
+  return `
+    <div id="supplier-card-${esc(p.providerName)}" style="border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <strong style="font-size:14px;color:#111827">${esc(p.displayName)}</strong>
+        <span id="supplier-status-${esc(p.providerName)}"
+          style="font-size:12px;font-weight:600;color:${connected ? '#15803d' : '#9ca3af'}">
+          ${connected ? 'Connected' : 'Not connected'}
+        </span>
+      </div>
+      <div id="supplier-token-wrap-${esc(p.providerName)}" ${connected ? 'style="display:none"' : ''}>
+        ${fieldsHtml}
+        <div class="settings-hint">Your credentials are encrypted before storage and never exposed in any response.</div>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:10px">
+          <button class="settings-save-btn" id="supplier-save-${esc(p.providerName)}" style="font-size:13px;padding:7px 18px">Connect</button>
+          <span class="settings-msg" id="supplier-msg-${esc(p.providerName)}"></span>
+        </div>
+      </div>
+      <div id="supplier-connected-wrap-${esc(p.providerName)}" ${!connected ? 'style="display:none"' : ''}>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button type="button" id="supplier-change-${esc(p.providerName)}"
+            style="font-size:12px;padding:4px 12px;background:#f9fafb;border:1px solid #d1d5db;border-radius:5px;cursor:pointer;color:#374151">
+            Change credentials
+          </button>
+          <button type="button" id="supplier-disconnect-${esc(p.providerName)}"
+            style="font-size:12px;padding:4px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:5px;cursor:pointer;color:#b91c1c">
+            Disconnect
+          </button>
+          <span class="settings-msg" id="supplier-msg-${esc(p.providerName)}"></span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function setSupplierMsg(providerName, text, type) {
+  const el = document.getElementById(`supplier-msg-${providerName}`);
+  if (!el) return;
+  el.textContent = text;
+  el.className   = `settings-msg ${type}`;
+}
+
+function attachProviderHandlers(providerName) {
+  const saveBtn = document.getElementById(`supplier-save-${providerName}`);
+  if (saveBtn) {
+    saveBtn.addEventListener('click', async () => {
+      const schema = _providerSchemas[providerName];
+      let body;
+
+      if (schema) {
+        // Collect values from each schema field
+        const credentials = {};
+        for (const f of schema) {
+          const val = document.getElementById(`supplier-field-${providerName}-${f.key}`)?.value?.trim();
+          if (!val) { setSupplierMsg(providerName, `Please enter your ${f.label}.`, 'error'); return; }
+          credentials[f.key] = val;
+        }
+        body = { providerName, credentials };
+      } else {
+        const token = document.getElementById(`supplier-token-${providerName}`)?.value?.trim();
+        if (!token) { setSupplierMsg(providerName, 'Please enter an API token.', 'error'); return; }
+        body = { providerName, token };
+      }
+
+      saveBtn.disabled    = true;
+      saveBtn.textContent = 'Connecting…';
+      setSupplierMsg(providerName, '', '');
+      try {
+        const res = await authFetch(`${API}/vendor/supplier/credentials`, {
+          method: 'POST',
+          body:   JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setSupplierMsg(providerName, data.error || 'Failed to save credentials.', 'error');
+        } else {
+          // Clear inputs
+          if (schema) {
+            schema.forEach(f => {
+              const inp = document.getElementById(`supplier-field-${providerName}-${f.key}`);
+              if (inp) inp.value = '';
+            });
+          } else {
+            const inp = document.getElementById(`supplier-token-${providerName}`);
+            if (inp) inp.value = '';
+          }
+          const statusEl = document.getElementById(`supplier-status-${providerName}`);
+          if (statusEl) { statusEl.textContent = 'Connected'; statusEl.style.color = '#15803d'; }
+          document.getElementById(`supplier-token-wrap-${providerName}`)?.setAttribute('style', 'display:none');
+          document.getElementById(`supplier-connected-wrap-${providerName}`)?.removeAttribute('style');
+          attachChangeDisconnectHandlers(providerName);
+        }
+      } catch (_) {
+        setSupplierMsg(providerName, 'Network error.', 'error');
+      } finally {
+        saveBtn.disabled    = false;
+        saveBtn.textContent = 'Connect';
+      }
+    });
+  }
+  attachChangeDisconnectHandlers(providerName);
+}
+
+function attachChangeDisconnectHandlers(providerName) {
+  const changeBtn = document.getElementById(`supplier-change-${providerName}`);
+  if (changeBtn && !changeBtn.__bound) {
+    changeBtn.__bound = true;
+    changeBtn.addEventListener('click', () => {
+      document.getElementById(`supplier-token-wrap-${providerName}`)?.removeAttribute('style');
+      document.getElementById(`supplier-connected-wrap-${providerName}`)?.setAttribute('style', 'display:none');
+      const schema = _providerSchemas[providerName];
+      if (schema) {
+        schema.forEach((f, i) => {
+          const inp = document.getElementById(`supplier-field-${providerName}-${f.key}`);
+          if (inp) { inp.value = ''; if (i === 0) inp.focus(); }
+        });
+      } else {
+        const inp = document.getElementById(`supplier-token-${providerName}`);
+        if (inp) { inp.value = ''; inp.focus(); }
+      }
+    });
+  }
+
+  const disconnectBtn = document.getElementById(`supplier-disconnect-${providerName}`);
+  if (disconnectBtn && !disconnectBtn.__bound) {
+    disconnectBtn.__bound = true;
+    disconnectBtn.addEventListener('click', async () => {
+      if (!confirm(`Disconnect ${providerName}? Automatic shipping lookup will stop until you reconnect.`)) return;
+      disconnectBtn.disabled = true;
+      try {
+        const res = await authFetch(`${API}/vendor/supplier/credentials/${encodeURIComponent(providerName)}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          setSupplierMsg(providerName, d.error || 'Failed to disconnect.', 'error');
+          disconnectBtn.disabled = false;
+          return;
+        }
+        const statusEl = document.getElementById(`supplier-status-${providerName}`);
+        if (statusEl) { statusEl.textContent = 'Not connected'; statusEl.setAttribute('style', 'font-size:12px;font-weight:600;color:#9ca3af'); }
+        document.getElementById(`supplier-connected-wrap-${providerName}`)?.setAttribute('style', 'display:none');
+        document.getElementById(`supplier-token-wrap-${providerName}`)?.removeAttribute('style');
+        document.getElementById(`supplier-token-${providerName}`)?.focus();
+      } catch (_) {
+        setSupplierMsg(providerName, 'Network error.', 'error');
+        disconnectBtn.disabled = false;
+      }
+    });
   }
 }
 
