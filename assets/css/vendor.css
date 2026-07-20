@@ -492,8 +492,17 @@ Vendor Products
 
 /* ── Bulk selection ── */
 
+.vp-sticky-bulk {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
 /* CSS display rules override the HTML hidden attribute — restore correct behaviour */
 .vp-bulk-bar[hidden],
+.vp-bulk-edit-panel[hidden],
 .vp-toolbar[hidden] {
   display: none !important;
 }
@@ -551,6 +560,20 @@ Vendor Products
   transition: background 0.15s, border-color 0.15s;
 }
 
+/* CJ sync in the selection bar — matches the header Sync from CJ button */
+.vp-bulk-btn-cj {
+  background: #1e3a5f;
+  border-color: #1e3a5f;
+  color: #fff;
+}
+.vp-bulk-btn-cj:hover {
+  background: #2a4f82;
+  border-color: #2a4f82;
+}
+.vp-bulk-btn-cj[hidden] {
+  display: none;
+}
+
 .vp-bulk-btn:hover {
   background: #f3f4f6;
   border-color: #9ca3af;
@@ -578,6 +601,69 @@ Vendor Products
 }
 
 .vp-bulk-clear:hover { color: #374151; }
+
+.vp-bulk-edit-panel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+}
+
+.vp-bulk-edit-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.vp-bulk-edit-panel input[type="number"] {
+  width: 90px;
+  padding: 5px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.vp-bulk-markup-wrap {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.vp-bulk-markup-lbl {
+  font-size: 13px;
+  color: #374151;
+  font-weight: 600;
+}
+
+.vp-bulk-markup-input {
+  width: 72px;
+  padding: 5px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.vp-bulk-ship-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+#btn-multi-select { font-size: 12px; padding: 4px 8px; }
+#btn-multi-select.active { background: #0f766e; color: #fff; border-color: #0f766e; }
+
+.vp-bulk-price-preview {
+  font-size: 0.8rem;
+  color: #6b7280;
+  white-space: nowrap;
+}
 
 .vp-bulk-spinner {
   display: inline-block;
@@ -669,6 +755,11 @@ Vendor Products
   border-radius: 12px;
   padding: 20px;
   background: #fff;
+  /* Grid items default to min-width:auto — nowrap product names would force
+     tracks wider than the container and overflow on tablets. */
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .vendor-product-card img {
@@ -1582,6 +1673,7 @@ Vendor Products
 
   #vendor-sidebar {
     width: 100%;
+    min-height: 0; /* desktop 100vh would fill the whole screen in column layout */
     position: sticky;
     top: 0;
     z-index: 100;
@@ -1590,6 +1682,7 @@ Vendor Products
   .vendor-sidebar {
     width: 100%;
     height: auto;
+    min-height: 0;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
@@ -2831,7 +2924,7 @@ Vendor Products
     margin: 0;
     padding: 16px;
     box-sizing: border-box;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   .vendor-title {
@@ -3038,20 +3131,17 @@ Vendor Products
 .vp-toolbar {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-wrap: nowrap;
+  gap: 8px;
   margin-bottom: 20px;
-  padding: 12px 16px;
+  padding: 10px 16px;
   background: #fff;
   border: 1px solid #e4e7ec;
-  border-radius: 10px;
-  position: sticky;
-  top: 0;
-  z-index: 80;
+  border-radius: 0 0 10px 10px;
 }
 
 .vp-search {
-  flex: 1 1 200px;
+  flex: 0 1 150px;
   min-width: 0;
   height: 36px;
   padding: 0 12px;
@@ -3250,6 +3340,90 @@ Vendor Products
 .vp-list-row:hover .vp-supplier-link-list {
   opacity: 1;
   transform: scale(1);
+}
+
+/* Video badge — small play arrow + count, bottom-right of the image */
+.vp-video-badge {
+  position: absolute;
+  bottom: 7px;
+  right: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(17,24,39,0.78);
+  color: #fff;
+  border-radius: 10px;
+  padding: 2px 7px;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+.vp-video-count {
+  font-weight: 700;
+  font-size: 0.68rem;
+}
+
+.vp-list-row .vp-video-badge {
+  bottom: 4px;
+  right: auto;
+  left: 4px;
+  padding: 1px 5px;
+  font-size: 0.6rem;
+}
+
+.cj-bulk-cancel {
+  margin: 0 26px 22px;
+  padding: 7px 20px;
+  background: #fff;
+  border: 1.5px solid #dc2626;
+  color: #dc2626;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.cj-bulk-cancel:hover { background: #fef2f2; }
+.cj-bulk-cancel:disabled { opacity: 0.5; cursor: not-allowed; }
+.cj-bulk-cancel[hidden] { display: none; }
+
+/* Single-product sync modal (edit page): confirm text + action row */
+.cj-sync-msg {
+  margin: 18px 26px 8px;
+  font-size: 0.9rem;
+  color: #374151;
+  line-height: 1.55;
+  min-height: 1.4em;
+}
+.cj-sync-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 12px 26px 8px;
+}
+.cj-sync-actions .cj-bulk-cancel { margin: 0; }
+.cj-sync-actions[hidden] { display: none; }
+.cj-sync-confirm {
+  padding: 7px 20px;
+  background: #0b6b6a;
+  border: 1.5px solid #0b6b6a;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.cj-sync-confirm:hover { background: #0e8583; }
+.cj-sync-confirm[hidden] { display: none; }
+.cj-sync-indeterminate {
+  width: 40%;
+  animation: cjSyncSlide 1.1s linear infinite;
+}
+@keyframes cjSyncSlide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
 }
 
 .vp-img-wrap img {
@@ -3637,10 +3811,56 @@ Vendor Products
 /* ── Responsive ─────────────────────────────────── */
 
 /* Tablet / large phone (≤900px) */
+/* Cards narrower than ~360px can't fit the full action row at desktop button
+   size — the lone wrapped Delete stretches full width (flex:1) into a red bar.
+   Covers tablet landscape (1194/1366) and small laptops where the grid packs
+   3 columns into the 1000px container. */
+@media (max-width: 1400px) {
+  .vendor-product-actions {
+    gap: 4px;
+  }
+  .vendor-product-actions a,
+  .vendor-product-actions button {
+    padding: 5px 7px;
+    font-size: 0.72rem;
+  }
+}
+
 @media (max-width: 900px) {
+  /* Clear the fixed mobile top bar (52px, z-index 300) — at top:0 this sticky
+     bar slides underneath it and visually disappears while scrolling. */
+  .vp-sticky-bulk {
+    top: 52px;
+  }
+
   .vp-toolbar {
     gap: 8px;
     top: 52px;
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  /* Header, bulk bar and edit panel hold many controls — let them wrap
+     instead of overflowing the container on small tablets (601-900px). */
+  .vp-page-header,
+  .vp-header-actions,
+  .vp-bulk-bar,
+  .vp-bulk-actions,
+  .vp-bulk-edit-panel {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  /* Compact card action buttons so the full row (incl. Delete) fits the
+     narrower 2-column tablet cards — a lone wrapped button stretches full
+     width (flex:1) and looks like an alarming red bar. */
+  .vendor-product-actions {
+    gap: 4px;
+  }
+  .vendor-product-actions a,
+  .vendor-product-actions button {
+    padding: 5px 7px;
+    font-size: 0.72rem;
   }
 
   /* List row: 3-col layout */
@@ -3724,11 +3944,13 @@ Vendor Products
     gap: 4px;
   }
 
-  .vendor-product-actions .btn-edit,
-  .vendor-product-actions .btn-view-store,
-  .vendor-product-actions .btn-archive {
-    padding: 5px 8px;
-    font-size: 0.75rem;
+  /* Compact ALL action buttons so the full row (incl. Delete) fits the
+     narrower tablet cards — a lone wrapped button would stretch full
+     width (flex:1) and look like an alarming bar. */
+  .vendor-product-actions a,
+  .vendor-product-actions button {
+    padding: 5px 7px;
+    font-size: 0.72rem;
   }
 }
 
@@ -5078,6 +5300,43 @@ Vendor Products
   gap: 8px;
 }
 
+.csv-map-row-attr {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.csv-attr-lbl {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #9ca3af;
+  white-space: nowrap;
+  width: 36px;
+  flex-shrink: 0;
+}
+
+.csv-map-row-attr .csv-attr-name-sel {
+  width: 118px;
+  flex-shrink: 0;
+}
+
+.csv-map-row-attr .csv-map-select:not(.csv-attr-name-sel) {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+.csv-map-row-attr .csv-map-preview {
+  max-width: 72px;
+  flex-shrink: 2;
+}
+
+.csv-group-sep {
+  grid-column: 1 / -1;
+  border-top: 1px solid #e5e7eb;
+  margin: 6px 0 2px;
+}
+
 .csv-map-label {
   font-size: 0.825rem;
   font-weight: 500;
@@ -5108,35 +5367,181 @@ Vendor Products
   text-overflow: ellipsis;
 }
 
+/* ── CSV Converter: mobile ── */
+
+@media (max-width: 640px) {
+  /* Mapper label: narrower so select has room */
+  .csv-map-row {
+    grid-template-columns: 120px 1fr;
+  }
+  /* Attr row: tighter name select */
+  .csv-map-row-attr .csv-attr-name-sel {
+    width: 100px;
+  }
+  /* Actions: allow wrapping */
+  .csv-actions {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  /* Info bar: wrap on narrow screens */
+  .csv-info-bar {
+    flex-wrap: wrap;
+  }
+  /* Price calc: tighter padding */
+  .csv-price-calc {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Mapper label: even narrower */
+  .csv-map-row {
+    grid-template-columns: 90px 1fr;
+  }
+  /* Attr row: shrink name select, hide preview */
+  .csv-map-row-attr .csv-attr-name-sel {
+    width: 82px;
+  }
+  .csv-map-row-attr .csv-map-preview {
+    display: none;
+  }
+  /* Actions: stack vertically */
+  .csv-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .csv-actions .vp-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  /* Price calc: label and inputs full-width */
+  .csv-price-calc label {
+    min-width: unset;
+    width: 100%;
+  }
+  .csv-price-calc select,
+  .csv-price-calc input[type="number"] {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  /* Mapper: reduce outer gap */
+  .csv-mapper-grid {
+    gap: 8px 0;
+  }
+}
+
+@media (max-width: 380px) {
+  /* Very small phones: attr row wraps to two lines */
+  .csv-map-row {
+    grid-template-columns: 72px 1fr;
+  }
+  .csv-map-row-attr {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .csv-map-row-attr .csv-attr-lbl {
+    width: auto;
+  }
+  .csv-map-row-attr .csv-attr-name-sel {
+    flex: 1;
+    width: auto;
+  }
+  .csv-map-row-attr .csv-map-select:not(.csv-attr-name-sel) {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+}
+
 .csv-preview-header {
   margin-bottom: 10px;
 }
 
+.csv-preview-row {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.csv-scroll-btn {
+  position: fixed;
+  width: 40px;
+  z-index: 50;
+  border: 1px solid rgba(0,0,0,0.1);
+  background: rgba(255,255,255,0.5);
+  color: rgba(17,24,39,0.45);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.csv-scroll-btn:hover {
+  background: rgba(11,107,106,0.2);
+  color: var(--s4l-primary);
+}
+
 .csv-preview-scroll {
+  position: relative;
   overflow-x: auto;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
-  margin-bottom: 20px;
+  flex: 1;
+  min-width: 0;
+  background:
+    linear-gradient(to right, #ffffff 30%, rgba(255,255,255,0)) 0 0,
+    linear-gradient(to left, #ffffff 30%, rgba(255,255,255,0)) 100% 0,
+    linear-gradient(to right, rgba(17,24,39,.18), rgba(17,24,39,0)) 0 0,
+    linear-gradient(to left, rgba(17,24,39,.18), rgba(17,24,39,0)) 100% 0;
+  background-repeat: no-repeat;
+  background-color: #fff;
+  background-size: 36px 100%, 36px 100%, 14px 100%, 14px 100%;
+  background-attachment: local, local, scroll, scroll;
+}
+
+.csv-preview-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+
+.csv-preview-scroll::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+.csv-preview-scroll::-webkit-scrollbar-thumb {
+  background: #c7ced9;
+  border-radius: 6px;
+}
+
+.csv-preview-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .csv-preview-table {
   border-collapse: collapse;
   width: 100%;
-  font-size: 0.8rem;
+  font-family: 'Roboto', Arial, sans-serif;
+  font-size: 0.85rem;
 }
 
 .csv-preview-table th {
-  background: #f3f4f6;
-  padding: 8px 12px;
+  background: #f8fafc;
+  padding: 10px 14px;
   text-align: left;
   font-weight: 600;
-  color: #374151;
+  font-size: 0.74rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #6b7280;
   border-bottom: 1px solid #e5e7eb;
   white-space: nowrap;
 }
 
 .csv-preview-table td {
-  padding: 7px 12px;
+  padding: 9px 14px;
   color: #374151;
   border-bottom: 1px solid #f3f4f6;
   max-width: 200px;
@@ -5145,8 +5550,95 @@ Vendor Products
   text-overflow: ellipsis;
 }
 
+.csv-preview-table tr:hover td {
+  background: #fafbfc;
+}
+
 .csv-preview-table tr:last-child td {
   border-bottom: none;
+}
+
+.csv-preview-table th:first-child,
+.csv-preview-table td:first-child {
+  text-align: center;
+}
+
+/* ── Checkboxes ── */
+#csv-select-all,
+.csv-row-select,
+#csv-strip-suffix,
+#csv-autofetch,
+#csv-split-attr {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 5px;
+  background: #fff;
+  cursor: pointer;
+  position: relative;
+  vertical-align: middle;
+  flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+#csv-select-all:hover,
+.csv-row-select:hover,
+#csv-strip-suffix:hover,
+#csv-autofetch:hover,
+#csv-split-attr:hover {
+  border-color: var(--s4l-primary);
+}
+
+#csv-select-all:checked,
+.csv-row-select:checked,
+#csv-strip-suffix:checked,
+#csv-autofetch:checked,
+#csv-split-attr:checked {
+  background: var(--s4l-primary);
+  border-color: var(--s4l-primary);
+}
+
+#csv-select-all:checked::after,
+.csv-row-select:checked::after,
+#csv-strip-suffix:checked::after,
+#csv-autofetch:checked::after,
+#csv-split-attr:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+#csv-select-all:focus-visible,
+.csv-row-select:focus-visible,
+#csv-strip-suffix:focus-visible,
+#csv-autofetch:focus-visible,
+#csv-split-attr:focus-visible {
+  outline: 2px solid var(--s4l-primary);
+  outline-offset: 2px;
+}
+
+.csv-row-markup {
+  width: 60px;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  padding: 4px 6px;
+  font-family: 'Roboto', Arial, sans-serif;
+  font-size: 0.78rem;
+  color: #374151;
+}
+
+.csv-row-markup:focus {
+  outline: none;
+  border-color: var(--s4l-primary);
+  box-shadow: 0 0 0 2px rgba(11,107,106,0.15);
 }
 
 .csv-actions {
@@ -5156,10 +5648,57 @@ Vendor Products
   padding-top: 4px;
 }
 
-.csv-go-import {
+/* ── Buttons ── */
+
+.vp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  font-family: 'Roboto', Arial, sans-serif;
   font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+}
+
+.vp-btn:hover {
+  border-color: var(--s4l-primary);
   color: var(--s4l-primary);
-  text-decoration: underline;
+}
+
+.vp-btn:active {
+  transform: scale(0.98);
+}
+
+.vp-btn-primary {
+  background: var(--s4l-primary);
+  border-color: var(--s4l-primary);
+  color: #fff;
+}
+
+.vp-btn-primary:hover {
+  background: #095857;
+  border-color: #095857;
+  color: #fff;
+}
+
+.vp-btn-ghost {
+  background: #fff;
+  border-color: #e5e7eb;
+  color: #6b7280;
+}
+
+.vp-btn-ghost:hover {
+  border-color: var(--s4l-primary);
+  color: var(--s4l-primary);
+  background: #f0fafa;
 }
 
 /* ── Variant colour picker cell ── */
@@ -5188,7 +5727,7 @@ Vendor Products
   background: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
-  padding: 18px 20px;
+  padding: 20px 24px;
   margin: 18px 0 0;
 }
 
@@ -5196,8 +5735,51 @@ Vendor Products
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
-  align-items: flex-end;
-  margin-top: 4px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.csv-calc-row:first-of-type {
+  margin-top: 0;
+}
+
+.csv-price-calc label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  min-width: 120px;
+}
+
+.csv-price-calc select,
+.csv-price-calc input[type="number"] {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  font-size: 0.875rem;
+  font-family: 'Roboto', Arial, sans-serif;
+  color: #111827;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.csv-price-calc select:focus,
+.csv-price-calc input[type="number"]:focus {
+  outline: none;
+  border-color: var(--s4l-primary);
+  box-shadow: 0 0 0 3px rgba(11,107,106,0.1);
+}
+
+#csv-currency,
+#csv-dest-country {
+  min-width: 190px;
+}
+
+#csv-markup {
+  width: 80px;
+}
+
+#csv-custom-rate {
+  width: 110px;
 }
 
 .csv-calc-group {
@@ -5250,4 +5832,102 @@ Vendor Products
 .csv-calc-steps {
   color: #9ca3af;
   font-size: 0.8rem;
+}
+
+/* ── Bulk CJ image fetch overlay ─────────────────────── */
+.cj-bulk-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 9000;
+  align-items: center;
+  justify-content: center;
+}
+.cj-bulk-overlay.active {
+  display: flex;
+}
+.cj-bulk-modal {
+  background: #fff;
+  border-radius: 14px;
+  padding: 0 0 14px;
+  width: 620px;
+  max-width: 90vw;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(11, 107, 106, 0.15);
+}
+.cj-bulk-modal h3 {
+  margin: 0;
+  padding: 16px 26px;
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: linear-gradient(135deg, #0b6b6a 0%, #0e8583 100%);
+}
+.cj-bulk-modal h3::before {
+  content: '🔄';
+  margin-right: 9px;
+}
+.cj-bulk-progress-track {
+  background: #e4efee;
+  border-radius: 999px;
+  overflow: hidden;
+  height: 12px;
+  margin: 22px 26px 14px;
+}
+.cj-bulk-progress-bar {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #0b6b6a, #14a19f);
+  transition: width 0.3s ease;
+}
+.cj-bulk-status {
+  margin: 0 26px 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #1f2937;
+  min-height: 1.4em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cj-bulk-counts {
+  margin: 0 26px 20px;
+  padding: 9px 14px;
+  font-size: 0.84rem;
+  color: #374151;
+  background: #f6faf9;
+  border: 1px solid #dcebe9;
+  border-radius: 8px;
+  min-height: 1.3em;
+}
+.cj-bulk-counts:empty {
+  display: none;
+}
+.btn-bulk-cj-images[hidden] {
+  display: none;
+}
+.btn-bulk-cj-images {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #1e3a5f;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-bulk-cj-images:hover {
+  background: #2a4f82;
+}
+.btn-bulk-cj-images:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

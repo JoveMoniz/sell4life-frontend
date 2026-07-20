@@ -16,6 +16,17 @@ const existingOrderId = params.get('order');
 
 const itemsWrap = document.getElementById('checkout-items');
 const subtotalEl = document.getElementById('checkout-subtotal');
+const shippingFields = {
+  name: document.getElementById('checkout-name'),
+  phone: document.getElementById('checkout-phone'),
+  address1: document.getElementById('checkout-address'),
+  address2: document.getElementById('checkout-address2'),
+  city: document.getElementById('checkout-city'),
+  county: document.getElementById('checkout-county'),
+  postcode: document.getElementById('checkout-postcode'),
+  country: document.getElementById('checkout-country'),
+};
+const saveAddressEl = document.getElementById('checkout-save-address');
 const shippingEl = document.getElementById('checkout-shipping');
 const totalEl = document.getElementById('checkout-total');
 
@@ -155,6 +166,32 @@ if (!token) {
 }
 
 // ======================================================
+// PREFILL SAVED SHIPPING ADDRESS
+// ======================================================
+
+(async function prefillShippingAddress() {
+  if (!token) return;
+  try {
+    const res = await fetch(`${API_BASE}/account/me`, {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const addr = data.defaultShippingAddress;
+    if (!addr) return;
+    if (shippingFields.name && addr.name) shippingFields.name.value = addr.name;
+    if (shippingFields.phone && addr.phone) shippingFields.phone.value = addr.phone;
+    if (shippingFields.address1 && addr.address1) shippingFields.address1.value = addr.address1;
+    if (shippingFields.address2 && addr.address2) shippingFields.address2.value = addr.address2;
+    if (shippingFields.city && addr.city) shippingFields.city.value = addr.city;
+    if (shippingFields.county && addr.county) shippingFields.county.value = addr.county;
+    if (shippingFields.postcode && addr.postcode) shippingFields.postcode.value = addr.postcode;
+  } catch (_) {
+    // Non-fatal — buyer can just type their address in
+  }
+})();
+
+// ======================================================
 // STRIPE INITIALIZATION
 // ======================================================
 
@@ -242,6 +279,7 @@ async function initPayment() {
 
     currentOrder = {
       clientSecret: order.clientSecret,
+      paymentIntentId: order.paymentIntentId,
     };
 
     elements = stripe.elements({
@@ -274,6 +312,22 @@ orderBtn?.addEventListener('click', async () => {
     return;
   }
 
+  const shippingAddress = {
+    name: shippingFields.name?.value?.trim() || '',
+    phone: shippingFields.phone?.value?.trim() || '',
+    address1: shippingFields.address1?.value?.trim() || '',
+    address2: shippingFields.address2?.value?.trim() || '',
+    city: shippingFields.city?.value?.trim() || '',
+    county: shippingFields.county?.value?.trim() || '',
+    postcode: shippingFields.postcode?.value?.trim() || '',
+    country: shippingFields.country?.value?.trim() || 'United Kingdom',
+  };
+
+  if (!shippingAddress.name || !shippingAddress.address1 || !shippingAddress.city || !shippingAddress.postcode) {
+    setMessage('Please fill in your name, address, city and postcode.');
+    return;
+  }
+
   setMessage('');
   disableButton(true, 'Processing…');
 
@@ -286,6 +340,26 @@ orderBtn?.addEventListener('click', async () => {
   );
 
   try {
+    const addrRes = await fetch(`${API_BASE}/orders/shipping-address`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + token,
+      },
+      body: JSON.stringify({
+        paymentIntentId: currentOrder?.paymentIntentId,
+        ...shippingAddress,
+        saveAsDefault: !!saveAddressEl?.checked,
+      }),
+    });
+
+    if (!addrRes.ok) {
+      const addrData = await addrRes.json().catch(() => ({}));
+      setMessage(addrData.error || 'Could not save shipping address.');
+      disableButton(false, 'Pay Now');
+      return;
+    }
+
     const result = await stripe.confirmPayment({
       elements,
 

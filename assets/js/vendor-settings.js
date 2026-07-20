@@ -53,7 +53,7 @@ function renderForm(v) {
         <div class="settings-slug-wrap">
           <span class="settings-slug-prefix">sell4life.com/store/</span>
           <input class="settings-input" id="set-slug" type="text" value="${esc(v.storeSlug)}" maxlength="60"
-            pattern="[a-z0-9-]+" placeholder="your-store" />
+            pattern="[-a-z0-9]+" placeholder="your-store" />
         </div>
         <div class="settings-hint">Lowercase letters, numbers and hyphens only. Changing this will break existing links to your store.</div>
       </div>
@@ -117,6 +117,18 @@ function renderForm(v) {
         <div class="settings-section-title">Tax Information (HMRC)</div>
         <div id="hmrc-tax-body" style="color:#6b7280;font-size:13px">Loading…</div>
       </div>
+    </div>
+
+    <!-- Payouts (Stripe Connect) -->
+    <div class="settings-section" id="payout-stripe-section">
+      <div class="settings-section-title">Payouts &mdash; Bank Account</div>
+      <div id="payout-stripe-body" style="color:#9ca3af;font-size:13px">Loading…</div>
+    </div>
+
+    <!-- Connect Supplier -->
+    <div class="settings-section" id="supplier-connect-section">
+      <div class="settings-section-title">Connect Supplier</div>
+      <div id="supplier-section-body" style="color:#9ca3af;font-size:13px">Loading…</div>
     </div>
 
     <!-- Save Store Settings -->
@@ -281,6 +293,12 @@ function renderForm(v) {
 
   // Load HMRC tax section asynchronously (fetches status from API)
   loadTaxInfoSection();
+
+  // Load supplier connection section
+  loadSupplierSection();
+
+  // Load payout (Stripe Connect) section
+  loadPayoutStripeSection();
 }
 
 /* ======================================================
@@ -625,6 +643,283 @@ async function submitTaxInfo() {
   } finally {
     btn.disabled = false;
     btn.textContent = 'Submit Tax Information';
+  }
+}
+
+/* ======================================================
+   PAYOUTS (STRIPE CONNECT)
+====================================================== */
+
+async function loadPayoutStripeSection() {
+  const body = document.getElementById('payout-stripe-body');
+  if (!body) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const returning = params.get('stripe');
+
+  try {
+    const res = await authFetch(`${API}/vendor/stripe/status`);
+    if (!res.ok) { body.textContent = 'Could not load payout status.'; return; }
+    const status = await res.json();
+    renderPayoutStripeCard(status);
+
+    if (returning) {
+      history.replaceState(null, '', window.location.pathname);
+      if (returning === 'return' && status.payoutEnabled) {
+        window.showToast?.('Bank account connected — payouts are now enabled.');
+      } else if (returning === 'return') {
+        window.showToast?.('Almost there — a few more details are needed to enable payouts.', 'error');
+      }
+    }
+  } catch (_) {
+    body.textContent = 'Could not load payout status.';
+  }
+}
+
+function renderPayoutStripeCard(status) {
+  const body = document.getElementById('payout-stripe-body');
+  if (!body) return;
+
+  if (!status.connected) {
+    body.innerHTML = `
+      <p style="font-size:13px;color:#6b7280;margin:0 0 14px">
+        Connect a bank account with Stripe so approved payouts are paid out to you automatically — no need to send us your bank details.
+      </p>
+      <button type="button" class="settings-save-btn" id="btn-stripe-connect" style="font-size:13px;padding:7px 18px">Connect bank account with Stripe</button>
+      <span class="settings-msg" id="payout-stripe-msg"></span>`;
+  } else if (!status.payoutEnabled) {
+    body.innerHTML = `
+      <div style="background:#fffbeb;border-left:4px solid #f59e0b;border-radius:5px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#92400e">
+        <strong>Setup incomplete</strong> — finish onboarding with Stripe to start receiving automatic payouts.
+      </div>
+      <button type="button" class="settings-save-btn" id="btn-stripe-connect" style="font-size:13px;padding:7px 18px">Continue setup</button>
+      <span class="settings-msg" id="payout-stripe-msg"></span>`;
+  } else {
+    body.innerHTML = `
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:12px 16px;margin-bottom:12px">
+        <div style="font-weight:700;color:#166534">Bank account connected ✓</div>
+        <div style="font-size:12px;color:#374151;margin-top:2px">Approved payouts are sent straight to your bank via Stripe.</div>
+      </div>
+      <button type="button" id="btn-stripe-connect" style="font-size:12px;padding:4px 12px;background:#f9fafb;border:1px solid #d1d5db;border-radius:5px;cursor:pointer;color:#374151">Update bank details</button>
+      <span class="settings-msg" id="payout-stripe-msg"></span>`;
+  }
+
+  document.getElementById('btn-stripe-connect')?.addEventListener('click', startStripeConnect);
+}
+
+async function startStripeConnect() {
+  const btn = document.getElementById('btn-stripe-connect');
+  const msg = document.getElementById('payout-stripe-msg');
+  if (btn) { btn.disabled = true; btn.textContent = 'Redirecting…'; }
+  if (msg) { msg.textContent = ''; msg.className = 'settings-msg'; }
+
+  try {
+    const res = await authFetch(`${API}/vendor/stripe/connect`, {
+      method: 'POST',
+      body: JSON.stringify({ origin: window.location.origin }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.url) {
+      if (msg) { msg.textContent = data.error || 'Could not start Stripe setup.'; msg.className = 'settings-msg error'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Connect bank account with Stripe'; }
+      return;
+    }
+    window.location.href = data.url;
+  } catch (_) {
+    if (msg) { msg.textContent = 'Network error.'; msg.className = 'settings-msg error'; }
+    if (btn) { btn.disabled = false; }
+  }
+}
+
+/* ======================================================
+   CONNECT SUPPLIER
+====================================================== */
+
+async function loadSupplierSection() {
+  const body = document.getElementById('supplier-section-body');
+  if (!body) return;
+  try {
+    const res = await authFetch(`${API}/vendor/supplier/providers`);
+    if (!res.ok) { body.textContent = 'Could not load supplier connections.'; return; }
+    const { providers } = await res.json();
+    if (!providers || providers.length === 0) {
+      body.textContent = 'No supplier integrations available yet.';
+      return;
+    }
+    body.innerHTML = `
+      <p style="font-size:13px;color:#6b7280;margin:0 0 14px">
+        Connect your supplier account to automatically fetch real shipping costs when importing products via the CSV Converter.
+      </p>
+      ${providers.map(p => renderProviderCard(p)).join('')}`;
+    providers.forEach(p => attachProviderHandlers(p.providerName));
+  } catch (_) {
+    if (body) body.textContent = 'Could not load supplier connections.';
+  }
+}
+
+// Stores credentialSchema per providerName so handlers can access it
+const _providerSchemas = {};
+
+function renderProviderCard(p) {
+  const connected = p.configured;
+  const schema    = p.credentialSchema;
+  if (schema) _providerSchemas[p.providerName] = schema;
+
+  const fieldsHtml = schema
+    ? schema.map(f => `
+        <div style="margin-bottom:8px">
+          <label style="font-size:12px;color:#374151;display:block;margin-bottom:3px">${esc(f.label)}</label>
+          <input class="settings-input" id="supplier-field-${esc(p.providerName)}-${esc(f.key)}"
+            type="${esc(f.type || 'text')}" placeholder="${esc(f.placeholder || '')}" autocomplete="off" />
+        </div>`).join('')
+    : `<input class="settings-input" id="supplier-token-${esc(p.providerName)}" type="password"
+        placeholder="Paste your API token here" style="margin-bottom:6px" autocomplete="off" />`;
+
+  return `
+    <div id="supplier-card-${esc(p.providerName)}" style="border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <strong style="font-size:14px;color:#111827">${esc(p.displayName)}</strong>
+        <span id="supplier-status-${esc(p.providerName)}"
+          style="font-size:12px;font-weight:600;color:${connected ? '#15803d' : '#9ca3af'}">
+          ${connected ? 'Connected' : 'Not connected'}
+        </span>
+      </div>
+      <div id="supplier-token-wrap-${esc(p.providerName)}" ${connected ? 'style="display:none"' : ''}>
+        ${fieldsHtml}
+        <div class="settings-hint">Your credentials are encrypted before storage and never exposed in any response.</div>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:10px">
+          <button class="settings-save-btn" id="supplier-save-${esc(p.providerName)}" style="font-size:13px;padding:7px 18px">Connect</button>
+          <span class="settings-msg" id="supplier-msg-${esc(p.providerName)}"></span>
+        </div>
+      </div>
+      <div id="supplier-connected-wrap-${esc(p.providerName)}" ${!connected ? 'style="display:none"' : ''}>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button type="button" id="supplier-change-${esc(p.providerName)}"
+            style="font-size:12px;padding:4px 12px;background:#f9fafb;border:1px solid #d1d5db;border-radius:5px;cursor:pointer;color:#374151">
+            Change credentials
+          </button>
+          <button type="button" id="supplier-disconnect-${esc(p.providerName)}"
+            style="font-size:12px;padding:4px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:5px;cursor:pointer;color:#b91c1c">
+            Disconnect
+          </button>
+          <span class="settings-msg" id="supplier-msg-${esc(p.providerName)}"></span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function setSupplierMsg(providerName, text, type) {
+  const el = document.getElementById(`supplier-msg-${providerName}`);
+  if (!el) return;
+  el.textContent = text;
+  el.className   = `settings-msg ${type}`;
+}
+
+function attachProviderHandlers(providerName) {
+  const saveBtn = document.getElementById(`supplier-save-${providerName}`);
+  if (saveBtn) {
+    saveBtn.addEventListener('click', async () => {
+      const schema = _providerSchemas[providerName];
+      let body;
+
+      if (schema) {
+        // Collect values from each schema field
+        const credentials = {};
+        for (const f of schema) {
+          const val = document.getElementById(`supplier-field-${providerName}-${f.key}`)?.value?.trim();
+          if (!val) { setSupplierMsg(providerName, `Please enter your ${f.label}.`, 'error'); return; }
+          credentials[f.key] = val;
+        }
+        body = { providerName, credentials };
+      } else {
+        const token = document.getElementById(`supplier-token-${providerName}`)?.value?.trim();
+        if (!token) { setSupplierMsg(providerName, 'Please enter an API token.', 'error'); return; }
+        body = { providerName, token };
+      }
+
+      saveBtn.disabled    = true;
+      saveBtn.textContent = 'Connecting…';
+      setSupplierMsg(providerName, '', '');
+      try {
+        const res = await authFetch(`${API}/vendor/supplier/credentials`, {
+          method: 'POST',
+          body:   JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setSupplierMsg(providerName, data.error || 'Failed to save credentials.', 'error');
+        } else {
+          // Clear inputs
+          if (schema) {
+            schema.forEach(f => {
+              const inp = document.getElementById(`supplier-field-${providerName}-${f.key}`);
+              if (inp) inp.value = '';
+            });
+          } else {
+            const inp = document.getElementById(`supplier-token-${providerName}`);
+            if (inp) inp.value = '';
+          }
+          const statusEl = document.getElementById(`supplier-status-${providerName}`);
+          if (statusEl) { statusEl.textContent = 'Connected'; statusEl.style.color = '#15803d'; }
+          document.getElementById(`supplier-token-wrap-${providerName}`)?.setAttribute('style', 'display:none');
+          document.getElementById(`supplier-connected-wrap-${providerName}`)?.removeAttribute('style');
+          attachChangeDisconnectHandlers(providerName);
+        }
+      } catch (_) {
+        setSupplierMsg(providerName, 'Network error.', 'error');
+      } finally {
+        saveBtn.disabled    = false;
+        saveBtn.textContent = 'Connect';
+      }
+    });
+  }
+  attachChangeDisconnectHandlers(providerName);
+}
+
+function attachChangeDisconnectHandlers(providerName) {
+  const changeBtn = document.getElementById(`supplier-change-${providerName}`);
+  if (changeBtn && !changeBtn.__bound) {
+    changeBtn.__bound = true;
+    changeBtn.addEventListener('click', () => {
+      document.getElementById(`supplier-token-wrap-${providerName}`)?.removeAttribute('style');
+      document.getElementById(`supplier-connected-wrap-${providerName}`)?.setAttribute('style', 'display:none');
+      const schema = _providerSchemas[providerName];
+      if (schema) {
+        schema.forEach((f, i) => {
+          const inp = document.getElementById(`supplier-field-${providerName}-${f.key}`);
+          if (inp) { inp.value = ''; if (i === 0) inp.focus(); }
+        });
+      } else {
+        const inp = document.getElementById(`supplier-token-${providerName}`);
+        if (inp) { inp.value = ''; inp.focus(); }
+      }
+    });
+  }
+
+  const disconnectBtn = document.getElementById(`supplier-disconnect-${providerName}`);
+  if (disconnectBtn && !disconnectBtn.__bound) {
+    disconnectBtn.__bound = true;
+    disconnectBtn.addEventListener('click', async () => {
+      if (!confirm(`Disconnect ${providerName}? Automatic shipping lookup will stop until you reconnect.`)) return;
+      disconnectBtn.disabled = true;
+      try {
+        const res = await authFetch(`${API}/vendor/supplier/credentials/${encodeURIComponent(providerName)}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          setSupplierMsg(providerName, d.error || 'Failed to disconnect.', 'error');
+          disconnectBtn.disabled = false;
+          return;
+        }
+        const statusEl = document.getElementById(`supplier-status-${providerName}`);
+        if (statusEl) { statusEl.textContent = 'Not connected'; statusEl.setAttribute('style', 'font-size:12px;font-weight:600;color:#9ca3af'); }
+        document.getElementById(`supplier-connected-wrap-${providerName}`)?.setAttribute('style', 'display:none');
+        document.getElementById(`supplier-token-wrap-${providerName}`)?.removeAttribute('style');
+        document.getElementById(`supplier-token-${providerName}`)?.focus();
+      } catch (_) {
+        setSupplierMsg(providerName, 'Network error.', 'error');
+        disconnectBtn.disabled = false;
+      }
+    });
   }
 }
 

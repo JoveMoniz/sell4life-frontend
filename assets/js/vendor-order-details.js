@@ -225,13 +225,16 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
   // ── Goodwill refund (no return required) ────────────────────
   const maxGoodwill = Math.max(0,
     price * qty
-    + Number(item.shippingAmount || 0)
+    + Number(item.shippingCost || 0)
     - Number(item.discountAmount || 0)
     - Number(item.refundedAmount || 0)
   );
-  const goodwillEligible = ['paid', 'partially_refunded'].includes(paymentStatus)
-    && item.refundStatus === 'none'
-    && item.status !== 'Cancelled'
+  // Gate on whether money is actually left to refund (maxGoodwill), not on
+  // whether a refund has happened before or the item was cancelled — a
+  // cancelled item or a return with shipping withheld can still have real
+  // unrefunded value (e.g. the withheld/underpaid shipping) sitting on it.
+  const goodwillEligible = ['paid', 'partially_refunded', 'refunded'].includes(paymentStatus)
+    && item.refundStatus !== 'scheduled'
     && maxGoodwill > 0;
 
   const goodwillHTML = goodwillEligible ? `
@@ -291,12 +294,15 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
       </details>`
     : '';
 
-  const trackable = item.status === 'Processing';
+  // Shipped items stay selectable too, so tracking can be added/updated
+  // after the fact — the fulfillment status just won't be re-sent for them
+  // since Processing -> Shipped is the only valid forward transition.
+  const trackable = ['Processing', 'Shipped'].includes(item.status);
 
   return `
     <div class="order-item order-item--selectable">
       ${trackable
-        ? `<input type="checkbox" class="item-select-cb" data-item-id="${item._id}" />`
+        ? `<input type="checkbox" class="item-select-cb" data-item-id="${item._id}" data-status="${item.status}" />`
         : `<span></span>`
       }
       <img src="${img}" width="60" height="60"
@@ -309,6 +315,17 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
             style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;padding:3px 10px;background:#f0f9f8;border:1px solid #0b6b6a;color:#0b6b6a;border-radius:4px;font-size:0.75rem;font-weight:600;text-decoration:none">
             🔗 ${item.supplier ? `Open ${item.supplier}` : 'Open supplier listing'}
           </a>` : ''}
+        ${item.cjOrderId && item.status === 'Pending' ? `
+          <div style="margin-top:4px;padding:3px 10px;background:#fffbeb;border:1px solid #f59e0b;color:#92400e;border-radius:4px;font-size:0.75rem;font-weight:600;display:inline-block">
+            ⚠ CJ order created (${item.cjOrderNumber || item.cjOrderId}) —
+            <a href="https://cjdropshipping.com/mine/dropshipping/orderList?orderType=3&childType=1" target="_blank" rel="noopener"
+              style="color:#92400e;text-decoration:underline">go pay for it in your CJ dashboard</a>
+            (sorted newest first — it'll be at the top)
+          </div>` : ''}
+        ${item.cjOrderStatus === 'failed' ? `
+          <div style="margin-top:4px;padding:3px 10px;background:#fef2f2;border:1px solid #fca5a5;color:#b91c1c;border-radius:4px;font-size:0.75rem;font-weight:600;display:inline-block">
+            ⚠ CJ auto-order failed — place this order manually (${item.cjOrderError || 'unknown error'})
+          </div>` : ''}
         ${badges    ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${badges}</div>` : ''}
         ${qtyDetail ? `<div style="font-size:0.75rem;color:#9ca3af;margin-top:2px">${qtyDetail}</div>` : ''}
         ${item.trackingNumber
@@ -624,6 +641,11 @@ document.addEventListener('click', async (e) => {
           body:    JSON.stringify({ trackingNumber, carrier }),
         });
         if (!tr.ok) throw new Error('Failed to save tracking');
+
+        // Already-Shipped items just needed the tracking number updated —
+        // Processing -> Shipped is the only valid forward transition, so
+        // re-sending "Shipped" for one that's already there would be rejected.
+        if (cb.dataset.status === 'Shipped') return;
 
         // 2. Mark as Shipped (tracking = shipped, same action for dropshipping)
         const sh = await authFetch(`${API_BASE}/vendor/orders/${orderId}/items/${itemId}/fulfillment`, {

@@ -9,7 +9,7 @@
     <title>My Products | Sell4Life</title>
 
     <link rel="stylesheet" href="/assets/css/layout.css" />
-    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260622b" />
+    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260705k" />
     <style id="s4l-fouc">html{visibility:hidden}</style>
   </head>
 
@@ -21,7 +21,7 @@
       <main class="vendor-main">
         <div class="vendor-container">
           <a href="/account/vendor/dashboard.html" class="vendor-back-link">
-            â† Back to dashboard
+             Back to dashboard
           </a>
 
           <div class="vp-page-header">
@@ -29,20 +29,19 @@
             <div class="vp-header-actions">
               <button type="button" class="btn-import-csv" id="btn-import-csv">&#8593; Import CSV</button>
               <input type="file" accept=".csv" id="csv-file-input" class="csv-file-input-hidden" />
+              <button type="button" class="btn-bulk-cj-images" id="btn-bulk-cj-images" hidden>&#128260; Sync from CJ</button>
               <a href="/account/vendor/add-product.html" class="btn-add-product-header">+ Add Product</a>
             </div>
           </div>
 
+          <div class="vp-sticky-bulk">
           <div class="vp-bulk-bar" id="vp-bulk-bar" hidden>
-            <label class="vp-bulk-select-all" title="Select all visible products">
-              <input type="checkbox" id="vp-select-all" />
-              <span>Select All</span>
-            </label>
             <span id="vp-bulk-count" class="vp-bulk-count-badge">0 selected</span>
             <div class="vp-bulk-actions">
+              <button type="button" class="vp-bulk-btn vp-bulk-btn-cj" id="btn-bulk-cj-sync" hidden>&#128260; Sync CJ</button>
               <button type="button" class="vp-bulk-btn vp-bulk-btn-edit" id="btn-bulk-price">£ Price</button>
               <button type="button" class="vp-bulk-btn vp-bulk-btn-edit" id="btn-bulk-stock">Stock</button>
-              <button type="button" class="vp-bulk-btn" id="btn-bulk-coming-soon">ðŸ• Coming Soon</button>
+              <button type="button" class="vp-bulk-btn" id="btn-bulk-coming-soon">🕐 Coming Soon</button>
               <button type="button" class="vp-bulk-btn" id="btn-bulk-archive">Archive</button>
               <button type="button" class="vp-bulk-btn" id="btn-bulk-unarchive" hidden>Restore</button>
               <button type="button" class="vp-bulk-btn vp-bulk-btn-danger" id="btn-bulk-delete">Delete</button>
@@ -54,8 +53,19 @@
 
           <!-- Bulk edit inline panel (slides open below bulk bar) -->
           <div class="vp-bulk-edit-panel" id="vp-bulk-edit-panel" hidden>
-            <span class="vp-bulk-edit-label" id="vp-bulk-edit-label">Set price (£)</span>
-            <input type="number" id="vp-bulk-edit-value" min="0" step="0.01" placeholder="0.00" />
+            <!-- Flat value mode (Stock) -->
+            <span class="vp-bulk-edit-label" id="vp-bulk-edit-label">Set stock (qty)</span>
+            <input type="number" id="vp-bulk-edit-value" min="0" step="1" placeholder="0" />
+            <!-- Markup mode (Price) -->
+            <span id="vp-bulk-markup-wrap" class="vp-bulk-markup-wrap">
+              <span class="vp-bulk-markup-lbl">Markup</span>
+              <input type="number" id="vp-bulk-markup" class="vp-bulk-markup-input" min="0" step="1" />
+              <span class="vp-bulk-markup-lbl">%</span>
+              <label class="vp-bulk-ship-label">
+                <input type="checkbox" id="vp-bulk-incl-ship" /> + shipping
+              </label>
+              <span id="vp-bulk-price-preview" class="vp-bulk-price-preview"></span>
+            </span>
             <button type="button" class="vp-bulk-btn vp-bulk-btn-edit" id="btn-bulk-edit-apply">Apply to selected</button>
             <button type="button" class="vp-bulk-clear" id="btn-bulk-edit-cancel" title="Close">&#10005;</button>
           </div>
@@ -76,6 +86,7 @@
               <option value="price-desc">Price &darr;</option>
               <option value="stock-asc">Stock &uarr;</option>
             </select>
+            <button type="button" class="vp-view-btn" id="btn-multi-select" title="Enable multi-select">Select</button>
             <div class="vp-view-toggle">
               <button type="button" class="vp-view-btn active" data-view="grid" title="Grid view">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -94,6 +105,7 @@
               </button>
             </div>
           </div>
+          </div><!-- /vp-sticky-bulk -->
 
           <div id="vendor-products" class="vendor-products-grid">
             <p class="products-loading">Loading products...</p>
@@ -102,9 +114,22 @@
       </main>
     </div>
 
+    <!-- Bulk CJ image fetch progress overlay -->
+    <div id="cj-bulk-overlay" class="cj-bulk-overlay">
+      <div class="cj-bulk-modal">
+        <h3>Syncing from CJ</h3>
+        <div class="cj-bulk-progress-track">
+          <div id="cj-bulk-bar" class="cj-bulk-progress-bar"></div>
+        </div>
+        <p id="cj-bulk-status" class="cj-bulk-status"></p>
+        <p id="cj-bulk-counts" class="cj-bulk-counts"></p>
+        <button type="button" id="cj-bulk-cancel" class="cj-bulk-cancel" hidden>Cancel</button>
+      </div>
+    </div>
+
     <script src="/assets/js/config-global.js"></script>
     <script src="/assets/js/vendor-guard.js"></script>
     <script src="/assets/js/layout.js?v=20260627"></script>
-    <script src="/assets/js/vendor-products.js?v=20260622b"></script>
+    <script src="/assets/js/vendor-products.js?v=20260705f"></script>
   </body>
 </html>

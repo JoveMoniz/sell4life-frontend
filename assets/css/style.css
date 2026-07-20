@@ -376,33 +376,31 @@ body {
 
 .promo-arrow {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  bottom: 0;
   z-index: 10;
-  background: rgba(255,255,255,0.15);
+  background: transparent;
   border: none;
   color: #fff;
   font-size: 2.2rem;
   line-height: 1;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+  width: 64px;
+  height: auto;
+  border-radius: 0;
   cursor: pointer;
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-  transition: background 0.2s, transform 0.2s;
+  transition: background 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.35);
 }
 
 .promo-arrow:hover {
-  background: rgba(255,255,255,0.28);
-  transform: translateY(-50%) scale(1.08);
+  background: rgba(0,0,0,0.15);
 }
 
-.promo-prev { left: 18px; }
-.promo-next { right: 18px; }
+.promo-prev { left: 0; }
+.promo-next { right: 0; }
 
 /* Dots */
 
@@ -446,7 +444,7 @@ body {
   .promo-slider { height: 320px; }
   .promo-slide-content h2 { font-size: 1.8rem; }
   .promo-slide-content p  { font-size: 0.92rem; }
-  .promo-arrow { width: 38px; height: 38px; font-size: 1.7rem; }
+  .promo-arrow { width: 44px; font-size: 1.7rem; }
 
   .trust-item  { padding: 18px 32px; }
   .trust-num   { font-size: 1.45rem; }

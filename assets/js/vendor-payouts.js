@@ -134,7 +134,7 @@ function render(data, wrap) {
       }).join('')
     : `<tr><td colspan="5" class="payout-empty">No payout history yet.</td></tr>`;
 
-  // Net sales + commission are period-sensitive; stripe fees + reserve are always all-time totals
+  // Net sales + commission are period-sensitive; reserve is always an all-time total
   const netSalesVal   = ps ? ps.netAfterFees   : b.netAfterFeesAllTime;
   const commissionVal = ps ? ps.commissionPaid : b.commissionAllTime;
 
@@ -171,11 +171,6 @@ function render(data, wrap) {
         <div class="payout-card-value">${Math.round((b.commissionRate || 0.08) * 100)}%</div>
         <div class="payout-card-sub">current platform fee</div>
       </div>` : ''}
-      <div class="payout-card">
-        <div class="payout-card-label">Stripe Fees</div>
-        <div class="payout-card-value" style="color:#1d4ed8">${fmt(b.totalStripeFees)}</div>
-        <div class="payout-card-sub">all time, covered by platform</div>
-      </div>
       <div class="payout-card">
         <div class="payout-card-label">In Reserve</div>
         <div class="payout-card-value" style="color:#f59e0b">${fmt(b.reservedBalance)}</div>

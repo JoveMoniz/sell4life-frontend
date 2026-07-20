@@ -75,8 +75,14 @@ console.log('product.js loaded');
   // ── Shipping note ─────────────────────────────────────────
   const shippingNote = document.getElementById('pd-shipping-note');
   if (shippingNote) {
-    shippingNote.textContent = window.s4lShippingText(product.shippingCost);
+    const effectiveShip = product.shipIncluded ? 0 : product.shippingCost;
+    shippingNote.textContent = window.s4lShippingText(effectiveShip);
     shippingNote.style.display = 'block';
+  }
+  // Show "Free delivery included" when shipping is baked into price or genuinely free
+  const freeDeliveryEl = document.getElementById('pd-free-delivery');
+  if (freeDeliveryEl) {
+    freeDeliveryEl.style.display = (product.shipIncluded || Number(product.shippingCost) === 0) ? '' : 'none';
   }
 
   // ── Estimated delivery ──────────────────────────────────────
@@ -108,7 +114,7 @@ console.log('product.js loaded');
       ? !!product.vendor.freeReturns
       : false;
     const freeReturns = typeof product.freeReturns === 'boolean' ? product.freeReturns : vendorFreeReturns;
-    const returnCost = Number(product.shippingCost || 0);
+    const returnCost = product.shipIncluded ? 0 : Number(product.shippingCost || 0);
     if (freeReturns) {
       postageNoteEl.textContent = '✓ Free returns — this seller covers return postage for change-of-mind returns.';
     } else if (returnCost > 0) {

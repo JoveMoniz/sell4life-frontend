@@ -438,8 +438,12 @@ async function loadPayoutRequests() {
           month: 'short',
           year: 'numeric',
         });
+        const autoTransfer = !!(vendor.stripeAccountId && vendor.payoutEnabled);
+        const transferBadge = autoTransfer
+          ? '<div style="margin-top:3px"><span style="background:#f0fdf4;color:#15803d;padding:1px 7px;border-radius:10px;font-size:0.7rem;font-weight:600">⚡ Auto via Stripe</span></div>'
+          : '<div style="margin-top:3px"><span style="color:#9ca3af;font-size:0.72rem">No Stripe account — pay manually</span></div>';
         return `<tr data-payout-id="${p._id}">
-  <td><strong>${storeName}</strong><br><small style="color:#6b7280">${email}</small></td>
+  <td><strong>${storeName}</strong><br><small style="color:#6b7280">${email}</small>${transferBadge}</td>
   <td><strong>£${Number(p.amount).toFixed(2)}</strong></td>
   <td>${date}</td>
   <td>
@@ -459,6 +463,27 @@ async function loadPayoutRequests() {
 
 document.getElementById('payout-panel-toggle').addEventListener('click', () => {
   document.getElementById('payout-panel-body')?.classList.toggle('is-open');
+});
+
+document.getElementById('btn-run-payout-worker').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-run-payout-worker');
+  const msg = document.getElementById('payout-worker-msg');
+  btn.disabled = true;
+  msg.textContent = 'Running…';
+  try {
+    const res = await authFetch(`${API}/admin/vendors/payouts/run-worker`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) {
+      msg.textContent = data.error || 'Failed to run worker';
+    } else {
+      msg.textContent = `Checked ${data.checked}, paid ${data.paid}, skipped ${data.skipped}, errors ${data.errors}`;
+      loadPayoutRequests();
+    }
+  } catch (err) {
+    msg.textContent = 'Network error';
+  } finally {
+    btn.disabled = false;
+  }
 });
 
 document.getElementById('payout-requests-body').addEventListener('click', async (e) => {
@@ -483,7 +508,8 @@ document.getElementById('payout-requests-body').addEventListener('click', async 
       body: JSON.stringify(body),
     });
     if (!res.ok) {
-      showAlert('Action failed');
+      const data = await res.json().catch(() => ({}));
+      showAlert(data.error || 'Action failed');
       btn.disabled = false;
       return;
     }

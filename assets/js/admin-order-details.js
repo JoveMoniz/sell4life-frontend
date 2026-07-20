@@ -535,15 +535,19 @@ async function loadOrder() {
         }
 
         // ── Goodwill refund (no return required) ──────────────
+        // item.shippingAmount is never populated (always 0) — the real
+        // value lives in item.shippingCost. Gate on remaining money
+        // (maxGoodwill), not refund history or cancelled status, since a
+        // cancelled item or a return with shipping withheld can still have
+        // real unrefunded value sitting on it.
         const maxGoodwill = Math.max(0,
           price * qty
-          + Number(item.shippingAmount || 0)
+          + Number(item.shippingCost || 0)
           - Number(item.discountAmount || 0)
           - Number(item.refundedAmount || 0)
         );
-        const goodwillEligible = ['paid', 'partially_refunded'].includes(order.paymentStatus)
-          && item.refundStatus === 'none'
-          && item.status !== 'Cancelled'
+        const goodwillEligible = ['paid', 'partially_refunded', 'refunded'].includes(order.paymentStatus)
+          && item.refundStatus !== 'scheduled'
           && maxGoodwill > 0;
 
         if (goodwillEligible) {

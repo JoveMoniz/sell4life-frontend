@@ -106,9 +106,7 @@
 }
 
 .shop-count {
-  font-size: 13px;
-  color: #aaa;
-  margin-left: auto;
+  display: none;
 }
 
 .shop-sort {
@@ -299,29 +297,30 @@
 /* Arrow buttons — shown on hover, desktop only */
 .shop-row-arrow {
   position: absolute;
-  top: 50%;
-  transform: translateY(-60%);
+  top: 0;
+  bottom: 0;
   z-index: 2;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 1.5px solid #ddeaea;
-  background: #fff;
+  width: 44px;
+  height: auto;
+  border-radius: 0;
+  border: none;
+  background: transparent;
   color: #0b6b6a;
-  font-size: 1.2rem;
+  font-size: 1.6rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
+  box-shadow: none;
+  text-shadow: 0 1px 4px rgba(255,255,255,0.9);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, background 0.2s;
 }
-.shop-row-arrow.arrow-left  { left: -18px; }
-.shop-row-arrow.arrow-right { right: -18px; }
+.shop-row-arrow.arrow-left  { left: 0; }
+.shop-row-arrow.arrow-right { right: 0; }
 .shop-row-outer:hover .shop-row-arrow { opacity: 1; pointer-events: auto; }
-.shop-row-arrow:hover { background: #0b6b6a; color: #fff; border-color: #0b6b6a; }
+.shop-row-arrow:hover { background: rgba(255,255,255,0.55); }
 
 /* Skeleton row title */
 .shop-skel-title {
@@ -363,12 +362,24 @@
   .shop-cat-pills-arrow { display: none; }
 }
 
+@media (max-width: 600px) {
+  /* Pills get their own full row; sort sits cleanly underneath */
+  .shop-cat-pills-outer {
+    flex-basis: 100%;
+    width: 100%;
+  }
+  .shop-controls-right {
+    width: 100%;
+    display: flex;
+    align-items: center;
+  }
+}
+
 @media (max-width: 480px) {
   .product-grid    { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .shop-sort       { font-size: 1rem; padding: 10px 12px; }
   .shop-cat-pill   { min-height: 40px; padding: 0 14px; display: flex; align-items: center; }
   .shop-controls   { gap: 8px; }
-  .shop-count      { width: 100%; margin-left: 0; order: -1; }
   .shop-row-track .sp-card-wrap,
   .shop-row-skel-card { min-width: 140px; max-width: 140px; }
 }

@@ -86,7 +86,7 @@ window.s4lProductCardHTML = function (p, opts = {}) {
             <span class="sp-price">£${price}</span>
             ${compareEl}
           </div>
-          <span class="sp-shipping">${window.s4lShippingText(p.shippingCost)}</span>
+          <span class="sp-shipping">${window.s4lShippingText(p.shipIncluded ? 0 : p.shippingCost)}</span>
         </div>
         ${basketBtn}
       </div>

@@ -14,6 +14,8 @@ let _currentStatus = 'all';
 let _currentSort = 'newest';
 let _searchQuery = '';
 const _selected = new Set();
+let _bulkShipOverride = null; // null = use DB value; true/false = user's manual choice
+let _multiSelect      = false; // false = single-select (default); true = multi-select mode
 
 /* ── localStorage cache for archived products ────── */
 // Keyed per vendor so multiple vendors on same device don't mix
@@ -60,6 +62,15 @@ function renderHoverActions(p) {
   </div>`;
 }
 
+/* ── Video badge (count of attached videos) ──────── */
+
+function videoBadge(p) {
+  const n = ['videoUrl', 'videoUrl2', 'videoUrl3', 'videoUrl4', 'videoUrl5']
+    .filter(f => (p[f] || '').trim()).length;
+  if (!n) return '';
+  return `<span class="vp-video-badge" title="${n} video${n !== 1 ? 's' : ''} attached">▶${n > 1 ? `<span class="vp-video-count">${n}</span>` : ''}</span>`;
+}
+
 /* ── Render: grid card ───────────────────────────── */
 
 function renderCard(p) {
@@ -80,6 +91,7 @@ function renderCard(p) {
         <span class="vp-badge ${active ? 'vp-badge-active' : 'vp-badge-draft'}">${active ? 'Active' : 'Draft'}</span>
         ${p.comingSoon ? '<span class="vp-badge vp-badge-coming-soon">🕐 Coming Soon</span>' : ''}
         ${p.supplierUrl ? `<a href="${p.supplierUrl}" target="_blank" rel="noopener" class="vp-supplier-link" title="Open supplier listing" draggable="false">🔗</a>` : ''}
+        ${videoBadge(p)}
       </div>
 
       <div class="vp-card-body">
@@ -126,6 +138,7 @@ function renderListRow(p) {
       </label>
       <img src="${getImage(p)}" alt="${p.name || 'product'}" class="vp-list-img" loading="lazy" draggable="false" />
       ${p.supplierUrl ? `<a href="${p.supplierUrl}" target="_blank" rel="noopener" class="vp-supplier-link vp-supplier-link-list" title="Open supplier listing" draggable="false">🔗</a>` : ''}
+      ${videoBadge(p)}
 
       <div class="vp-list-info">
         <div class="vp-list-name">${p.name || 'Unnamed product'}</div>
@@ -376,9 +389,9 @@ function bindToolbar() {
     });
   }
 
-  document.querySelectorAll('.vp-view-btn').forEach(btn => {
+  document.querySelectorAll('.vp-view-btn[data-view]').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.vp-view-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.vp-view-btn[data-view]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       _currentView = btn.dataset.view;
       renderProducts();
@@ -649,17 +662,75 @@ function visibleIds() {
   return [...document.querySelectorAll('.vp-select-cb')].map(cb => cb.dataset.id);
 }
 
+document.getElementById('btn-multi-select')?.addEventListener('click', () => {
+  const btn = document.getElementById('btn-multi-select');
+  if (!_multiSelect) {
+    // First click: activate multi-select mode; button becomes "Select All"
+    _multiSelect = true;
+    if (btn) {
+      btn.classList.add('active');
+      btn.textContent = 'Select All';
+      btn.title = 'Select all visible products';
+    }
+  } else {
+    // Active: toggle — if all visible are selected, deselect all; otherwise select all
+    const vids = visibleIds();
+    const allSelected = vids.length > 0 && vids.every(id => _selected.has(id));
+    if (allSelected) {
+      vids.forEach(id => {
+        _selected.delete(id);
+        const card = document.querySelector(`[data-id="${id}"]`);
+        card?.classList.remove('vp-selected');
+        const cb = card?.querySelector('.vp-select-cb');
+        if (cb) cb.checked = false;
+      });
+    } else {
+      vids.forEach(id => {
+        _selected.add(id);
+        const card = document.querySelector(`[data-id="${id}"]`);
+        card?.classList.add('vp-selected');
+        const cb = card?.querySelector('.vp-select-cb');
+        if (cb) cb.checked = true;
+      });
+    }
+    updateBulkBar();
+    refillBulkPanel();
+  }
+});
+
 function updateBulkBar() {
   const bar   = document.getElementById('vp-bulk-bar');
   const count = document.getElementById('vp-bulk-count');
-  const selAll = document.getElementById('vp-select-all');
   if (!bar) return;
   bar.hidden = _selected.size === 0;
+  if (_selected.size === 0) {
+    const panel = document.getElementById('vp-bulk-edit-panel');
+    if (panel) { panel.hidden = true; delete panel.dataset.mode; }
+    // Reset combined select button back to initial state
+    _multiSelect = false;
+    const multiBtn = document.getElementById('btn-multi-select');
+    if (multiBtn) {
+      multiBtn.classList.remove('active');
+      multiBtn.textContent = 'Select';
+      multiBtn.title = 'Enable multi-select';
+    }
+  }
   if (count) count.textContent = `${_selected.size} selected`;
-  if (selAll) {
-    const vis = visibleIds();
-    selAll.checked = vis.length > 0 && vis.every(id => _selected.has(id));
-    selAll.indeterminate = !selAll.checked && _selected.size > 0;
+
+  // Sync from CJ requires a selection — disabled until products are ticked
+  const cjSyncBtn = document.getElementById('btn-bulk-cj-images');
+  if (cjSyncBtn) {
+    cjSyncBtn.textContent = _selected.size > 0
+      ? `🔄 Sync ${_selected.size} from CJ`
+      : '🔄 Sync from CJ';
+    cjSyncBtn.disabled = _selected.size === 0;
+    cjSyncBtn.title    = _selected.size === 0 ? 'Select products first, then sync them from CJ' : '';
+  }
+  const bulkCjBtn = document.getElementById('btn-bulk-cj-sync');
+  if (bulkCjBtn) {
+    bulkCjBtn.textContent = _selected.size > 0
+      ? `🔄 Sync ${_selected.size} from CJ`
+      : '🔄 Sync CJ';
   }
 
   // Coming Soon bulk button reflects whether the current selection is
@@ -676,16 +747,31 @@ function updateBulkBar() {
 function toggleSelect(id) {
   const card = document.querySelector(`[data-id="${id}"]`);
   const cb   = card?.querySelector('.vp-select-cb');
+
   if (_selected.has(id)) {
+    // Deselect this card
     _selected.delete(id);
     card?.classList.remove('vp-selected');
     if (cb) cb.checked = false;
   } else {
+    if (!_multiSelect) {
+      // Single-select: deselect all others first, reset shipping override
+      [..._selected].forEach(prevId => {
+        const prevCard = document.querySelector(`[data-id="${prevId}"]`);
+        prevCard?.classList.remove('vp-selected');
+        const prevCb = prevCard?.querySelector('.vp-select-cb');
+        if (prevCb) prevCb.checked = false;
+      });
+      _selected.clear();
+      _bulkShipOverride = null; // each new card shows its own DB state
+    }
     _selected.add(id);
     card?.classList.add('vp-selected');
     if (cb) cb.checked = true;
   }
+
   updateBulkBar();
+  refillBulkPanel();
 }
 
 // Click anywhere on card to select (ignore action buttons/links)
@@ -702,17 +788,6 @@ document.addEventListener('change', (e) => {
   toggleSelect(e.target.dataset.id);
 });
 
-document.getElementById('vp-select-all')?.addEventListener('change', (e) => {
-  visibleIds().forEach(id => {
-    if (e.target.checked) _selected.add(id);
-    else _selected.delete(id);
-    const card = document.querySelector(`[data-id="${id}"]`);
-    const cb   = card?.querySelector('.vp-select-cb');
-    card?.classList.toggle('vp-selected', e.target.checked);
-    if (cb) cb.checked = e.target.checked;
-  });
-  updateBulkBar();
-});
 
 document.getElementById('btn-bulk-clear')?.addEventListener('click', () => {
   _selected.clear();
@@ -835,69 +910,219 @@ document.getElementById('btn-bulk-coming-soon')?.addEventListener('click', bulkS
 
 /* ── Bulk price/stock edit ────────────────────────────── */
 
-document.getElementById('btn-bulk-price')?.addEventListener('click', () => {
+// Refreshes the edit panel fields whenever the selection changes while the panel is open
+function refillBulkPanel() {
   const panel = document.getElementById('vp-bulk-edit-panel');
-  const label = document.getElementById('vp-bulk-edit-label');
-  const input = document.getElementById('vp-bulk-edit-value');
-  if (label) label.textContent = 'Set price (£)';
-  if (input) { input.type = 'number'; input.value = ''; }
-  if (panel) panel.hidden = false;
-  if (input) input.focus();
-  if (panel) panel.dataset.mode = 'price';
+  if (!panel || panel.hidden) return;
+  const mode = panel.dataset.mode;
+
+  if (mode === 'markup') {
+    const markupInput = document.getElementById('vp-bulk-markup');
+    const inclShip    = document.getElementById('vp-bulk-incl-ship');
+    const selectedProducts = [..._selected]
+      .map(id => _allProducts.find(x => (x._id || x.id) === id)).filter(Boolean);
+    if (inclShip) {
+      inclShip.checked = _bulkShipOverride !== null
+        ? _bulkShipOverride
+        : selectedProducts.every(p => p.shipIncluded);
+    }
+    const markups = selectedProducts.map(p => {
+      if (p.markupPct != null && isFinite(p.markupPct) && p.markupPct >= 0) return p.markupPct;
+      return null;
+    }).filter(x => x !== null);
+    if (markupInput) {
+      const valid = markups.filter(m => m >= 0);
+      const allSame = valid.length > 0 && valid.every(m => m === valid[0]);
+      markupInput.value       = allSame ? valid[0] : '';
+      markupInput.placeholder = (!allSame && valid.length) ? 'varies' : '';
+    }
+    updateBulkPreview();
+  }
+
+  if (mode === 'stock') {
+    const flatInput = document.getElementById('vp-bulk-edit-value');
+    if (!flatInput) return;
+    const stocks = [..._selected].map(id => {
+      const p = _allProducts.find(x => (x._id || x.id) === id);
+      return p != null ? (parseInt(p.stock) ?? null) : null;
+    }).filter(x => x !== null);
+    const allSame = stocks.length > 0 && stocks.every(s => s === stocks[0]);
+    flatInput.value       = allSame ? stocks[0] : '';
+    flatInput.placeholder = allSame ? '' : (stocks.length ? 'varies' : '0');
+  }
+}
+
+document.getElementById('btn-bulk-price')?.addEventListener('click', () => {
+  const panel      = document.getElementById('vp-bulk-edit-panel');
+  const label      = document.getElementById('vp-bulk-edit-label');
+  const flatInput  = document.getElementById('vp-bulk-edit-value');
+  const markupWrap = document.getElementById('vp-bulk-markup-wrap');
+  const markupInput = document.getElementById('vp-bulk-markup');
+  if (label) label.style.display = 'none';
+  if (flatInput) flatInput.style.display = 'none';
+  if (markupWrap) markupWrap.style.display = 'flex';
+  if (panel) { panel.hidden = false; panel.dataset.mode = 'markup'; }
+  refillBulkPanel();
+  markupInput?.focus();
+  markupInput?.select();
 });
 
 document.getElementById('btn-bulk-stock')?.addEventListener('click', () => {
-  const panel = document.getElementById('vp-bulk-edit-panel');
-  const label = document.getElementById('vp-bulk-edit-label');
-  const input = document.getElementById('vp-bulk-edit-value');
-  if (label) label.textContent = 'Set stock (qty)';
-  if (input) { input.type = 'number'; input.value = ''; input.step = '1'; }
-  if (panel) panel.hidden = false;
-  if (input) input.focus();
-  if (panel) panel.dataset.mode = 'stock';
+  const panel      = document.getElementById('vp-bulk-edit-panel');
+  const label      = document.getElementById('vp-bulk-edit-label');
+  const flatInput  = document.getElementById('vp-bulk-edit-value');
+  const markupWrap = document.getElementById('vp-bulk-markup-wrap');
+  if (label) { label.textContent = 'Set stock (qty)'; label.style.display = ''; }
+  if (markupWrap) markupWrap.style.display = 'none';
+  if (flatInput) { flatInput.type = 'number'; flatInput.step = '1'; flatInput.style.display = ''; }
+  if (panel) { panel.hidden = false; panel.dataset.mode = 'stock'; }
+  refillBulkPanel();
+  flatInput?.focus();
+  flatInput?.select();
 });
 
+function calcRetailPrice(costPrice, shippingCost, markupPct, inclShip) {
+  const cost = parseFloat(costPrice) || 0;
+  if (cost <= 0) return null;
+  const ship = inclShip ? (parseFloat(shippingCost) || 0) : 0;
+  return Math.round((cost + ship) * (1 + markupPct / 100) * 100) / 100;
+}
+
+// Live price preview — updates when markup% or + shipping changes
+function updateBulkPreview() {
+  const preview     = document.getElementById('vp-bulk-price-preview');
+  const markupInput = document.getElementById('vp-bulk-markup');
+  const inclShip    = document.getElementById('vp-bulk-incl-ship');
+  if (!preview) return;
+  const markupPct = parseFloat(markupInput?.value);
+  if (isNaN(markupPct) || markupPct < 0) { preview.textContent = ''; return; }
+  const selectedProducts = [..._selected]
+    .map(id => _allProducts.find(x => (x._id || x.id) === id))
+    .filter(Boolean);
+  const prices = selectedProducts
+    .map(p => calcRetailPrice(p.costPrice, p.shippingCost, markupPct, inclShip?.checked))
+    .filter(x => x !== null);
+  if (!prices.length) { preview.textContent = ''; return; }
+  const min = Math.min(...prices), max = Math.max(...prices);
+  preview.textContent = min === max ? `→ £${min.toFixed(2)}` : `→ £${min.toFixed(2)}–£${max.toFixed(2)}`;
+}
+
+document.getElementById('vp-bulk-incl-ship')?.addEventListener('change', function () {
+  _bulkShipOverride = this.checked; // remember user's choice across panel open/close
+  updateBulkPreview();
+});
+document.getElementById('vp-bulk-markup')?.addEventListener('input',  updateBulkPreview);
+
 document.getElementById('btn-bulk-edit-cancel')?.addEventListener('click', () => {
-  const panel = document.getElementById('vp-bulk-edit-panel');
+  const panel      = document.getElementById('vp-bulk-edit-panel');
+  const label      = document.getElementById('vp-bulk-edit-label');
+  const flatInput  = document.getElementById('vp-bulk-edit-value');
+  const markupWrap = document.getElementById('vp-bulk-markup-wrap');
+  if (label) label.style.display = '';
+  if (flatInput) flatInput.style.display = '';
+  if (markupWrap) markupWrap.style.display = 'none';
   if (panel) { panel.hidden = true; delete panel.dataset.mode; }
 });
 
 document.getElementById('btn-bulk-edit-apply')?.addEventListener('click', async () => {
   const panel = document.getElementById('vp-bulk-edit-panel');
-  const input = document.getElementById('vp-bulk-edit-value');
-  const mode = panel?.dataset.mode;
-  const value = input?.value?.trim();
+  const mode  = panel?.dataset.mode;
 
-  if (!mode || !value) return;
+  if (!mode) return;
   if (_selected.size === 0) { window.showToast?.('No products selected', 'error'); return; }
 
-  const token = localStorage.getItem('s4l_token');
-  const ids = [..._selected];
-  const n = ids.length;
-  const field = mode === 'price' ? 'price' : 'stock';
-  const fieldVal = mode === 'price' ? parseFloat(value) : parseInt(value, 10);
+  const token  = localStorage.getItem('s4l_token');
+  const ids    = [..._selected];
+  const n      = ids.length;
+  const actBtn = document.getElementById('btn-bulk-edit-apply');
 
-  if (isNaN(fieldVal) || fieldVal < 0) {
-    window.showToast?.(`Invalid ${field}`, 'error');
+  // ── Markup mode (£ Price button) ─────────────────────────────────────
+  if (mode === 'markup') {
+    const markupInput = document.getElementById('vp-bulk-markup');
+    const inclShip    = document.getElementById('vp-bulk-incl-ship');
+    const markupPct   = parseFloat(markupInput?.value);
+
+    if (isNaN(markupPct) || markupPct < 0) {
+      window.showToast?.('Enter a valid markup %', 'error');
+      return;
+    }
+
+    // Calculate per-product prices
+    const updates = ids.map(id => {
+      const p = _allProducts.find(x => (x._id || x.id) === id);
+      if (!p) return null;
+      const price = calcRetailPrice(p.costPrice, p.shippingCost, markupPct, inclShip?.checked);
+      if (price === null) return null;
+      return { id, price, markupPct };
+    }).filter(Boolean);
+
+    if (updates.length === 0) {
+      window.showToast?.('No products have a cost price set', 'error');
+      return;
+    }
+
+    const skipped = n - updates.length;
+    const shipLabel = inclShip?.checked ? ' + shipping' : '';
+    const prices = updates.map(u => u.price);
+    const minP = Math.min(...prices), maxP = Math.max(...prices);
+    const priceStr = minP === maxP ? `£${minP.toFixed(2)}` : `£${minP.toFixed(2)}–£${maxP.toFixed(2)}`;
+    const msg = `Apply ${markupPct}%${shipLabel} markup to ${updates.length} product${updates.length !== 1 ? 's' : ''} → ${priceStr}${skipped ? ` (${skipped} skipped — no cost price)` : ''}?`;
+    const confirmed = await window.confirmAction?.(msg);
+    if (!confirmed) return;
+
+    if (actBtn) { actBtn.disabled = true; actBtn.textContent = 'Applying…'; }
+
+    let successCount = 0;
+    try {
+      await Promise.all(updates.map(async ({ id, price, markupPct: mu }) => {
+        const res = await fetch(`${window.API_BASE}/products/bulk`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ ids: [id], price, shipIncluded: !!(inclShip?.checked), markupPct: mu }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        const p = _allProducts.find(x => (x._id || x.id) === id);
+        if (p) { p.price = price; p.shipIncluded = !!(inclShip?.checked); p.markupPct = mu; }
+        successCount++;
+      }));
+
+      renderProducts();
+      refillBulkPanel();
+      window.showToast?.(`Updated ${successCount} product${successCount !== 1 ? 's' : ''}`);
+    } catch (err) {
+      console.error(err);
+      window.showToast?.(err.message || 'Update failed', 'error');
+    } finally {
+      if (actBtn) { actBtn.disabled = false; actBtn.textContent = 'Apply to selected'; }
+    }
     return;
   }
 
-  const msg = `Update ${field} to ${fieldVal} for ${n} product${n > 1 ? 's' : ''}?`;
+  // ── Stock mode ────────────────────────────────────────────────────────
+  const input    = document.getElementById('vp-bulk-edit-value');
+  const value    = input?.value?.trim();
+  if (!value) return;
+
+  const fieldVal = parseInt(value, 10);
+  if (isNaN(fieldVal) || fieldVal < 0) {
+    window.showToast?.('Invalid stock value', 'error');
+    return;
+  }
+
+  const msg = `Set stock to ${fieldVal} for ${n} product${n > 1 ? 's' : ''}?`;
   const confirmed = await window.confirmAction?.(msg);
   if (!confirmed) return;
 
-  const actBtn = document.getElementById('btn-bulk-edit-apply');
   if (actBtn) { actBtn.disabled = true; actBtn.textContent = 'Applying…'; }
 
   try {
-    const body = { ids };
-    if (mode === 'price') body.price = fieldVal;
-    else body.stock = fieldVal;
-
     const res = await fetch(`${window.API_BASE}/products/bulk`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ ids, stock: fieldVal }),
     });
 
     if (!res.ok) {
@@ -910,10 +1135,7 @@ document.getElementById('btn-bulk-edit-apply')?.addEventListener('click', async 
 
     _allProducts.forEach(p => {
       const pid = p._id || p.id;
-      if (ids.includes(pid)) {
-        if (mode === 'price') p.price = fieldVal;
-        else p.stock = fieldVal;
-      }
+      if (ids.includes(pid)) p.stock = fieldVal;
     });
 
     _selected.clear();
@@ -1241,22 +1463,29 @@ document.addEventListener('click', async (e) => {
 
 /* ── CSV Import ──────────────────────────────────── */
 
-function showCsvResult(created, skipped, skippedDetails) {
+function showCsvResult(created, updated, skipped, skippedDetails) {
   const existing = document.getElementById('csv-result-banner');
   if (existing) existing.remove();
 
   const banner = document.createElement('div');
   banner.id = 'csv-result-banner';
 
-  if (skipped === 0) {
+  const total = created + updated;
+  if (skipped === 0 && total > 0) {
     banner.className = 'csv-result success';
-    banner.textContent = `✓ ${created} product${created !== 1 ? 's' : ''} imported successfully.`;
-  } else if (created === 0) {
+    const parts = [];
+    if (created) parts.push(`${created} new`);
+    if (updated) parts.push(`${updated} updated`);
+    banner.textContent = `✓ ${parts.join(', ')} product${total !== 1 ? 's' : ''} imported.`;
+  } else if (total === 0) {
     banner.className = 'csv-result error';
     banner.textContent = `Import failed — ${skipped} row${skipped !== 1 ? 's' : ''} had errors. Check your CSV and try again.`;
   } else {
     banner.className = 'csv-result partial';
-    banner.textContent = `${created} imported, ${skipped} skipped (errors on rows: ${skippedDetails.map(s => s.row).join(', ')}).`;
+    const parts = [];
+    if (created) parts.push(`${created} new`);
+    if (updated) parts.push(`${updated} updated`);
+    banner.textContent = `${parts.join(', ')} imported, ${skipped} skipped (errors on rows: ${skippedDetails.map(s => s.row).join(', ')}).`;
   }
 
   const header = document.querySelector('.vp-page-header');
@@ -1304,14 +1533,14 @@ if (csvBtn && csvInput) {
       const data = await res.json();
 
       if (!res.ok) {
-        showCsvResult(0, 1, [{ row: '—', reason: data.error || 'Unknown error' }]);
+        showCsvResult(0, 0, 1, [{ row: '—', reason: data.error || 'Unknown error' }]);
       } else {
-        showCsvResult(data.created, data.skipped, data.skippedDetails || []);
-        if (data.created > 0) await loadVendorProducts();
+        showCsvResult(data.created, data.updated ?? 0, data.skipped, data.skippedDetails || []);
+        if (data.created > 0 || data.updated > 0) await loadVendorProducts();
       }
     } catch (err) {
       console.error('CSV import error:', err);
-      showCsvResult(0, 1, [{ row: '—', reason: 'Network error' }]);
+      showCsvResult(0, 0, 1, [{ row: '—', reason: 'Network error' }]);
     } finally {
       csvBtn.textContent = '↑ Import CSV';
       csvBtn.disabled = false;
@@ -1338,18 +1567,180 @@ async function runPendingCsvImport() {
     });
     const data = await res.json();
     if (!res.ok) {
-      showCsvResult(0, 1, [{ row: '—', reason: data.error || 'Unknown error' }]);
+      showCsvResult(0, 0, 1, [{ row: '—', reason: data.error || 'Unknown error' }]);
     } else {
-      showCsvResult(data.created, data.skipped, data.skippedDetails || []);
-      if (data.created > 0) await loadVendorProducts();
+      showCsvResult(data.created, data.updated ?? 0, data.skipped, data.skippedDetails || []);
+      if (data.created > 0 || data.updated > 0) await loadVendorProducts();
     }
   } catch (err) {
     console.error('CSV import error:', err);
-    showCsvResult(0, 1, [{ row: '—', reason: 'Network error' }]);
+    showCsvResult(0, 0, 1, [{ row: '—', reason: 'Network error' }]);
   } finally {
     if (csvBtn) { csvBtn.textContent = '↑ Import CSV'; csvBtn.disabled = false; }
   }
 }
+
+/* ── Bulk CJ Image Fetch ─────────────────────────── */
+
+(function initBulkCjImages() {
+  const btn     = document.getElementById('btn-bulk-cj-images');
+  const overlay = document.getElementById('cj-bulk-overlay');
+  const bar     = document.getElementById('cj-bulk-bar');
+  const status  = document.getElementById('cj-bulk-status');
+  const counts  = document.getElementById('cj-bulk-counts');
+  if (!btn || !overlay) return;
+
+  // Professional+ vendors with CJ credentials only — hidden for everyone else
+  btn.hidden = true;
+  if (!_isPro) return;
+  (async () => {
+    try {
+      const token = localStorage.getItem('s4l_token');
+      const res   = await fetch(`${window.API_BASE}/vendor/supplier/providers`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = res.ok ? await res.json() : null;
+      const cj   = data?.providers?.find(p => p.providerName === 'cjdropshipping');
+      if (cj?.configured) {
+        btn.hidden   = false;
+        btn.disabled = _selected.size === 0;
+        btn.title    = _selected.size === 0 ? 'Select products first, then sync them from CJ' : '';
+        // Companion button in the sticky selection bar — same action, always in
+        // view while selecting (no scrolling back to the page header).
+        const bulkBtn = document.getElementById('btn-bulk-cj-sync');
+        if (bulkBtn) {
+          bulkBtn.hidden = false;
+          bulkBtn.addEventListener('click', () => btn.click());
+        }
+      }
+    } catch (_) { /* leave hidden */ }
+  })();
+
+  btn.addEventListener('click', async () => {
+    const token = localStorage.getItem('s4l_token');
+    if (!token) return;
+    if (_selected.size === 0) return; // selection required — button should be disabled anyway
+
+    btn.disabled = true;
+    overlay.classList.add('active');
+    bar.style.width = '0%';
+    status.textContent = 'Starting…';
+    counts.textContent = '';
+
+    let total = 0, updated = 0, failed = 0, skipped = 0;
+    let imgTotal = 0, vidTotal = 0, varTotal = 0, shipCount = 0;
+    const failedNames = [];
+    const selectedIds = Array.from(_selected);
+
+    // Cancel support — aborting the fetch closes the stream; the backend
+    // notices the disconnect and stops processing remaining products.
+    const cancelBtn   = document.getElementById('cj-bulk-cancel');
+    const controller  = new AbortController();
+    let cancelled     = false;
+    if (cancelBtn) {
+      cancelBtn.hidden   = false;
+      cancelBtn.disabled = false;
+      cancelBtn.onclick  = () => {
+        cancelled = true;
+        cancelBtn.disabled = true;
+        controller.abort();
+      };
+    }
+
+    try {
+      const res = await fetch(`${window.API_BASE}/vendor/products/bulk-fetch-cj-images`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(selectedIds.length ? { ids: selectedIds } : {}),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        status.textContent = err.error || 'Request failed';
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const dec    = new TextDecoder();
+      let buf      = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop(); // keep incomplete line
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let msg;
+          try { msg = JSON.parse(line); } catch (_) { continue; }
+
+          if (msg.type === 'start') {
+            total = msg.total;
+            status.textContent = total === 0
+              ? (selectedIds.length ? 'No CJ products in your selection.' : 'No CJ products found.')
+              : `Syncing ${total}${selectedIds.length ? ' selected' : ''} product${total === 1 ? '' : 's'}…`;
+
+          } else if (msg.type === 'progress') {
+            const pct = total > 0 ? Math.round((msg.n / total) * 100) : 0;
+            bar.style.width = pct + '%';
+            const extras = msg.status === 'updated'
+              ? [msg.count + ' images', msg.videos ? msg.videos + ' video' : '', msg.variantsSynced ? msg.variantsSynced + ' variants synced' : '', msg.shipping != null ? '£' + msg.shipping + ' shipping' : ''].filter(Boolean).join(', ')
+              : '';
+            const label = msg.status === 'fetching'  ? `Fetching: ${msg.name}…`
+                        : msg.status === 'updated'   ? `✓ ${msg.name} (${extras})`
+                        : msg.status === 'failed'    ? `✗ No images: ${msg.name}`
+                        : `Skipped: ${msg.name}`;
+            status.textContent = `[${msg.n}/${total}] ${label}`;
+            if (msg.status === 'updated') {
+              updated++;
+              imgTotal += msg.count          || 0;
+              vidTotal += msg.videos         || 0;
+              varTotal += msg.variantsSynced || 0;
+              if (msg.shipping != null) shipCount++;
+            }
+            if (msg.status === 'failed')  { failed++; failedNames.push(msg.name); }
+            if (msg.status === 'skipped')  skipped++;
+            counts.textContent = `Updated: ${updated}  Failed: ${failed}  Skipped: ${skipped}   |   📷 ${imgTotal} images · 🎬 ${vidTotal} videos · 🎨 ${varTotal} variant images · 🚚 ${shipCount} shipping quotes`;
+
+          } else if (msg.type === 'done') {
+            bar.style.width = '100%';
+            status.textContent = `Done — ${msg.updated} updated, ${msg.failed} failed, ${msg.skipped} skipped   ·   📷 ${imgTotal} images · 🎬 ${vidTotal} videos · 🎨 ${varTotal} variant images · 🚚 ${shipCount} shipping`;
+            counts.textContent = failedNames.length
+              ? 'No CJ match: ' + failedNames.join(' · ')
+              : '';
+            _selected.clear();
+            if (msg.updated > 0) await loadVendorProducts(); else renderProducts();
+            updateBulkBar();
+
+          } else if (msg.type === 'error') {
+            status.textContent = `Error: ${msg.message}`;
+          }
+        }
+      }
+    } catch (err) {
+      if (cancelled) {
+        status.textContent = `Stopped — ${updated} product${updated !== 1 ? 's' : ''} synced before cancelling`;
+        counts.textContent = `📷 ${imgTotal} images · 🎬 ${vidTotal} videos · 🎨 ${varTotal} variant images`;
+        if (updated > 0) await loadVendorProducts();
+      } else {
+        status.textContent = `Network error: ${err.message}`;
+      }
+    } finally {
+      if (cancelBtn) { cancelBtn.hidden = true; cancelBtn.onclick = null; }
+      btn.disabled = false;
+      // Keep overlay visible so user can read final result; click anywhere to dismiss
+      overlay.addEventListener('click', function dismiss(e) {
+        if (e.target === overlay) {
+          overlay.classList.remove('active');
+          overlay.removeEventListener('click', dismiss);
+        }
+      }, { once: false });
+    }
+  });
+}());
 
 /* ── Start ───────────────────────────────────────── */
 

@@ -53,7 +53,8 @@ const subcategoriesMap = {
     "Laptop Stands & Accessories","Mobile Phone Stands & Holders",
     "Computer Accessories",
     "TVs","Projectors & Screens","Blu-ray & DVD Players","Remote Controls",
-    "Headphones & Earphones","Speakers","Soundbars & Home Cinema","DAC & Amplifiers",
+    "Headphones & Earphones","Headphone & Earphone Cases & Accessories",
+    "Speakers","Soundbars & Home Cinema","DAC & Amplifiers",
     "Gaming Consoles","Video Games","Gaming Controllers","Gaming Headsets",
     "Gaming Chairs & Desks","PC Gaming Accessories",
     "Digital Cameras (DSLR / Mirrorless)","Action Cameras","Camera Lenses",
@@ -409,6 +410,7 @@ const TAG_SUGGESTIONS = {
     'mobile phone stands & holders': ['phone stand', 'phone holder', 'phone mount', 'car phone holder', 'pop socket', 'phone grip'],
     'laptop bags & sleeves': ['laptop bag', 'laptop sleeve', 'laptop case', 'laptop backpack'],
     'headphones & earphones': ['headphones', 'earphones', 'wireless earbuds', 'bluetooth headphones', 'noise cancelling', 'over ear headphones', 'in ear'],
+    'headphone & earphone cases & accessories': ['airpods case', 'earphone case', 'headphone case', 'earbuds case', 'protective case', 'silicone case', 'leather case', 'case cover'],
     'speakers': ['bluetooth speaker', 'portable speaker', 'wireless speaker', 'waterproof speaker'],
     'tvs': ['tv', 'smart tv', '4k tv', 'oled tv', 'led tv', 'television', 'flat screen'],
     'gaming consoles': ['gaming console', 'playstation', 'xbox', 'nintendo switch', 'gaming'],
@@ -1096,6 +1098,76 @@ function bindImageUploads() {
     });
     imgBtnRow.appendChild(selAllBtn);
     imgBtnRow.appendChild(clearSelBtn);
+
+    // "Fetch images from CJ" button — shown only when product has CJ variant refs
+    if (!document.getElementById('btn-fetch-cj-images')) {
+      const cjBtn = document.createElement('button');
+      cjBtn.type = 'button';
+      cjBtn.id   = 'btn-fetch-cj-images';
+      cjBtn.textContent = '🔄 Sync from CJ';
+      cjBtn.style.cssText = 'font-size:0.82rem;padding:5px 12px;background:#f0f9f8;border:1px solid #0b6b6a;color:#0b6b6a;border-radius:6px;cursor:pointer;font-weight:600;display:none';
+      // Styled modal flow (replaces the native confirm popup):
+      // confirm state → indeterminate progress → result, then reload.
+      const syncOverlay = () => document.getElementById('cj-sync-overlay');
+      const syncMsg     = () => document.getElementById('cj-sync-msg');
+      const syncTrack   = () => document.getElementById('cj-sync-track');
+      const syncActions = () => document.getElementById('cj-sync-actions');
+
+      cjBtn.addEventListener('click', () => {
+        const ov = syncOverlay();
+        if (!ov) return;
+        syncMsg().textContent = 'Images, videos, variant thumbnails, supplier info and shipping cost will be replaced with fresh CJ data. Any unsaved edits on this page will be lost.';
+        syncTrack().hidden = true;
+        syncActions().hidden = false;
+        const cancelB = document.getElementById('cj-sync-cancel');
+        const confirmB = document.getElementById('cj-sync-confirm');
+        if (cancelB)  { cancelB.textContent = 'Cancel'; }
+        if (confirmB) { confirmB.hidden = false; }
+        ov.classList.add('active');
+      });
+
+      document.getElementById('cj-sync-cancel')?.addEventListener('click', () => {
+        syncOverlay()?.classList.remove('active');
+      });
+
+      document.getElementById('cj-sync-confirm')?.addEventListener('click', async () => {
+        const id = new URLSearchParams(window.location.search).get('id');
+        syncActions().hidden = true;
+        syncTrack().hidden = false;
+        syncMsg().textContent = 'Syncing from CJ…';
+        try {
+          const token = localStorage.getItem('s4l_token');
+          const res  = await fetch(`${window.API_BASE}/vendor/products/${id}/cj-sync`, {
+            method:  'POST',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          syncTrack().hidden = true;
+          if (!res.ok) {
+            console.error('[cj-sync] error:', data.error);
+            syncMsg().textContent = `✗ ${data.error || 'CJ sync failed'}`;
+          } else {
+            const parts = [`${data.images} images`];
+            if (data.videos)           parts.push(`${data.videos} video${data.videos !== 1 ? 's' : ''}`);
+            if (data.variantsSynced)   parts.push(`${data.variantsSynced} variant image${data.variantsSynced !== 1 ? 's' : ''}`);
+            if (data.shipping != null) parts.push(`£${data.shipping} shipping`);
+            syncMsg().textContent = `✓ Synced from CJ: ${parts.join(', ')}. Reloading…`;
+            setTimeout(() => window.location.reload(), 1100);
+            return;
+          }
+        } catch (_) {
+          syncTrack().hidden = true;
+          syncMsg().textContent = '✗ Network error syncing from CJ';
+        }
+        // Error path: offer a Close button
+        const cancelB = document.getElementById('cj-sync-cancel');
+        const confirmB = document.getElementById('cj-sync-confirm');
+        if (cancelB)  cancelB.textContent = 'Close';
+        if (confirmB) confirmB.hidden = true;
+        syncActions().hidden = false;
+      });
+      imgBtnRow.appendChild(cjBtn);
+    }
   }
 
   const showMoreBtn = document.getElementById('ap-show-more');
@@ -1169,7 +1241,9 @@ function addAttrInput(name, addColToRows) {
       if (!swatchTd) return;
       const td = document.createElement('td');
       td.className = 'vb-dyn-attr-td';
-      td.innerHTML = '<input type="text" class="vb-input" name="vr-attr" placeholder="" />';
+      ensureAttrDatalist(idx);
+      td.innerHTML = `<input type="text" class="vb-input" name="vr-attr" data-attr-idx="${idx}" list="vb-attr-dl-${idx}" placeholder="" />`;
+      td.querySelector('input').addEventListener('change', () => updateAttrDatalist(idx));
       tr.insertBefore(td, swatchTd);
     });
   }
@@ -1193,6 +1267,27 @@ function syncVariantHeaders() {
   checkTh.style.cssText = 'width:28px;text-align:center;vertical-align:middle;padding:4px';
   checkTh.innerHTML = '<input type="checkbox" id="vr-check-all-hdr" title="Select / deselect all rows" style="width:15px;height:15px;cursor:pointer;accent-color:#14b8a6" />';
   headerRow.insertBefore(checkTh, headerRow.firstElementChild);
+}
+
+function ensureAttrDatalist(attrIdx) {
+  const id = `vb-attr-dl-${attrIdx}`;
+  if (!document.getElementById(id)) {
+    const dl = document.createElement('datalist');
+    dl.id = id;
+    document.body.appendChild(dl);
+  }
+}
+
+function updateAttrDatalist(attrIdx) {
+  ensureAttrDatalist(attrIdx);
+  const dl = document.getElementById(`vb-attr-dl-${attrIdx}`);
+  if (!dl) return;
+  const values = new Set();
+  document.querySelectorAll(`[name="vr-attr"][data-attr-idx="${attrIdx}"]`).forEach(inp => {
+    const v = inp.value.trim();
+    if (v) values.add(v);
+  });
+  dl.innerHTML = [...values].sort().map(v => `<option value="${v}"></option>`).join('');
 }
 
 function setRowMode(tr, mode) {
@@ -1219,9 +1314,10 @@ function addVariantRow(data) {
   const tr = document.createElement('tr');
   tr.dataset.rowId = id;
   const _ph = ['e.g. Black', 'e.g. Large', 'e.g. iPhone 15'];
-  const attrCells = attrNames.map((_, i) =>
-    `<td class="vb-dyn-attr-td"><input type="text" class="vb-input" name="vr-attr" value="${attrVals[i] || ''}" placeholder="${_ph[i] || 'e.g. value'}" /></td>`
-  ).join('');
+  const attrCells = attrNames.map((_, i) => {
+    ensureAttrDatalist(i);
+    return `<td class="vb-dyn-attr-td"><input type="text" class="vb-input" name="vr-attr" data-attr-idx="${i}" list="vb-attr-dl-${i}" value="${attrVals[i] || ''}" placeholder="${_ph[i] || 'e.g. value'}" /></td>`;
+  }).join('');
   tr.innerHTML = `
     <td class="vb-check-td" style="width:28px;text-align:center;vertical-align:middle;padding:4px">
       <input type="checkbox" class="vr-row-check" style="width:15px;height:15px;cursor:pointer;accent-color:#14b8a6" />
@@ -1251,6 +1347,12 @@ function addVariantRow(data) {
   `;
   tbody.appendChild(tr);
   setRowMode(tr, rowMode);
+
+  // Keep datalists up to date as values are typed
+  tr.querySelectorAll('[name="vr-attr"]').forEach(inp => {
+    inp.addEventListener('change', () => updateAttrDatalist(parseInt(inp.dataset.attrIdx, 10)));
+  });
+  attrNames.forEach((_, i) => updateAttrDatalist(i));
 
   // Wire per-row upload button
   const uploadBtn   = tr.querySelector('.vr-upload-btn');
@@ -1966,6 +2068,12 @@ function numOrNull(id) {
   return isNaN(v) || v === 0 ? undefined : v;
 }
 
+// Like numOrNull but allows 0 (e.g. shippingCost = 0 means free shipping, not "unset")
+function numOrUndef(id) {
+  const v = parseFloat(document.getElementById(id)?.value);
+  return isNaN(v) ? undefined : v;
+}
+
 function val(id) {
   return document.getElementById(id)?.value.trim() || '';
 }
@@ -2011,6 +2119,19 @@ async function loadProduct() {
     if (p.comparePrice !== undefined)  setVal('product-compare-price', p.comparePrice);
     if (p.costPrice !== undefined)     setVal('product-cost-price', p.costPrice);
     if (p.shippingCost !== undefined)  setVal('product-shipping-cost', p.shippingCost);
+    const _inclShipEl = document.getElementById('ap-include-ship');
+    if (_inclShipEl) _inclShipEl.checked = !!(p.shipIncluded);
+    // Fire input events so markup-calc.js captures values and shows its panel.
+    // Shipping must fire first so the note/state is set before deriveMarkup runs.
+    document.getElementById('product-shipping-cost')?.dispatchEvent(new Event('input'));
+    document.getElementById('product-cost-price')?.dispatchEvent(new Event('input'));
+    // If the product has a stored markupPct, inject it into the markup field and fire its
+    // input event — this sets _userEditedMarkup=true inside markup-calc.js so deriveMarkup()
+    // won't overwrite it with a derived value.
+    if (p.markupPct != null && isFinite(p.markupPct) && p.markupPct >= 0) {
+      const _markupEl = document.getElementById('ap-markup-pct');
+      if (_markupEl) { _markupEl.value = p.markupPct; _markupEl.dispatchEvent(new Event('input')); }
+    }
 
     // Images — pre-populate slots with existing URLs
     (p.images || []).slice(0, 20).forEach((url, i) => preloadSlot(i + 1, url));
@@ -2021,6 +2142,25 @@ async function loadProduct() {
       const showMoreBtn = document.getElementById('ap-show-more');
       if (extraSlots) extraSlots.classList.add('open');
       if (showMoreBtn) showMoreBtn.textContent = '− Hide extra photo slots';
+    }
+
+    // Show CJ image fetch button when product has CJ variant data (supplierVariantRef or CJ-style SKU).
+    // Professional+ vendors with CJ credentials connected only.
+    if ((p.variants || []).some(v => v.supplierVariantRef || (v.sku && /^CJ/i.test(v.sku)))) {
+      const cjBtn  = document.getElementById('btn-fetch-cj-images');
+      const tierOk = ({ professional: 1, enterprise: 1 })[localStorage.getItem('s4l_vendorType')];
+      if (cjBtn && tierOk) {
+        (async () => {
+          try {
+            const res = await fetch(`${window.API_BASE}/vendor/supplier/providers`, {
+              headers: { Authorization: `Bearer ${localStorage.getItem('s4l_token')}` },
+            });
+            const data = res.ok ? await res.json() : null;
+            const cj   = data?.providers?.find(pr => pr.providerName === 'cjdropshipping');
+            if (cj?.configured) cjBtn.style.display = '';
+          } catch (_) { /* leave hidden */ }
+        })();
+      }
     }
 
     // Category + subcategory
@@ -2147,7 +2287,9 @@ if (form) {
       price:            Number(document.getElementById('product-price')?.value),
       comparePrice:     numOrNull('product-compare-price'),
       costPrice:        numOrNull('product-cost-price'),
-      shippingCost:     numOrNull('product-shipping-cost'),
+      shippingCost:     numOrUndef('product-shipping-cost'),
+      shipIncluded:     !!(document.getElementById('ap-include-ship')?.checked),
+      markupPct:        numOrUndef('ap-markup-pct'),
       images,
       category:         categorySelect.value,
       subcategory:      subcategorySelect.value || undefined,

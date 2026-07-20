@@ -71,9 +71,6 @@ async function loadTransactions() {
     const feeEl = document.getElementById('txn-commission');
     if (feeEl) feeEl.textContent = '£' + Number(summary.totalCommission || 0).toFixed(2);
 
-    const stripeEl = document.getElementById('txn-stripe');
-    if (stripeEl) stripeEl.textContent = '£' + Number(summary.totalStripeFees || 0).toFixed(2);
-
     const shippingCard = document.getElementById('txn-shipping-card');
     const shippingEl   = document.getElementById('txn-shipping');
     if (shippingCard && shippingEl) {
@@ -169,7 +166,7 @@ async function loadTransactions() {
 </tr>`);
       }
 
-      if (isSale && Number(t.amount) > 0) {
+      if (isSale && Number(t.amount) > 0 && t.allDelivered) {
         const rowReserveRate = t.reserveRate != null ? t.reserveRate : reserveRate;
         const reserveAmt = Number((Math.abs(t.amount) * rowReserveRate).toFixed(2));
         const reservePct = Math.round(rowReserveRate * 100);
@@ -179,6 +176,14 @@ async function loadTransactions() {
   <td class="txn-order"></td>
   <td class="txn-desc txn-reserve-label" colspan="3">Reserve held (${reservePct}%) <span class="txn-reserve-note">releases at 90 days</span></td>
   <td class="txn-amount txn-reserve-amount">-£${reserveAmt.toFixed(2)}</td>
+</tr>`);
+      } else if (isSale && Number(t.amount) > 0) {
+        txnRows.push(`
+<tr class="txn-row txn-row-reserve">
+  <td class="txn-date"></td>
+  <td class="txn-order"></td>
+  <td class="txn-desc txn-reserve-label" colspan="3" style="color:#9ca3af">Hold &amp; reserve apply once delivered</td>
+  <td class="txn-amount"></td>
 </tr>`);
       }
 
@@ -192,6 +197,17 @@ async function loadTransactions() {
 </tr>`);
       }
 
+      if (!isSale && Number(t.shippingRefunded) > 0) {
+        const withNote = t.type === 'cancelled' ? 'with the cancellation above' : 'with the return above';
+        txnRows.push(`
+<tr class="txn-row txn-row-shipping">
+  <td class="txn-date"></td>
+  <td class="txn-order"></td>
+  <td class="txn-desc txn-shipping-label" colspan="3">Shipping refunded <span class="txn-stripe-note">${withNote}</span></td>
+  <td class="txn-amount txn-shipping-amount">-£${Number(t.shippingRefunded).toFixed(2)}</td>
+</tr>`);
+      }
+
       if (isSale && Number(t.shippingAmount) > 0) {
         txnRows.push(`
 <tr class="txn-row txn-row-shipping">
@@ -199,17 +215,6 @@ async function loadTransactions() {
   <td class="txn-order"></td>
   <td class="txn-desc txn-shipping-label" colspan="3">Shipping collected</td>
   <td class="txn-amount txn-shipping-amount">+£${Number(t.shippingAmount).toFixed(2)}</td>
-</tr>`);
-      }
-
-      if (isSale && Number(t.stripeFee) > 0) {
-        const est = t.stripeIsEstimated ? ' (est.)' : '';
-        txnRows.push(`
-<tr class="txn-row txn-row-stripe">
-  <td class="txn-date"></td>
-  <td class="txn-order"></td>
-  <td class="txn-desc txn-stripe-label" colspan="3">Stripe fee${est} <span class="txn-stripe-note">covered by platform</span></td>
-  <td class="txn-amount txn-stripe-amount">£${Number(t.stripeFee).toFixed(2)}</td>
 </tr>`);
       }
 
@@ -353,17 +358,6 @@ document.addEventListener('click', (e) => {
       ].join(','));
     }
 
-    if (t.type === 'sale' && Number(t.stripeFee) > 0) {
-      rows.push([
-        date,
-        t.displayId || t.orderId,
-        'stripe_fee',
-        `"Stripe fee${t.stripeIsEstimated ? ' (est.)' : ''} - covered by platform"`,
-        '',
-        '',
-        `${Number(t.stripeFee).toFixed(2)}`,
-      ].join(','));
-    }
   });
 
   const csv = [header.join(','), ...rows].join('\n');

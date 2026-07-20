@@ -6,7 +6,7 @@
     <title>Transactions | Sell4Life</title>
 
     <link rel="stylesheet" href="/assets/css/layout.css" />
-    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260622b" />
+    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260705k" />
     <style id="s4l-fouc">html{visibility:hidden}</style>
   </head>
 
@@ -16,7 +16,7 @@
 
       <main class="vendor-main">
         <div class="vendor-container">
-          <a href="/account/vendor/dashboard.html" class="vendor-back-link">â† Back to Dashboard</a>
+          <a href="/account/vendor/dashboard.html" class="vendor-back-link"> Back to Dashboard</a>
 
           <h1 class="vendor-title">Transactions</h1>
 
@@ -56,10 +56,6 @@
               <h3 id="txn-commission">£0.00</h3>
               <p id="txn-commission-label">Platform Fee</p>
             </div>
-            <div class="stat-card" id="txn-stripe-card">
-              <h3 id="txn-stripe">£0.00</h3>
-              <p>Stripe Fees <span class="txn-vat-badge">platform pays</span></p>
-            </div>
             <div class="stat-card" id="txn-shipping-card" hidden>
               <h3 id="txn-shipping">£0.00</h3>
               <p>Shipping Collected</p>
@@ -77,11 +73,11 @@
               <p id="txn-reserve-label">In Reserve</p>
             </div>
             <div class="stat-card">
-              <h3 id="txn-commission-rate">â€”</h3>
+              <h3 id="txn-commission-rate"></h3>
               <p>Your Rate</p>
             </div>
             <div class="stat-card">
-              <h3 id="txn-reserve-rate">â€”</h3>
+              <h3 id="txn-reserve-rate"></h3>
               <p>Reserve Rate</p>
             </div>
           </div>
@@ -150,11 +146,11 @@
       </main>
     </div>
 
-    <!-- Sticky payout bar â€” always visible at bottom -->
+    <!-- Sticky payout bar  always visible at bottom -->
     <div id="payout-sticky-bar" class="payout-sticky-bar">
       <div class="payout-sticky-left">
         <div class="payout-sticky-label">Available for Payout</div>
-        <div class="payout-sticky-amount" id="payout-balance">£â€”</div>
+        <div class="payout-sticky-amount" id="payout-balance">£</div>
         <div id="payout-reserved" style="display:none;margin-top:2px"></div>
       </div>
       <div class="payout-sticky-note" id="payout-balance-note"></div>
@@ -186,6 +182,6 @@
     </script>
 
     <script src="/assets/js/layout.js?v=20260627"></script>
-    <script src="/assets/js/vendor-transactions.js?v=20260621"></script>
+    <script src="/assets/js/vendor-transactions.js?v=20260708c"></script>
   </body>
 </html>
