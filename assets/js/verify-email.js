@@ -20,14 +20,14 @@ if (!token) {
             Your email has been verified successfully!
           </p>
           <p style="text-align:center">
-            <a href="/account/signin.html" style="color:#0b6b6a;font-weight:600">Sign in to your account →</a>
+            <a href="/account/signin.html" style="color:#9ee7e0;font-weight:600">Sign in to your account →</a>
           </p>`;
       } else {
         msg.className   = 'error';
         msg.textContent = data.msg || 'This link is invalid or has expired.';
         card.insertAdjacentHTML('beforeend', `
           <p style="text-align:center;margin-top:12px">
-            <a href="/account/signin.html" style="color:#0b6b6a;font-size:13px">Sign in to request a new link</a>
+            <a href="/account/signin.html" style="color:#9ee7e0;font-size:13px">Sign in to request a new link</a>
           </p>`);
       }
     })
