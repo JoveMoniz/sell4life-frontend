@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Add Product | Sell4Life</title>
-    <link rel="stylesheet" href="/assets/css/layout.css" />
-    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260622b" />
+    <link rel="stylesheet" href="/assets/css/layout.css?v=20260831a" />
+    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260831c" />
     <style id="s4l-fouc">html{visibility:hidden}</style>
   </head>
   <body class="s4l-loading">
@@ -14,7 +14,7 @@
 
       <main class="vendor-main">
         <div class="vendor-container">
-          <a href="/account/vendor/products.html" class="vendor-back-link"> Products</a>
+          <a href="/account/vendor/products.html" class="vendor-back-link"> ← Products</a>
           <div class="ap-page-header">
             <h1 class="vendor-title">Add Product</h1>
             <a href="/account/vendor/tools.html" class="ap-csv-link"> Import multiple via CSV</a>
@@ -68,13 +68,40 @@
                   <input type="number" id="product-cost-price" step="0.01" min="0" placeholder="0.00" />
                 </div>
               </div>
-              <div class="ap-row-3">
-                <div class="form-group">
-                  <label>Shipping Cost (£)
-                    <span class="ap-hint">Charged to buyer at checkout. Enter 0 for free shipping.</span>
-                  </label>
-                  <input type="number" id="product-shipping-cost" step="0.01" min="0" placeholder="0.00" />
+              <div class="form-group">
+                <label>Shipping</label>
+                <input type="hidden" id="product-shipping-mode" value="free" />
+                <!-- Refurbished: Free/Charge/Collection choice -->
+                <div class="ap-ship-grid" id="ap-ship-grid" style="display:none">
+                  <button type="button" class="ap-ship-btn active" data-mode="free">Free Shipping</button>
+                  <button type="button" class="ap-ship-btn" data-mode="charge">I'll Charge</button>
+                  <button type="button" class="ap-ship-btn" data-mode="collection">Collection Only</button>
                 </div>
+                <!-- Professional/enterprise: simple checkbox, no collection option -->
+                <label class="ap-ship-checkbox-label" id="ship-checkbox-wrap" style="display:none">
+                  <input type="checkbox" id="product-ship-charge-toggle" /> Charge for shipping
+                </label>
+                <input type="number" id="product-shipping-cost" step="0.01" min="0.01" placeholder="Shipping cost (£)" style="margin-top:8px" />
+                <span class="ap-hint" style="display:block;margin-top:4px">Also used as the reference cost for the markup calculator below, whether or not it's charged to the buyer</span>
+              </div>
+              <div class="form-group">
+                <label>Where do you ship this?
+                  <span class="ap-hint">Buyers outside this won't be able to order it</span>
+                </label>
+                <select id="product-shipping-scope">
+                  <option value="worldwide" selected>Worldwide</option>
+                  <option value="uk">UK only</option>
+                  <option value="uk_eu">UK + Europe</option>
+                  <option value="custom">Custom — choose countries</option>
+                </select>
+                <select id="product-shipping-countries" multiple size="6" style="display:none;margin-top:8px"></select>
+              </div>
+              <div class="ap-toggle-group" id="accept-offers-wrap" style="margin-top:14px">
+                <label class="ap-toggle">
+                  <input type="checkbox" id="product-accept-offers" />
+                  <span class="ap-toggle-slider"></span>
+                  <span class="ap-toggle-label">Accept Offers  let buyers send you a lower price to consider</span>
+                </label>
               </div>
               <div id="ap-markup-calc" style="display:none;margin-top:10px;padding:10px 14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:#374151">
                 <span style="font-weight:600">Calculate retail price:</span>
@@ -83,9 +110,6 @@
                   <input type="number" id="ap-markup-pct" min="0" max="999" step="0.1" value="0"
                     style="width:70px;padding:4px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:13px" />
                   %
-                </label>
-                <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
-                  <input type="checkbox" id="ap-include-ship" checked /> + shipping
                 </label>
                 <button type="button" id="ap-apply-markup"
                   style="padding:5px 14px;background:#0b6b6a;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px;font-weight:600">
@@ -372,9 +396,9 @@
                       <span>Upload video 1</span>
                       <small>MP4 / WebM</small>
                     </div>
-                    <video class="ap-video-preview" id="video-preview-1" controls style="display:none"></video>
+                    <video class="ap-video-preview" id="video-preview-1" controls preload="metadata"></video>
                     <div class="ap-upload-overlay" id="video-overlay-1" style="display:none"><div class="ap-spinner"></div></div>
-                    <button type="button" class="ap-remove-btn" style="display:none">&#x2715;</button>
+                    <button type="button" class="ap-remove-btn">&#x2715;</button>
                   </div>
                   <input type="text" id="product-video-url" class="ap-video-url-input form-group input" placeholder="Or paste YouTube / Vimeo URL" style="margin-top:8px;width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:0.85rem" />
                 </div>
@@ -387,9 +411,9 @@
                       <span>Upload video 2</span>
                       <small>MP4 / WebM</small>
                     </div>
-                    <video class="ap-video-preview" id="video-preview-2" controls style="display:none"></video>
+                    <video class="ap-video-preview" id="video-preview-2" controls preload="metadata"></video>
                     <div class="ap-upload-overlay" id="video-overlay-2" style="display:none"><div class="ap-spinner"></div></div>
-                    <button type="button" class="ap-remove-btn" style="display:none">&#x2715;</button>
+                    <button type="button" class="ap-remove-btn">&#x2715;</button>
                   </div>
                   <input type="text" id="product-video-url2" class="ap-video-url-input" placeholder="Or paste YouTube / Vimeo URL" style="margin-top:8px;width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:0.85rem" />
                 </div>
@@ -404,9 +428,9 @@
                       <span>Upload video 3</span>
                       <small>MP4 / WebM</small>
                     </div>
-                    <video class="ap-video-preview" id="video-preview-3" controls style="display:none"></video>
+                    <video class="ap-video-preview" id="video-preview-3" controls preload="metadata"></video>
                     <div class="ap-upload-overlay" id="video-overlay-3" style="display:none"><div class="ap-spinner"></div></div>
-                    <button type="button" class="ap-remove-btn" style="display:none">&#x2715;</button>
+                    <button type="button" class="ap-remove-btn">&#x2715;</button>
                   </div>
                   <input type="text" id="product-video-url3" class="ap-video-url-input" placeholder="Or paste YouTube / Vimeo URL" style="margin-top:8px;width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:0.85rem" />
                 </div>
@@ -419,9 +443,9 @@
                       <span>Upload video 4</span>
                       <small>MP4 / WebM</small>
                     </div>
-                    <video class="ap-video-preview" id="video-preview-4" controls style="display:none"></video>
+                    <video class="ap-video-preview" id="video-preview-4" controls preload="metadata"></video>
                     <div class="ap-upload-overlay" id="video-overlay-4" style="display:none"><div class="ap-spinner"></div></div>
-                    <button type="button" class="ap-remove-btn" style="display:none">&#x2715;</button>
+                    <button type="button" class="ap-remove-btn">&#x2715;</button>
                   </div>
                   <input type="text" id="product-video-url4" class="ap-video-url-input" placeholder="Or paste YouTube / Vimeo URL" style="margin-top:8px;width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:0.85rem" />
                 </div>
@@ -436,9 +460,9 @@
                       <span>Upload video 5</span>
                       <small>MP4 / WebM</small>
                     </div>
-                    <video class="ap-video-preview" id="video-preview-5" controls style="display:none"></video>
+                    <video class="ap-video-preview" id="video-preview-5" controls preload="metadata"></video>
                     <div class="ap-upload-overlay" id="video-overlay-5" style="display:none"><div class="ap-spinner"></div></div>
-                    <button type="button" class="ap-remove-btn" style="display:none">&#x2715;</button>
+                    <button type="button" class="ap-remove-btn">&#x2715;</button>
                   </div>
                   <input type="text" id="product-video-url5" class="ap-video-url-input" placeholder="Or paste YouTube / Vimeo URL" style="margin-top:8px;width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:0.85rem" />
                 </div>
@@ -531,13 +555,21 @@
                   <input type="url" id="product-supplier-url" placeholder="https://..." />
                 </div>
               </div>
+              <div class="ap-row-2" id="product-ships-from-row" style="display:none">
+                <div class="form-group">
+                  <label>Ships From
+                    <span class="ap-hint" title="The warehouse CJ actually ships this item from, detected from your CJ import/sync — not editable here. Affects the shipping cost and delivery estimate shown to buyers.">?</span>
+                  </label>
+                  <input type="text" id="product-ships-from" readonly disabled />
+                </div>
+              </div>
             </div>
 
             <!-- VARIANTS -->
             <div class="ap-section" data-tier-section="variants">
               <div class="ap-section-head">Variants</div>
               <div style="margin-bottom:12px">
-                <button type="button" id="vr-bulk-img-btn" style="font-size:0.82rem;padding:6px 14px;background:#f0f9f8;border:1px solid #0b6b6a;color:#0b6b6a;border-radius:6px;cursor:pointer;font-weight:600">ðŸ“· Bulk upload variant images</button>
+                <button type="button" id="vr-bulk-img-btn" style="font-size:0.82rem;padding:6px 14px;background:#f0f9f8;border:1px solid #0b6b6a;color:#0b6b6a;border-radius:6px;cursor:pointer;font-weight:600"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7l1.5-3h5L16 7"/><circle cx="12" cy="13.5" r="3.3"/></svg> Bulk upload variant images</button>
                 <input type="file" id="vr-bulk-img-input" accept="image/*" multiple style="display:none" />
               </div>
               <div class="ap-toggle-group" style="margin-bottom:0">
@@ -749,7 +781,9 @@
     </div>
 
     <script src="/assets/js/config-global.js"></script>
-    <script src="/assets/js/markup-calc.js"></script>
+    <script src="/assets/js/icons.js"></script>
+    <script src="/assets/js/client-info.js"></script>
+    <script src="/assets/js/markup-calc.js?v=20260902ship"></script>
     <script>
       if (localStorage.getItem('s4l_vendorType') === 'casual') {
         window.location.replace('/account/vendor/add-product-casual.html');
@@ -757,9 +791,9 @@
     </script>
     <script src="/assets/js/vendor-guard.js"></script>
     <script src="/assets/js/tier-config.js"></script>
-    <script src="/assets/js/layout.js?v=20260627"></script>
+    <script src="/assets/js/layout.js?v=20260814b"></script>
     <script>
-      window.__pageScripts = ['/assets/js/vendor-add-product.js'];
+      window.__pageScripts = ['/assets/js/countries.js', '/assets/js/vendor-add-product.js?v=20260902ship'];
 
       // Section tier map: section key  minimum tier required
       const SECTION_TIER = {
@@ -770,8 +804,25 @@
         seo:       'professional',
         video3:    'refurbished',
         video4:    'professional',
-        video5:    'enterprise',
+        video5:    'professional',
       };
+
+      // Accept Offers only works for casual/refurbished — the backend hard-rejects
+      // offers from professional/enterprise sellers, so hide it rather than let
+      // them toggle something that can never take effect.
+      function applyOffersGate(type) {
+        const rank = TIER_RANK[type] || 1;
+        const offersWrap = document.getElementById('accept-offers-wrap');
+        if (offersWrap) offersWrap.style.display = rank <= TIER_RANK.refurbished ? '' : 'none';
+        // Shipping: Collection Only doesn't fit a bulk/business seller, so
+        // professional/enterprise get a plain "charge for shipping" checkbox
+        // instead of refurbished's Free/Charge/Collection choice.
+        const isBulkTier = rank > TIER_RANK.refurbished;
+        const shipGrid = document.getElementById('ap-ship-grid');
+        const shipCheckboxWrap = document.getElementById('ship-checkbox-wrap');
+        if (shipGrid) shipGrid.style.display = isBulkTier ? 'none' : '';
+        if (shipCheckboxWrap) shipCheckboxWrap.style.display = isBulkTier ? 'flex' : 'none';
+      }
 
       document.addEventListener('vendorLoaded', function(e) {
         const type = e.detail?.type || 'casual';
@@ -784,15 +835,17 @@
             el.style.display = 'none';
           }
         });
+        applyOffersGate(type);
       });
 
       // Fallback: if vendorLoaded already fired, use cached value
       const cachedTier = localStorage.getItem('s4l_vendorType');
       if (cachedTier) {
         const rank = TIER_RANK[cachedTier] || 1;
+        applyOffersGate(cachedTier);
         document.querySelectorAll('[data-tier-section]').forEach(function(el) {
           const section = el.dataset.tierSection;
-          const required = TIER_RANK[{ inventory:'refurbished', refurb:'refurbished', variants:'professional', addons:'professional', seo:'professional', video3:'refurbished', video4:'professional', video5:'enterprise' }[section]] || 1;
+          const required = TIER_RANK[{ inventory:'refurbished', refurb:'refurbished', variants:'professional', addons:'professional', seo:'professional', video3:'refurbished', video4:'professional', video5:'professional' }[section]] || 1;
           if (rank < required) el.style.display = 'none';
         });
       }

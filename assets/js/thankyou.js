@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderOrder(order);
     cleanupCart(order);
     showCard();
-
+    initTrackPanel(token, API);
 
     console.log('✅ Thankyou complete');
   } catch (err) {
@@ -251,3 +251,74 @@ document.addEventListener('DOMContentLoaded', async () => {
     showCard();
   }
 });
+
+// =======================================================
+// TRACK-YOUR-ORDER PANEL — only shown to a guest-checkout buyer
+// (passwordSet:false) who hasn't claimed their account yet. Setting a
+// password here uses the CURRENT session token, already logged in from
+// checkout — no email round-trip needed at this moment.
+// =======================================================
+async function initTrackPanel(token, API) {
+  const panel = document.getElementById('ty-track-panel');
+  const input = document.getElementById('ty-track-password');
+  const submitBtn = document.getElementById('ty-track-submit');
+  const msg = document.getElementById('ty-track-message');
+  if (!panel || !token) return;
+
+  try {
+    const res = await fetch(`${API}/account/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.passwordSet) return; // already a real/claimed account — nothing to prompt
+
+    panel.hidden = false;
+  } catch (err) {
+    console.warn('Track panel check failed:', err);
+    return;
+  }
+
+  submitBtn?.addEventListener('click', async () => {
+    const password = input?.value || '';
+    if (password.length < 8) {
+      msg.textContent = 'Password must be at least 8 characters.';
+      msg.className = 'ty-track-message ty-track-error';
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving…';
+
+    try {
+      const res = await fetch(`${API}/account/set-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        msg.textContent = data.error || 'Could not set password.';
+        msg.className = 'ty-track-message ty-track-error';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Set Password & Track Order';
+        return;
+      }
+
+      msg.textContent = 'Password set — you can track this order any time from My Orders.';
+      msg.className = 'ty-track-message ty-track-success';
+      if (input) input.hidden = true;
+      submitBtn.hidden = true;
+    } catch (err) {
+      console.error('Set-password error:', err);
+      msg.textContent = 'Something went wrong. Please try again.';
+      msg.className = 'ty-track-message ty-track-error';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Set Password & Track Order';
+    }
+  });
+}

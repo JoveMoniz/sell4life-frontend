@@ -1,6 +1,7 @@
 let currentPage = 1;
 let currentQuery = '';
 let currentStatus = 'all';
+let vendorsController = null;
 
 const API = window.API_BASE;
 
@@ -21,6 +22,9 @@ async function loadVendors(page = 1, q = '', status = 'all') {
   currentQuery = q;
   currentStatus = status;
 
+  if (vendorsController) vendorsController.abort();
+  vendorsController = new AbortController();
+
   let url = `${API}/admin/vendors?page=${page}`;
   if (q) url += `&q=${encodeURIComponent(q)}`;
   if (status !== 'all') url += `&status=${status}`;
@@ -28,9 +32,10 @@ async function loadVendors(page = 1, q = '', status = 'all') {
   if (tbody) tbody.innerHTML = '<tr><td colspan="10">Loading vendors...</td></tr>';
 
   try {
-    const res = await authFetch(url);
+    const res = await authFetch(url, { signal: vendorsController.signal });
 
     if (res.status === 401 || res.status === 403) {
+      localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
       window.location.href = '/account/admin/signin.html';
       return;
     }
@@ -40,6 +45,7 @@ async function loadVendors(page = 1, q = '', status = 'all') {
     renderVendorsTable(data.vendors || []);
     renderPagination(data.pagination);
   } catch (err) {
+    if (err.name === 'AbortError') return;
     console.error(err);
     if (tbody) tbody.innerHTML = '<tr><td colspan="10">Failed to load vendors</td></tr>';
   }
@@ -131,8 +137,15 @@ function buildVendorPanel(v) {
 
   const stripeInfo = v.stripeAccountId
     ? `<div><strong>Stripe account:</strong> <code style="font-size:0.78rem">${v.stripeAccountId}</code></div>
-       <div><strong>Payouts:</strong> ${v.payoutEnabled ? '<span style="color:#15803d">Enabled ✓</span>' : '<span style="color:#b91c1c">Not enabled</span>'}</div>`
-    : '<div style="color:#9ca3af">No Stripe account connected</div>';
+       <div><strong>Payouts:</strong> ${v.payoutEnabled ? '<span style="color:#15803d">Enabled ✓</span>' : '<span style="color:#b91c1c">Not enabled</span>'}</div>
+       <div><strong>Country:</strong> ${v.country || '<span style="color:#9ca3af">not set</span>'}</div>
+       <button class="action-btn reset-stripe-btn" data-id="${v._id}"
+         style="margin-top:6px;font-size:0.72rem;padding:2px 8px;background:#fef2f2;color:#b91c1c;border-color:#fecaca">
+         Reset Stripe connection
+       </button>
+       <span class="reset-stripe-msg" data-id="${v._id}" style="font-size:0.72rem;color:#15803d;margin-left:6px"></span>`
+    : `<div style="color:#9ca3af">No Stripe account connected</div>
+       <div><strong>Country:</strong> ${v.country || '<span style="color:#9ca3af">not set</span>'}</div>`;
 
   return `
     <div style="padding:16px 0">
@@ -222,6 +235,31 @@ function buildVendorPanel(v) {
    CLICK HANDLER
 ========================================= */
 document.getElementById('vendorsTable').addEventListener('click', async (e) => {
+  // Reset Stripe connection — checked before the generic .action-btn
+  // handler below since this one is a POST, not a PATCH, and has no
+  // simple /:action URL suffix to reuse.
+  const resetBtn = e.target.closest('.reset-stripe-btn');
+  if (resetBtn) {
+    const id = resetBtn.dataset.id;
+    const msg = document.querySelector(`.reset-stripe-msg[data-id="${id}"]`);
+    if (!confirm('Reset this vendor\'s Stripe connection? They\'ll need to reconnect a bank account from scratch.')) return;
+    resetBtn.disabled = true;
+    try {
+      const res = await authFetch(`${API}/admin/vendors/${id}/reset-stripe`, { method: 'POST' });
+      if (!res.ok) {
+        if (msg) { msg.textContent = 'Failed'; msg.style.color = '#b91c1c'; }
+        resetBtn.disabled = false;
+        return;
+      }
+      loadVendors(currentPage, currentQuery, currentStatus);
+    } catch (err) {
+      console.error(err);
+      if (msg) { msg.textContent = 'Error'; msg.style.color = '#b91c1c'; }
+      resetBtn.disabled = false;
+    }
+    return;
+  }
+
   // Existing action buttons
   const actionBtn = e.target.closest('.action-btn');
   if (actionBtn) {
@@ -381,8 +419,26 @@ function renderPagination(pagination) {
 const searchInput = document.getElementById('vendorSearch');
 if (searchInput) {
   let timer;
+  let vendorSearchWasEmpty = true;
   searchInput.addEventListener('input', () => {
     clearTimeout(timer);
+    const q = searchInput.value.trim();
+    // Fire immediately on the first character of a new search — otherwise a
+    // fast typist cancels every debounce timer before it fires, and results
+    // only appear once they happen to pause, at whatever character count
+    // that lands on.
+    if (!q) {
+      vendorSearchWasEmpty = true;
+      currentQuery = '';
+      loadVendors(1, '', currentStatus);
+      return;
+    }
+    if (vendorSearchWasEmpty) {
+      vendorSearchWasEmpty = false;
+      currentQuery = q;
+      loadVendors(1, q, currentStatus);
+      return;
+    }
     timer = setTimeout(() => {
       currentQuery = searchInput.value.trim();
       loadVendors(1, currentQuery, currentStatus);
@@ -438,8 +494,12 @@ async function loadPayoutRequests() {
           month: 'short',
           year: 'numeric',
         });
+        const autoTransfer = !!(vendor.stripeAccountId && vendor.payoutEnabled);
+        const transferBadge = autoTransfer
+          ? '<div style="margin-top:3px"><span style="background:#f0fdf4;color:#15803d;padding:1px 7px;border-radius:10px;font-size:0.7rem;font-weight:600">⚡ Auto via Stripe</span></div>'
+          : '<div style="margin-top:3px"><span style="color:#9ca3af;font-size:0.72rem">No Stripe account — pay manually</span></div>';
         return `<tr data-payout-id="${p._id}">
-  <td><strong>${storeName}</strong><br><small style="color:#6b7280">${email}</small></td>
+  <td><strong>${storeName}</strong><br><small style="color:#6b7280">${email}</small>${transferBadge}</td>
   <td><strong>£${Number(p.amount).toFixed(2)}</strong></td>
   <td>${date}</td>
   <td>
@@ -459,6 +519,27 @@ async function loadPayoutRequests() {
 
 document.getElementById('payout-panel-toggle').addEventListener('click', () => {
   document.getElementById('payout-panel-body')?.classList.toggle('is-open');
+});
+
+document.getElementById('btn-run-payout-worker').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-run-payout-worker');
+  const msg = document.getElementById('payout-worker-msg');
+  btn.disabled = true;
+  msg.textContent = 'Running…';
+  try {
+    const res = await authFetch(`${API}/admin/vendors/payouts/run-worker`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) {
+      msg.textContent = data.error || 'Failed to run worker';
+    } else {
+      msg.textContent = `Checked ${data.checked}, paid ${data.paid}, skipped ${data.skipped}, errors ${data.errors}`;
+      loadPayoutRequests();
+    }
+  } catch (err) {
+    msg.textContent = 'Network error';
+  } finally {
+    btn.disabled = false;
+  }
 });
 
 document.getElementById('payout-requests-body').addEventListener('click', async (e) => {
@@ -483,7 +564,8 @@ document.getElementById('payout-requests-body').addEventListener('click', async 
       body: JSON.stringify(body),
     });
     if (!res.ok) {
-      showAlert('Action failed');
+      const data = await res.json().catch(() => ({}));
+      showAlert(data.error || 'Action failed');
       btn.disabled = false;
       return;
     }
@@ -552,105 +634,56 @@ document.addEventListener('click', (e) => {
 });
 
 /* =========================================
-   UPGRADE REQUESTS PANEL
-========================================= */
-async function loadUpgradeRequests() {
-  const tbody = document.getElementById('upgrade-requests-body');
-  const badge = document.getElementById('upgrade-badge');
-  if (!tbody) return;
-
-  tbody.innerHTML = '<tr><td colspan="5" class="admin-payout-empty">Loading…</td></tr>';
-
-  try {
-    const res = await authFetch(`${API}/admin/vendors/upgrade-requests`);
-    const data = await res.json();
-
-    if (!res.ok) {
-      tbody.innerHTML = `<tr><td colspan="5" class="admin-payout-empty" style="color:#b91c1c">Error: ${data.error || res.status}</td></tr>`;
-      return;
-    }
-
-    const requests = data.requests || [];
-
-    if (badge) {
-      badge.textContent = requests.length;
-      badge.style.display = requests.length ? 'inline-block' : 'none';
-    }
-
-    if (!requests.length) {
-      tbody.innerHTML =
-        '<tr><td colspan="5" class="admin-payout-empty">No pending upgrade requests</td></tr>';
-      return;
-    }
-
-    tbody.innerHTML = requests
-      .map((r) => {
-        const requestedAt = new Date(r.requestedAt).toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-        });
-        return `<tr data-upgrade-id="${r._id}">
-  <td><strong>${r.storeName}</strong><br><small style="color:#6b7280">${r.email}</small></td>
-  <td><span style="text-transform:capitalize">${r.currentTier}</span></td>
-  <td><span style="text-transform:capitalize;font-weight:600;color:#f59e0b">${r.requestedTier}</span></td>
-  <td><div style="max-width:200px;white-space:normal;word-wrap:break-word;color:#6b7280;font-size:0.85rem">${(r.message || '(no message)').substring(0, 100)}</div></td>
-  <td>
-    <div style="display:flex;gap:6px">
-      <button class="btn-upgrade-approve" data-id="${r._id}" data-action="approve" style="padding:4px 10px;background:#15803d;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem">Approve</button>
-      <button class="btn-upgrade-reject" data-id="${r._id}" data-action="reject" style="padding:4px 10px;background:#b91c1c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem">Reject</button>
-    </div>
-  </td>
-</tr>`;
-      })
-      .join('');
-  } catch (err) {
-    console.error('Upgrade requests error:', err);
-    tbody.innerHTML = `<tr><td colspan="5" class="admin-payout-empty" style="color:#b91c1c">Failed to load: ${err.message}</td></tr>`;
-  }
-}
-
-document.getElementById('upgrade-panel-toggle').addEventListener('click', () => {
-  const body = document.getElementById('upgrade-panel-body');
-  if (!body) return;
-  const opening = !body.classList.contains('is-open');
-  body.classList.toggle('is-open');
-  if (opening) loadUpgradeRequests();
-});
-
-document.getElementById('upgrade-requests-body').addEventListener('click', async (e) => {
-  const btn = e.target.closest('[data-action]');
-  if (!btn) return;
-
-  const id = btn.dataset.id;
-  const action = btn.dataset.action;
-
-  const label = action === 'approve' ? 'Approve this tier upgrade?' : 'Reject this upgrade request?';
-  if (!await showConfirm(label)) return;
-
-  btn.disabled = true;
-  try {
-    const res = await authFetch(`${API}/admin/vendors/${id}/upgrade`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action }),
-    });
-    if (!res.ok) {
-      showAlert('Action failed');
-      btn.disabled = false;
-      return;
-    }
-    loadUpgradeRequests();
-    loadVendors();
-  } catch (err) {
-    showAlert('Network error');
-    btn.disabled = false;
-  }
-});
-
-/* =========================================
    INIT
 ========================================= */
 loadVendors();
 loadPayoutRequests();
-loadUpgradeRequests();
+
+/* =========================================
+   EU SELLING GATE
+========================================= */
+async function loadEuSellingToggle() {
+  const toggle = document.getElementById('eu-selling-toggle');
+  const statusTxt = document.getElementById('eu-selling-status-text');
+  if (!toggle) return;
+  try {
+    const res = await authFetch(`${API}/admin/config/eu-selling`);
+    const data = await res.json();
+    toggle.checked = !!data.euSellingEnabled;
+    statusTxt.textContent = toggle.checked ? 'On' : 'Off';
+    statusTxt.className = `arv-status-text ${toggle.checked ? 'on' : ''}`;
+  } catch (err) {
+    console.error('Load EU selling config failed:', err);
+  }
+
+  toggle.addEventListener('change', async () => {
+    const enabled = toggle.checked;
+    toggle.disabled = true;
+    const label = enabled
+      ? 'Turn ON real sales from non-UK sellers? Only do this once DAC7 registration is actually complete.'
+      : 'Turn OFF real sales from non-UK sellers?';
+    if (!confirm(label)) {
+      toggle.checked = !enabled;
+      toggle.disabled = false;
+      return;
+    }
+    try {
+      const res = await authFetch(`${API}/admin/config/eu-selling`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ euSellingEnabled: enabled }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Save failed');
+      statusTxt.textContent = data.euSellingEnabled ? 'On' : 'Off';
+      statusTxt.className = `arv-status-text ${data.euSellingEnabled ? 'on' : ''}`;
+    } catch (err) {
+      console.error(err);
+      toggle.checked = !enabled;
+      showAlert('Could not save — please try again.');
+    } finally {
+      toggle.disabled = false;
+    }
+  });
+}
+loadEuSellingToggle();

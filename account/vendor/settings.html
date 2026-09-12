@@ -8,8 +8,8 @@
     <meta http-equiv="Expires" content="0" />
     <title>Store Settings | Sell4Life</title>
 
-    <link rel="stylesheet" href="/assets/css/layout.css" />
-    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260622b" />
+    <link rel="stylesheet" href="/assets/css/layout.css?v=20260831a" />
+    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260831c" />
     <style>
       .settings-form {
         max-width: 580px;
@@ -166,8 +166,10 @@
 
       <main class="vendor-main">
         <div class="vendor-container">
-          <a href="/account/vendor/dashboard.html" class="vendor-back-link"> Back to Dashboard</a>
+          <a href="/account/vendor/dashboard.html" class="vendor-back-link"> ← Back to Dashboard</a>
           <h1 class="vendor-title">Store Settings</h1>
+
+          <div id="founding-banner" style="max-width:580px;margin:0 auto"></div>
 
           <div class="settings-form" id="settings-form-wrap">
             <p style="color:#9ca3af;font-size:14px">Loading</p>
@@ -177,7 +179,15 @@
     </div>
 
     <script src="/assets/js/config-global.js"></script>
-    <script src="/assets/js/layout.js?v=20260627"></script>
-    <script type="module" src="/assets/js/vendor-settings.js?v=20260627"></script>
+    <script src="/assets/js/client-info.js"></script>
+    <script src="/assets/js/countries.js"></script>
+    <script src="/assets/js/layout.js?v=20260814b"></script>
+    <script src="/assets/js/founding-seller-status.js"></script>
+    <script>
+      const _fsInit = () => window.renderFoundingSellerBanner?.('founding-banner');
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _fsInit);
+      else _fsInit();
+    </script>
+    <script type="module" src="/assets/js/vendor-settings.js?v=20260904a"></script>
   </body>
 </html>

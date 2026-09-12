@@ -9,7 +9,8 @@
 
     <title>Admin – Vendors</title>
 
-    <link rel="stylesheet" href="/assets/css/admin.css?v=20260625e" />
+    <link rel="stylesheet" href="/assets/css/admin.css?v=20260813h" />
+    <link rel="stylesheet" href="/assets/css/reviews.css?v=20260625c" />
     <style>#logoutBtn { padding: 5px 10px; font-size: 12px; font-weight: 500; }</style>
   </head>
 
@@ -62,14 +63,32 @@
         Payout Requests
         <span id="payout-badge" class="admin-payout-badge">0</span>
       </button>
-      <button type="button" id="upgrade-panel-toggle" class="admin-notif-btn">
-        Tier Upgrades
-        <span id="upgrade-badge" class="admin-payout-badge">0</span>
-      </button>
+    </div>
+
+    <!-- EU SELLING GATE — blocks real checkout for non-GB vendors until
+         DAC7 (EU digital platform reporting) registration is sorted. Leave
+         off until that's confirmed done; turning it on doesn't need a
+         deploy, it's a live platform-wide setting. -->
+    <div class="arv-toggle-row" style="padding:10px 20px;border-bottom:1px solid #e5e7eb">
+      <span class="arv-toggle-label">Allow real sales from non-UK (EU) sellers</span>
+      <label class="arv-switch">
+        <input type="checkbox" id="eu-selling-toggle" />
+        <span class="arv-slider"></span>
+      </label>
+      <span class="arv-status-text" id="eu-selling-status-text">Off</span>
+      <span style="font-size:0.78rem;color:#6b7280;margin-left:10px">
+        Keep off until DAC7 registration is complete — a real sale by a non-UK vendor starts that clock.
+      </span>
     </div>
 
     <!-- PAYOUT DROPDOWN -->
     <div id="payout-panel-body" class="admin-notif-panel">
+      <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:6px 4px">
+        <span id="payout-worker-msg" style="font-size:0.78rem;color:#6b7280"></span>
+        <button type="button" id="btn-run-payout-worker" style="padding:4px 10px;border:1px solid #d1d5db;border-radius:4px;background:#fff;font-size:0.78rem;color:#374151;cursor:pointer">
+          Run payout worker now
+        </button>
+      </div>
       <table class="admin-payout-table">
         <thead>
           <tr>
@@ -81,24 +100,6 @@
         </thead>
         <tbody id="payout-requests-body">
           <tr><td colspan="4" class="admin-payout-empty">Loading…</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- UPGRADE DROPDOWN -->
-    <div id="upgrade-panel-body" class="admin-notif-panel">
-      <table class="admin-payout-table">
-        <thead>
-          <tr>
-            <th>Vendor</th>
-            <th>Current Tier</th>
-            <th>Requested</th>
-            <th>Message</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="upgrade-requests-body">
-          <tr><td colspan="5" class="admin-payout-empty">No pending requests</td></tr>
         </tbody>
       </table>
     </div>
@@ -139,8 +140,9 @@
 
     <!-- Scripts -->
     <script src="/assets/js/config-global.js"></script>
+    <script src="/assets/js/client-info.js"></script>
     <script src="/assets/js/require-admin.js"></script>
-    <script type="module" src="/assets/js/admin-vendors.js?v=20260625"></script>
+    <script type="module" src="/assets/js/admin-vendors.js?v=20260904a"></script>
     <script type="module" src="/assets/js/admin-logout.js?v=20260621"></script>
   </body>
 </html>

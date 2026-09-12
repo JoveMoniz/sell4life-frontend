@@ -104,12 +104,19 @@
 
 .checkout-details {
   flex: 1;
+  /* Flex items default to min-width: auto, meaning they refuse to shrink
+     below their content's natural width — with a long, non-wrapping
+     title in here, that natural width can exceed the phone's whole
+     screen, forcing the entire checkout card wider than the viewport
+     (clipped on the right by the site-wide overflow-x: hidden). */
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }
 
 .checkout-title-wrap {
-  max-width: 220px;
+  --checkout-title-width: 220px;
+  max-width: var(--checkout-title-width);
   overflow: hidden;
 }
 
@@ -129,8 +136,8 @@
 @keyframes title-scroll {
   0%   { transform: translateX(0);                              opacity: 1; }
   8%   { transform: translateX(0);                              opacity: 1; }
-  72%  { transform: translateX(min(0px, calc(-100% + 220px)));  opacity: 1; }
-  81%  { transform: translateX(min(0px, calc(-100% + 220px)));  opacity: 0; }
+  72%  { transform: translateX(min(0px, calc(-100% + var(--checkout-title-width))));  opacity: 1; }
+  81%  { transform: translateX(min(0px, calc(-100% + var(--checkout-title-width))));  opacity: 0; }
   82%  { transform: translateX(0);                              opacity: 0; }
   92%  { transform: translateX(0);                              opacity: 1; }
   100% { transform: translateX(0);                              opacity: 1; }
@@ -268,5 +275,14 @@
 
   .checkout-exit {
     margin-top: 24px;
+  }
+
+  /* 220px (fine on tablet/desktop) doesn't leave enough room next to the
+     60px thumbnail + price column on an actual phone screen — that's
+     what was pushing the whole card past the right edge. The marquee
+     keyframe reads this same variable, so the scroll animation stays in
+     sync automatically. */
+  .checkout-title-wrap {
+    --checkout-title-width: 130px;
   }
 }

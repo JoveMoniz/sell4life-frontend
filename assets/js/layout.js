@@ -756,13 +756,22 @@ document.addEventListener('headerLoaded', () => {
     window.__coreLoaded = true;
     const _p = location.pathname;
     const _isBackoffice = _p.includes('/account/admin/') || _p.includes('/account/vendor/');
+    const _noStickyBar = _p.includes('/thankyou/')
+      || _p.includes('/account/orders.html')
+      || _p.includes('/account/orders-details.html')
+      || _p.includes('/account/register.html')
+      || _p.includes('/account/signin.html')
+      || _p.includes('/cart/cart.html')
+      || _p.includes('/cart/checkout.html');
     // Buyer-facing scripts and cookie banner — skip on admin and vendor pages
     if (!_isBackoffice) {
       initCookieBanner();
       loadScript('/assets/js/quick-add.js');
       loadScript('/assets/js/cart.js');
       loadScript('/assets/js/search.js');
-      loadScript('/assets/js/sticky-bar.js');
+      // Sticky bar (shopping nav) doesn't belong on order-confirmation/order-status/
+      // auth/cart pages — they already have their own way back to Home/Shop.
+      if (!_noStickyBar) loadScript('/assets/js/sticky-bar.js');
     }
   }
 

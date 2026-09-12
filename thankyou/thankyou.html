@@ -6,7 +6,7 @@
     <title>Order Complete | Sell4Life</title>
 
     <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png" />
-    <link rel="stylesheet" href="/assets/css/thankyou.css?v=20260532" />
+    <link rel="stylesheet" href="/assets/css/thankyou.css?v=20260905a" />
     <style id="s4l-fouc">html{visibility:hidden}</style>
   </head>
 
@@ -45,6 +45,17 @@
           <span id="order-total">£0.00</span>
         </div>
 
+        <!-- Only shown to a guest-checkout buyer who hasn't set a password yet -->
+        <div class="ty-track-panel" id="ty-track-panel" hidden>
+          <h3>Want to track your delivery?</h3>
+          <p>Create a password to see live shipment updates for this and future orders — no need to fill anything else in, we already have your email.</p>
+          <div class="ty-track-form">
+            <input type="password" id="ty-track-password" placeholder="Choose a password (min. 8 characters)" autocomplete="new-password" />
+            <button type="button" id="ty-track-submit" class="ty-btn">Set Password &amp; Track Order</button>
+          </div>
+          <p class="ty-track-message" id="ty-track-message"></p>
+        </div>
+
         <a href="/" class="ty-btn">Back to Home</a>
       </div>
     </div>
@@ -55,6 +66,6 @@
       document.body.classList.remove('s4l-loading');
     </script>
     <script src="/assets/js/config-global.js"></script>
-    <script src="/assets/js/thankyou.js"></script>
+    <script src="/assets/js/thankyou.js?v=20260902a"></script>
   </body>
 </html>

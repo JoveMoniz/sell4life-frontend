@@ -82,6 +82,16 @@
       }
       .cl-photo-slot.uploading .upload-spinner { display: flex; }
 
+      /* Extra photo slots (11-20), hidden until "Show more" */
+      .cl-extra-slots { display: none; }
+      .cl-extra-slots.open { display: contents; }
+      .cl-show-more-btn {
+        background: none; border: none; color: #0b6b6a;
+        font-weight: 600; font-size: 0.85rem; cursor: pointer;
+        padding: 4px 0; text-align: left; margin-top: -6px;
+      }
+      .cl-show-more-btn:hover { text-decoration: underline; }
+
       /* Price row */
       .cl-price-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
@@ -138,7 +148,20 @@
                 <div class="cl-photo-slot" data-slot="8"><input type="file" accept="image/*" /><span class="slot-label">+ Add</span><div class="upload-spinner">Uploading</div><button type="button" class="slot-remove">âœ•</button></div>
                 <div class="cl-photo-slot" data-slot="9"><input type="file" accept="image/*" /><span class="slot-label">+ Add</span><div class="upload-spinner">Uploading</div><button type="button" class="slot-remove">âœ•</button></div>
                 <div class="cl-photo-slot" data-slot="10"><input type="file" accept="image/*" /><span class="slot-label">+ Add</span><div class="upload-spinner">Uploading</div><button type="button" class="slot-remove">âœ•</button></div>
+                <div class="cl-extra-slots" id="cl-extra-slots">
+                  <div class="cl-photo-slot" data-slot="11"><input type="file" accept="image/*" /><span class="slot-label">+ Add</span><div class="upload-spinner">Uploading</div><button type="button" class="slot-remove">âœ•</button></div>
+                  <div class="cl-photo-slot" data-slot="12"><input type="file" accept="image/*" /><span class="slot-label">+ Add</span><div class="upload-spinner">Uploading</div><button type="button" class="slot-remove">âœ•</button></div>
+                  <div class="cl-photo-slot" data-slot="13"><input type="file" accept="image/*" /><span class="slot-label">+ Add</span><div class="upload-spinner">Uploading</div><button type="button" class="slot-remove">âœ•</button></div>
+                  <div class="cl-photo-slot" data-slot="14"><input type="file" accept="image/*" /><span class="slot-label">+ Add</span><div class="upload-spinner">Uploading</div><button type="button" class="slot-remove">âœ•</button></div>
+                  <div class="cl-photo-slot" data-slot="15"><input type="file" accept="image/*" /><span class="slot-label">+ Add</span><div class="upload-spinner">Uploading</div><button type="button" class="slot-remove">âœ•</button></div>
+                  <div class="cl-photo-slot" data-slot="16"><input type="file" accept="image/*" /><span class="slot-label">+ Add</span><div class="upload-spinner">Uploading</div><button type="button" class="slot-remove">âœ•</button></div>
+                  <div class="cl-photo-slot" data-slot="17"><input type="file" accept="image/*" /><span class="slot-label">+ Add</span><div class="upload-spinner">Uploading</div><button type="button" class="slot-remove">âœ•</button></div>
+                  <div class="cl-photo-slot" data-slot="18"><input type="file" accept="image/*" /><span class="slot-label">+ Add</span><div class="upload-spinner">Uploading</div><button type="button" class="slot-remove">âœ•</button></div>
+                  <div class="cl-photo-slot" data-slot="19"><input type="file" accept="image/*" /><span class="slot-label">+ Add</span><div class="upload-spinner">Uploading</div><button type="button" class="slot-remove">âœ•</button></div>
+                  <div class="cl-photo-slot" data-slot="20"><input type="file" accept="image/*" /><span class="slot-label">+ Add</span><div class="upload-spinner">Uploading</div><button type="button" class="slot-remove">âœ•</button></div>
+                </div>
               </div>
+              <button type="button" class="cl-show-more-btn" id="cl-show-more">+ Show more photo slots</button>
               <span class="cl-hint">Tap a slot to take a photo or pick from gallery. First photo is the main image.</span>
             </div>
 
@@ -146,7 +169,7 @@
             <div class="cl-field">
               <label>Video <span class="cl-optional">(optional  show it working or in use)</span></label>
               <div class="cl-video-slot" id="cl-video-slot">
-                <input type="file" id="cl-video-input" accept="video/*" />
+                <input type="file" id="cl-video-input" accept="video/*" capture="environment" />
                 <span class="cl-video-icon">ðŸŽ¥</span>
                 <p>Tap to record or choose a video</p>
                 <button type="button" class="cl-video-remove" id="cl-video-remove">âœ•</button>
@@ -261,6 +284,16 @@
           SUBCATS[val].map(s => `<option value="${s}">${s}</option>`).join('');
         wrap.classList.remove('cl-subcat-wrap-hidden');
       });
+
+      // Show more photo slots (11-20)
+      const clShowMoreBtn = document.getElementById('cl-show-more');
+      const clExtraSlots  = document.getElementById('cl-extra-slots');
+      if (clShowMoreBtn && clExtraSlots) {
+        clShowMoreBtn.addEventListener('click', () => {
+          const open = clExtraSlots.classList.toggle('open');
+          clShowMoreBtn.textContent = open ? '- Hide extra photo slots' : '+ Show more photo slots';
+        });
+      }
 
       // Video upload
       let videoUrl = null;
