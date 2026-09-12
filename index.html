@@ -6,15 +6,15 @@
     <title>Sell4Life | Buy &amp; Sell Online</title>
     <meta name="description" content="Sell4Life — an online marketplace to buy and sell products across all categories. Shop electronics, fashion, books, toys and more from independent sellers." />
     <meta property="og:title" content="Sell4Life | Buy &amp; Sell Online" />
-    <meta property="og:description" content="Discover thousands of products from independent sellers. Join Sell4Life to start buying or selling today." />
+    <meta property="og:description" content="Discover unique products from independent sellers. Join Sell4Life to start buying or selling today." />
     <meta property="og:type" content="website" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png" />
-    <link rel="stylesheet" href="/assets/css/style.css?v=20260622b" />
-    <link rel="stylesheet" href="/assets/css/layout.css" />
-    <link rel="stylesheet" href="/assets/css/product-card.css?v=20260622b" />
+    <link rel="stylesheet" href="/assets/css/style.css?v=20260831a" />
+    <link rel="stylesheet" href="/assets/css/layout.css?v=20260831a" />
+    <link rel="stylesheet" href="/assets/css/product-card.css?v=20260830a" />
     <link rel="stylesheet" href="/assets/css/quick-add.css?v=20260622b" />
     <link rel="stylesheet" href="/assets/css/reviews.css?v=20260622b" />
     <style id="s4l-fouc">html{visibility:hidden}</style>
@@ -23,14 +23,21 @@
 
     <!-- Hero -->
     <section class="hero">
-      <img src="/assets/images/hero/dolar-tag.png" alt="Sell4Life" />
-      <h1>sell4life</h1>
-      <h2>Sell smarter. Buy better.</h2>
-      <p>An innovative marketplace for buying and selling with ease.</p>
-      <div class="hero-ctas">
-        <a href="/shop/" class="btn-cta btn-shop">Shop Now →</a>
-        <a class="btn-cta btn-sell vendor-btn" data-vendor-start>Start Selling →</a>
+      <div class="hero-top">
+        <div class="hero-copy">
+          <span class="hero-kicker">Buy it, sell it, sorted</span>
+          <h1 class="hero-headline">
+            <span class="hero-slide">Sell smarter. Buy better.</span>
+            <span class="hero-slide">New sellers welcome</span>
+            <span class="hero-slide">Free to browse</span>
+          </h1>
+          <div class="hero-ctas">
+            <a href="/shop/" class="btn-cta btn-shop">Shop Now →</a>
+            <a class="btn-cta btn-sell vendor-btn" data-vendor-start>Start Selling →</a>
+          </div>
+        </div>
       </div>
+      <div class="hero-filmstrip" id="hero-filmstrip"></div>
     </section>
 
     <!-- Trust strip -->
@@ -51,18 +58,10 @@
       </div>
     </div>
 
-    <!-- Promo Banner -->
-    <section class="promo-slider" id="promo-slider" aria-label="Promotions">
-      <div class="promo-track" id="promo-track"></div>
-      <button type="button" class="promo-arrow promo-prev" id="promo-prev" aria-label="Previous">&#8249;</button>
-      <button type="button" class="promo-arrow promo-next" id="promo-next" aria-label="Next">&#8250;</button>
-      <div class="promo-dots" id="promo-dots"></div>
-    </section>
-
     <!-- Featured Products -->
     <section class="featured-products">
       <div class="featured-header">
-        <h2>Featured Products</h2>
+        <h2>Just Listed</h2>
         <a href="/shop/" class="featured-view-all">See all →</a>
       </div>
       <div class="featured-products-grid"></div>
@@ -75,8 +74,11 @@
     <section class="category-grid" id="s4l-categories"></section>
 
     <script src="/assets/js/config-global.js"></script>
+    <script src="/assets/js/icons.js"></script>
+    <script src="/assets/js/client-info.js"></script>
+    <script src="/assets/js/currency.js"></script>
     <script>
-      window.__pageScripts = ['/assets/js/shipping-label.js', '/assets/js/product-card.js', '/assets/js/home.js?v=20260905c', '/assets/js/vendor-button.js'];
+      window.__pageScripts = ['/assets/js/shipping-label.js', '/assets/js/product-card.js', '/assets/js/home.js?v=20260905a', '/assets/js/vendor-button.js'];
     </script>
   </body>
 </html>
