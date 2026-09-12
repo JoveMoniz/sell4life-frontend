@@ -19,17 +19,17 @@ function authFetch(url, opts = {}) {
 ====================================================== */
 function getDisplayStatus(order) {
   const payment = (order.paymentStatus || '').toLowerCase();
-  const status = order.status;
+  const badge = window.s4lStatusBadge ? window.s4lStatusBadge(order.status) : order.status;
 
   if (payment === 'refunded') {
-    return `${status} • Refunded`;
+    return `${badge} ${window.s4lRefundBadge ? window.s4lRefundBadge('processed') : '• Refunded'}`;
   }
 
   if (payment === 'refund_scheduled') {
-    return `${status} • Refund Scheduled`;
+    return `${badge} ${window.s4lRefundBadge ? window.s4lRefundBadge('scheduled') : '• Refund Scheduled'}`;
   }
 
-  return status;
+  return badge;
 }
 
 /* ======================================================
@@ -59,6 +59,9 @@ async function loadVendorDashboard(period = currentPeriod) {
     document.getElementById('stat-active').textContent = data.activeOrders || 0;
     document.getElementById('stat-completed').textContent = data.completedOrders || 0;
     document.getElementById('stat-refunded').textContent = data.refundedItems || 0;
+
+    _obProductCount = data.products || 0;
+    maybeRenderOnboardingBanner();
   } catch (err) {
     console.error('Vendor dashboard load error:', err);
   }
@@ -166,7 +169,7 @@ async function loadRecentOrders() {
         : ''
     }
   </span>
-  <a class="btn-view-order" href="/account/vendor/order-details.html?id=${id}">
+  <a class="btn-view-order${hasPendingActions ? ' btn-view-order--action' : ''}" href="/account/vendor/order-details.html?id=${id}">
     ${hasPendingActions ? 'Action needed →' : 'View →'}
   </a>
   <span class="order-price">£${vendorTotal.toFixed(2)}</span>
@@ -310,10 +313,65 @@ document.addEventListener('vendorLoaded', function(e) {
 });
 
 /* ======================================================
+   ONBOARDING CHECKLIST
+   A vendor can currently add products and appear "live" without ever
+   connecting Stripe, with nothing on the dashboard telling them payouts
+   are blocked until they do. Reuses /vendor/stripe/status (same source
+   the Settings page's payout card reads) rather than re-deriving
+   connection state independently.
+====================================================== */
+let _obProductCount = null;
+let _obStripeStatus = null;
+
+async function loadStripeStatusForOnboarding() {
+  try {
+    const res = await authFetch(`${API_BASE}/vendor/stripe/status`);
+    _obStripeStatus = res.ok ? await res.json() : { connected: false, payoutEnabled: false };
+  } catch (_) {
+    _obStripeStatus = { connected: false, payoutEnabled: false };
+  }
+  maybeRenderOnboardingBanner();
+}
+
+function maybeRenderOnboardingBanner() {
+  if (_obProductCount === null || _obStripeStatus === null) return;
+  renderOnboardingBanner();
+}
+
+function renderOnboardingBanner() {
+  const el = document.getElementById('onboarding-banner');
+  if (!el) return;
+
+  const needsProduct = _obProductCount === 0;
+  const needsStripe = !_obStripeStatus.payoutEnabled;
+
+  if (!needsProduct && !needsStripe) { el.innerHTML = ''; return; }
+
+  const item = (done, href, label) => `
+    <a href="${href}" style="display:flex;align-items:center;gap:8px;text-decoration:none;color:${done ? '#166534' : '#374151'};${done ? '' : 'font-weight:600'}">
+      <span style="flex-shrink:0">${done
+        ? (window.s4lIcon ? window.s4lIcon('check') : '✓')
+        : '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>'
+      }</span>
+      <span style="${done ? 'text-decoration:line-through;color:#9ca3af' : 'text-decoration:underline'}">${label}</span>
+    </a>`;
+
+  el.innerHTML = `
+    <div style="background:#f0f8f8;border-left:4px solid #0b6b6a;border-radius:6px;padding:14px 16px;margin-bottom:18px">
+      <div style="font-size:13px;font-weight:700;color:#0b6b6a;margin-bottom:10px">Finish setting up your store</div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+        ${item(!needsProduct, '/account/vendor/add-product.html', 'Add your first product')}
+        ${item(!needsStripe, '/account/vendor/settings.html#payout-stripe-section', 'Connect a bank account with Stripe so you can be paid')}
+      </div>
+    </div>`;
+}
+
+/* ======================================================
    INIT
 ====================================================== */
 loadVendorDashboard();
 loadRecentOrders();
+loadStripeStatusForOnboarding();
 
 startLiveUpdates(() => {
   loadVendorDashboard(currentPeriod);

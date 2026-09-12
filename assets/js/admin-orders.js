@@ -94,6 +94,7 @@ async function loadOrders(page = 1, q = '', status = 'all') {
     const res = await authFetch(url, { signal: searchController.signal });
 
     if (res.status === 401 || res.status === 403) {
+      localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
       window.location.href = '/account/admin/signin.html';
       return;
     }
@@ -138,7 +139,7 @@ async function loadOrders(page = 1, q = '', status = 'all') {
       d.status !== 'won' && d.status !== 'charge_refunded' && d.status !== 'warning_closed'
     );
     const disputeBadge = activeDisputes.length
-      ? `<span class="dispute-badge" title="Chargeback: ${activeDisputes[0].status}">⚠ dispute</span>`
+      ? `<span class="dispute-badge" title="Chargeback: ${activeDisputes[0].status}"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 3l9 16H3L12 3z"/><path d="M12 10v4M12 17h.01"/></svg> dispute</span>`
       : '';
 
     tr.innerHTML = `
@@ -162,9 +163,7 @@ async function loadOrders(page = 1, q = '', status = 'all') {
 <td>£${Number(order.total || 0).toFixed(2)}</td>
 
 <td>
-  <span class="status status-${order.status.toLowerCase()}">
-    ${order.status}
-  </span>
+  ${window.s4lStatusBadge ? window.s4lStatusBadge(order.status) : order.status}
 </td>
 
 <td>
@@ -351,7 +350,7 @@ document.getElementById('ordersTable').addEventListener('click', (e) => {
     return `
       <div style="display:inline-flex;align-items:center;gap:6px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:4px 10px;font-size:0.78rem;margin:2px 4px 2px 0">
         ${nameHtml}
-        <span class="status status-${status.toLowerCase().replace(/\s+/g, '-')}" style="font-size:0.72rem">${status}</span>
+        ${window.s4lStatusBadge ? window.s4lStatusBadge(status) : status}
         <span style="color:#6b7280">£${total}</span>
       </div>`;
   }).join('');
@@ -362,9 +361,7 @@ document.getElementById('ordersTable').addEventListener('click', (e) => {
 
     <div class="inline-status-line">
       <strong>Status</strong>
-      <span class="status status-${backendStatus.toLowerCase()}">
-        ${backendStatus}
-      </span>
+      ${window.s4lStatusBadge ? window.s4lStatusBadge(backendStatus) : backendStatus}
     </div>
 
     ${vendorChips ? `<div style="margin:6px 0 4px"><strong style="font-size:0.8rem;color:#6b7280">Sellers</strong><div style="margin-top:4px">${vendorChips}</div></div>` : ''}

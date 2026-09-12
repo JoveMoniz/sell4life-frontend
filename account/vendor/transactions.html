@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Transactions | Sell4Life</title>
 
-    <link rel="stylesheet" href="/assets/css/layout.css" />
-    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260622b" />
+    <link rel="stylesheet" href="/assets/css/layout.css?v=20260831a" />
+    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260831c" />
     <style id="s4l-fouc">html{visibility:hidden}</style>
   </head>
 
@@ -16,7 +16,7 @@
 
       <main class="vendor-main">
         <div class="vendor-container">
-          <a href="/account/vendor/dashboard.html" class="vendor-back-link"> Back to Dashboard</a>
+          <a href="/account/vendor/dashboard.html" class="vendor-back-link"> ← Back to Dashboard</a>
 
           <h1 class="vendor-title">Transactions</h1>
 
@@ -42,6 +42,9 @@
             </div>
           </div>
 
+          <!-- Founding Seller banner -->
+          <div id="txn-founding-banner" class="txn-founding-banner" hidden></div>
+
           <!-- Summary cards -->
           <div class="txn-summary">
             <div class="stat-card">
@@ -55,10 +58,6 @@
             <div class="stat-card">
               <h3 id="txn-commission">£0.00</h3>
               <p id="txn-commission-label">Platform Fee</p>
-            </div>
-            <div class="stat-card" id="txn-stripe-card">
-              <h3 id="txn-stripe">£0.00</h3>
-              <p>Stripe Fees <span class="txn-vat-badge">platform pays</span></p>
             </div>
             <div class="stat-card" id="txn-shipping-card" hidden>
               <h3 id="txn-shipping">£0.00</h3>
@@ -164,6 +163,8 @@
     </div>
 
     <script src="/assets/js/config-global.js"></script>
+    <script src="/assets/js/icons.js"></script>
+    <script src="/assets/js/client-info.js"></script>
 
     <script>
       (async () => {
@@ -185,7 +186,7 @@
       })();
     </script>
 
-    <script src="/assets/js/layout.js?v=20260627"></script>
-    <script src="/assets/js/vendor-transactions.js?v=20260621"></script>
+    <script src="/assets/js/layout.js?v=20260814b"></script>
+    <script src="/assets/js/vendor-transactions.js?v=20260830c"></script>
   </body>
 </html>

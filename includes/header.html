@@ -9,9 +9,6 @@
 <!-- Favicon -->
 <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png" />
 
-<!-- Early development notice -->
-<div class="site-notice">Sell4Life is in early development. Some features may be unavailable.</div>
-
 <!-- =======================================================
      DESKTOP HEADER
 ======================================================= -->
@@ -20,10 +17,10 @@
     <div class="desktop-header">
       <!-- Logo -->
       <a href="/" class="header-logo" style="display:inline-flex;align-items:center">
-        <svg id="s4l-logo-desktop" xmlns="http://www.w3.org/2000/svg" height="52">
-          <text id="s4l-logo-txt-d" y="36"
+        <svg id="s4l-logo-desktop" xmlns="http://www.w3.org/2000/svg" height="30">
+          <text id="s4l-logo-txt-d" y="22"
             font-family="Roboto,Arial,sans-serif"
-            font-size="34" font-weight="900" letter-spacing="3">
+            font-size="23" font-weight="900" letter-spacing="1.7">
             <tspan fill="#f18c28">$</tspan><tspan fill="#fff">ell</tspan><tspan fill="#f18c28">4</tspan><tspan fill="#fff">Life</tspan>
           </text>
         </svg>
@@ -32,7 +29,7 @@
       <!-- Navigation -->
       <nav class="header-nav">
         <a href="/shop/">Buy</a>
-        <a href="/sell/">Sell</a>
+        <a href="/sell/" id="nav-sell-desktop">Sell</a>
         <a href="/stores/">Stores</a>
       </nav>
 
@@ -45,7 +42,7 @@
           autocomplete="off"
         />
         <button type="submit" aria-label="Search">
-          <img src="/assets/images/hero/search.png" alt="Search" width="28" height="28" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </button>
         <div class="search-autocomplete desktop-ac"></div>
       </form>
@@ -55,7 +52,7 @@
       <div class="header-icons">
         <div class="basket-wrapper">
           <div class="basket-shell" aria-label="Basket">
-            <div class="basket-handle"></div>
+            <svg viewBox="0 0 24 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 13C7 5 17 5 17 13"/><path d="M1 12H23V23Q23 27 19 27H5Q1 27 1 23V12Z"/></svg>
             <span class="basket-qty hide">0</span>
           </div>
 
@@ -73,12 +70,14 @@
 
         <!-- account -->
         <div class="account-menu">
-          <button type="button" id="accountBtnDesktop">Account ▾</button>
+          <button type="button" id="accountBtnDesktop" class="account-avatar-btn" aria-label="Account" title="Account">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+          </button>
 
           <div class="account-dropdown" id="accountDropdownDesktop">
             <a href="/account/signin.html" class="auth dd-login">Sign in</a>
             <a href="/account/register.html" class="auth dd-register">Register</a>
-            <a href="/account/orders.html" class="auth dd-orders">My Orders</a>
+            <a href="/account/orders.html" class="auth dd-orders">My Orders <span class="dd-order-badge"></span></a>
             <a href="/account/messages.html" class="auth dd-messages">My Messages <span class="dd-msg-badge"></span></a>
             <a href="/account/settings.html" class="auth dd-settings">Account Settings</a>
             <button type="button" class="dd-logout">Logout</button>
@@ -95,56 +94,13 @@
 <header class="s4l-header-mobile">
   <div class="mobile-header-container">
     <div class="mobile-header">
-      <!-- ROW 1: Logo + basket + signin -->
-      <div class="mobile-top-row">
-        <!-- Logo -->
-        <a href="/index.html" class="mobile-logo">
-          <svg id="s4l-logo-mobile" xmlns="http://www.w3.org/2000/svg" height="42">
-            <text id="s4l-logo-txt-m" y="30"
-              font-family="Roboto,Arial,sans-serif"
-              font-size="28" font-weight="900" letter-spacing="2">
-              <tspan fill="#f18c28">$</tspan><tspan fill="#fff">ell</tspan><tspan fill="#f18c28">4</tspan><tspan fill="#fff">Life</tspan>
-            </text>
-          </svg>
-        </a>
-
-        <div class="mobile-right-icons">
-          <!-- Basket (NO minicart here) -->
-          <div class="basket-wrapper mobile-basket">
-            <div class="basket-shell">
-              <div class="basket-handle"></div>
-              <span class="basket-qty hide">0</span>
-            </div>
-          </div>
-
-          <!-- Mobile account -->
-
-          <div class="account-menu">
-            <button type="button" id="accountBtnMobile">Account ▾</button>
-
-            <div class="account-dropdown" id="accountDropdownMobile">
-              <a href="/account/signin.html" class="auth dd-login">Sign in</a>
-              <a href="/account/register.html" class="auth dd-register">Register</a>
-              <a href="/account/orders.html" class="auth dd-orders">My Orders</a>
-              <a href="/account/messages.html" class="auth dd-messages">My Messages <span class="dd-msg-badge"></span></a>
-              <a href="/account/settings.html" class="auth dd-settings">Account Settings</a>
-              <button type="button" class="dd-logout">Logout</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ROW 2: Search + hamburger (tablet shows nav inline) -->
+      <!-- Single row: favicon + search + hamburger (basket/account are handled by the sticky bottom bar on mobile) -->
       <div class="mobile-menu-col">
-        <!-- Inline nav — visible on tablet, hidden on portrait phone -->
-        <nav class="mobile-nav">
-          <a href="/shop/">Buy</a>
-          <a href="/sell/">Sell</a>
-          <a href="/stores/">Stores</a>
-        </nav>
-
-        <!-- Search + hamburger row -->
         <div class="mobile-search-row">
+          <a href="/index.html" class="mobile-logo">
+            <img src="/assets/images/hero/favicon.png" alt="Sell4Life" width="30" height="30" />
+          </a>
+
           <form id="mobile-search-form" class="mobile-search" role="search">
             <input
               id="mobile-search-input"
@@ -153,12 +109,12 @@
               autocomplete="off"
             />
             <button type="submit" aria-label="Search">
-              <img src="/assets/images/hero/search.png" alt="Search" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </button>
             <div class="search-autocomplete mobile-ac"></div>
           </form>
 
-          <!-- Hamburger — hidden on tablet, shown on portrait phone -->
+          <!-- Hamburger -->
           <button
             id="mobile-hamburger"
             class="mobile-hamburger"
@@ -175,7 +131,7 @@
         <!-- Nav drawer — slides down when hamburger opens it -->
         <div id="mobile-nav-drawer" class="mobile-nav-drawer">
           <a href="/shop/">Buy</a>
-          <a href="/sell/">Sell</a>
+          <a href="/sell/" id="nav-sell-mobile">Sell</a>
           <a href="/stores/">Stores</a>
         </div>
       </div>

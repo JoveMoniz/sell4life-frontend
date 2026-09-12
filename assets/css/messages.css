@@ -16,6 +16,7 @@
 
 /* Conversation list */
 .msg-list { list-style: none; margin: 0; padding: 0; }
+.msg-list-row { margin-bottom: 10px; }
 .msg-list-item {
   display: flex;
   align-items: flex-start;
@@ -23,14 +24,25 @@
   padding: 14px 16px;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
-  margin-bottom: 10px;
   cursor: pointer;
   background: #fff;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, border-radius 0.1s;
 }
 .msg-list-item:hover { border-color: #0b6b6a; box-shadow: 0 1px 6px rgba(11,107,106,.1); }
-.msg-list-item.active { border-color: #0b6b6a; background: #f0fafa; }
+.msg-list-item.active { border-color: #0b6b6a; background: #f0fafa; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .msg-list-item.unread .msg-list-product { font-weight: 700; }
+
+.msg-list-chevron {
+  align-self: center;
+  color: #9ca3af;
+  font-size: 12px;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+.msg-list-item.active .msg-list-chevron { transform: rotate(180deg); color: #0b6b6a; }
+
+/* Collapsible thread slot — empty when closed, so it takes no space */
+.msg-thread-slot:empty { display: none; }
 
 .msg-list-avatar {
   width: 40px; height: 40px; border-radius: 50%;
@@ -52,6 +64,12 @@
 .msg-thread {
   border: 1px solid #e5e7eb; border-radius: 10px;
   background: #fff; margin-top: 20px; overflow: hidden;
+}
+/* When rendered inline inside the clicked row's .msg-thread-slot, attach it
+   directly under the row instead of floating with its own top border/margin */
+.msg-thread-slot .msg-thread {
+  border: 1px solid #0b6b6a; border-top: none; border-radius: 0 0 10px 10px;
+  margin: -1px 0 10px;
 }
 .msg-thread-header {
   padding: 14px 18px;
@@ -135,6 +153,22 @@
 }
 .ask-seller-btn:hover { background: #0b6b6a; color: #fff; }
 
+.pd-seller-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.pd-seller-actions .ask-seller-btn { margin-top: 10px; }
+
+.offer-btn { border-color: #f18c28; color: #f18c28; }
+.offer-btn:hover { background: #f18c28; color: #fff; }
+
+.offer-modal-hint { font-size: 12px !important; color: #9ca3af !important; margin: -8px 0 14px !important; }
+
+.ask-modal input[type="number"] {
+  width: 100%; box-sizing: border-box;
+  border: 1px solid #d1d5db; border-radius: 8px;
+  padding: 10px 12px; font-size: 14px; font-family: inherit;
+  color: #111827; outline: none;
+}
+.ask-modal input[type="number"]:focus { border-color: #0b6b6a; }
+
 .ask-modal-backdrop {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,.45); z-index: 1000;
@@ -172,6 +206,46 @@
 .ask-modal-msg { font-size: 13px; margin-top: 10px; }
 .ask-modal-msg.ok  { color: #0b6b6a; }
 .ask-modal-msg.err { color: #dc2626; }
+
+/* Offer cards (inline in message threads) */
+.msg-offer-card {
+  min-width: 220px; max-width: 80%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1.5px solid #f18c28;
+  background: #fff8ef;
+}
+.msg-offer-card.mine   { border-color: #0b6b6a; background: #f0faf9; }
+.msg-offer-amount { font-size: 18px; font-weight: 800; color: #111827; }
+.msg-offer-status {
+  display: inline-block; margin-top: 2px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+  padding: 2px 8px; border-radius: 20px;
+}
+.msg-offer-status.status-pending   { background: #fef3c7; color: #92400e; }
+.msg-offer-status.status-accepted  { background: #d1fae5; color: #065f46; }
+.msg-offer-status.status-completed { background: #d1fae5; color: #065f46; }
+.msg-offer-status.status-rejected  { background: #fee2e2; color: #991b1b; }
+.msg-offer-status.status-countered { background: #e0e7ff; color: #3730a3; }
+.msg-offer-status.status-expired   { background: #f3f4f6; color: #6b7280; }
+
+.msg-offer-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.msg-offer-btn {
+  border: none; border-radius: 7px; padding: 6px 12px;
+  font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.msg-offer-btn.accept   { background: #0b6b6a; color: #fff; }
+.msg-offer-btn.reject   { background: #fee2e2; color: #991b1b; }
+.msg-offer-btn.counter  { background: #e5e7eb; color: #374151; }
+.msg-offer-btn.buy-now  { margin-top: 10px; background: #f18c28; color: #fff; width: 100%; padding: 9px 12px; font-size: 13px; }
+.msg-offer-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.msg-offer-counter-row { display: flex; gap: 6px; margin-top: 8px; }
+.msg-offer-counter-input {
+  flex: 1; min-width: 0;
+  border: 1px solid #d1d5db; border-radius: 7px;
+  padding: 6px 10px; font-size: 13px; font-family: inherit;
+}
 
 /* Vendor inbox inside vendor layout */
 .vendor-msg-split {

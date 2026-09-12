@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Account Settings | Sell4Life</title>
     <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png" />
-    <link rel="stylesheet" href="/assets/css/layout.css" />
+    <link rel="stylesheet" href="/assets/css/layout.css?v=20260831a" />
     <style>
       .acct-wrap {
         max-width: 520px;
@@ -129,6 +129,8 @@
     </div>
 
     <script src="/assets/js/config-global.js"></script>
+    <script src="/assets/js/icons.js"></script>
+    <script src="/assets/js/client-info.js"></script>
     <script>
       const token = localStorage.getItem('s4l_token');
       if (!token) window.location.replace('/account/signin.html');

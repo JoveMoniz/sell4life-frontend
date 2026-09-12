@@ -1,0 +1,12 @@
+/* Shared order/item status badge — one look everywhere (buyer, vendor, admin).
+   Colors are set inline per-status by order-status.js; this just gives every
+   badge the same pill shape/weight so they read as one consistent system. */
+.s4l-status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}

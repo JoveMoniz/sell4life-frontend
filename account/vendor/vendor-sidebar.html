@@ -9,6 +9,7 @@
   </div>
 
   <nav class="vendor-nav">
+    <a href="/" class="vendor-nav-home" data-tier-min="casual"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M4 11l8-6 8 6"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/></svg> Back to Site</a>
     <a href="/account/vendor/dashboard.html"   data-tier-min="casual">Dashboard</a>
     <a href="/account/vendor/products.html"    data-tier-min="casual">Products</a>
     <a href="/account/vendor/add-product.html" data-tier-min="casual">Add Product</a>
@@ -18,49 +19,7 @@
     <a href="/account/vendor/messages.html"    data-tier-min="casual">Messages <span id="sidebar-msg-badge"></span></a>
     <a href="/account/vendor/settings.html"    data-tier-min="casual">Store Settings</a>
     <a href="/account/vendor/tools.html"       data-tier-min="professional">Tools</a>
+    <a href="/account/vendor/screen-recorder.html" data-tier-min="refurbished"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></svg> Screen Recorder</a>
     <a href="/account/signin.html" class="vendor-logout">Logout</a>
   </nav>
 </aside>
-
-<script>
-(function () {
-  const TIER_RANK = { casual: 1, refurbished: 2, professional: 3, enterprise: 4 };
-  const TIER_LABELS = { casual: 'Casual', refurbished: 'Refurbished', professional: 'Professional', enterprise: 'Enterprise' };
-
-  function applyTier(type) {
-    const rank = TIER_RANK[type] || 1;
-    document.querySelectorAll('[data-tier-min]').forEach(el => {
-      const required = TIER_RANK[el.dataset.tierMin] || 1;
-      el.style.display = rank >= required ? '' : 'none';
-    });
-    const badge = document.getElementById('sidebar-tier-badge');
-    if (badge) {
-      badge.textContent = TIER_LABELS[type] || 'Casual';
-      badge.dataset.tier = type || 'casual';
-    }
-  }
-
-  document.addEventListener('vendorLoaded', e => applyTier(e.detail?.type));
-
-  const cached = localStorage.getItem('s4l_vendorType');
-  if (cached) applyTier(cached);
-
-  // Message badge
-  (async function () {
-    const tok = localStorage.getItem('s4l_token');
-    if (!tok) return;
-    try {
-      const r = await fetch((window.API_BASE || '') + '/messages/unread-count?view=vendor', {
-        headers: { Authorization: 'Bearer ' + tok },
-      });
-      if (!r.ok) return;
-      const { unread } = await r.json();
-      const badge = document.getElementById('sidebar-msg-badge');
-      if (badge && unread > 0) {
-        badge.textContent = unread > 99 ? '99+' : unread;
-        badge.className = 'sidebar-msg-badge';
-      }
-    } catch {}
-  })();
-})();
-</script>

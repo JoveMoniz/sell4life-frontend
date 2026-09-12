@@ -43,26 +43,12 @@ let _refundTarget = { itemId: null, maxQty: 0, price: 0 };
 /* ================================
    BADGE HELPERS
 ================================ */
-const RETURN_BADGE = {
-  requested:          { label: 'Return Requested',   color: '#b45309', bg: '#fef3c7' },
-  approved:           { label: 'Return Approved',    color: '#1d4ed8', bg: '#dbeafe' },
-  rejected:           { label: 'Return Rejected',    color: '#b91c1c', bg: '#fee2e2' },
-  partially_returned: { label: 'Partially Returned', color: '#c2410c', bg: '#ffedd5' },
-  returned:           { label: 'Returned',           color: '#15803d', bg: '#dcfce7' },
-};
-
-const REFUND_BADGE = {
-  scheduled:          { label: 'Refund Scheduled',  color: '#1d4ed8', bg: '#dbeafe' },
-  processing:         { label: 'Processing',        color: '#6d28d9', bg: '#ede9fe' },
-  processed:          { label: 'Refunded ✓',        color: '#15803d', bg: '#dcfce7' },
-  partially_refunded: { label: 'Partially Refunded', color: '#c2410c', bg: '#ffedd5' },
-  failed:             { label: 'Refund Failed',     color: '#b91c1c', bg: '#fee2e2' },
-};
-
-function badge(map, status) {
-  const b = map[status];
-  if (!b) return '';
-  return `<span style="background:${b.bg};color:${b.color};padding:1px 6px;border-radius:10px;font-size:0.72rem;font-weight:600;white-space:nowrap">${b.label}</span>`;
+// Badge rendering lives in the shared order-status.js so buyer/vendor/admin
+// all show the exact same colors for the same status.
+function badge(kind, status) {
+  if (kind === 'return') return window.s4lReturnBadge ? window.s4lReturnBadge(status) : '';
+  if (kind === 'refund') return window.s4lRefundBadge ? window.s4lRefundBadge(status) : '';
+  return '';
 }
 
 /* ================================
@@ -206,7 +192,7 @@ function renderSellers(vendorOrders) {
       const subStatus  = vo.status || '—';
       const total     = Number(vo.total || 0).toFixed(2);
       const acct      = VENDOR_STATUS_STYLE[vo.accountStatus] || null;
-      const verified  = vo.verified ? '<span title="Verified" style="color:#1d4ed8;font-size:0.75rem">✓ Verified</span>' : '';
+      const verified  = vo.verified ? '<span title="Verified" style="color:#1d4ed8;font-size:0.75rem"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg> Verified</span>' : '';
       const typeLabel = vo.accountType ? `<span style="font-size:0.75rem;color:#6b7280;text-transform:capitalize">${vo.accountType}</span>` : '';
       const acctBadge = acct
         ? `<span style="background:${acct.bg};color:${acct.color};padding:1px 7px;border-radius:10px;font-size:0.72rem;font-weight:600">${acct.label}</span>`
@@ -227,7 +213,7 @@ function renderSellers(vendorOrders) {
           </div>
           <div style="min-width:120px">
             <div style="font-size:0.75rem;color:#6b7280;margin-bottom:2px">Sub-order status</div>
-            <span class="status status-${subStatus.toLowerCase().replace(/\s+/g, '-')}" style="font-size:0.8rem">${subStatus}</span>
+            ${window.s4lStatusBadge ? window.s4lStatusBadge(subStatus) : subStatus}
           </div>
           <div style="min-width:80px;text-align:right">
             <div style="font-size:0.75rem;color:#6b7280;margin-bottom:2px">Subtotal</div>
@@ -335,6 +321,7 @@ async function loadOrder() {
     const res = await authFetch(`${API_BASE}/admin/orders/${orderId}`);
 
     if (res.status === 401 || res.status === 403) {
+      localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
       window.location.href = '/account/admin/signin.html';
       return;
     }
@@ -353,9 +340,9 @@ async function loadOrder() {
     document.getElementById('orderTotal').textContent = '£' + Number(order.total).toFixed(2);
 
     /* ========= STATUS + TIMER ========= */
-    orderStatusEl.textContent = order.status;
+    orderStatusEl.innerHTML = window.s4lStatusBadge ? window.s4lStatusBadge(order.status) : order.status;
     if (order.paymentStatus === 'refund_scheduled') {
-      orderStatusEl.textContent += ' • refund pending';
+      orderStatusEl.innerHTML += ' <span style="font-size:0.85em;color:#6b7280">refund pending</span>';
     }
 
     /* ========= PAYMENT ========= */
@@ -381,6 +368,20 @@ async function loadOrder() {
       paymentMethodEl.textContent = order.paymentIntentId
         ? `Stripe (${order.paymentIntentId.slice(0, 12)}...)`
         : 'Stripe';
+    }
+
+    /* ========= SHIPPING ADDRESS ========= */
+    const shippingInfoEl = document.getElementById('shippingInfo');
+    if (shippingInfoEl) {
+      const addr = order.shippingAddress;
+      shippingInfoEl.innerHTML = addr ? `
+        <div style="font-weight:700;margin-bottom:2px">${addr.name || ''}</div>
+        ${addr.address1 ? `<div>${addr.address1}</div>` : ''}
+        ${addr.address2 ? `<div>${addr.address2}</div>` : ''}
+        <div>${[addr.city, addr.county, addr.postcode].filter(Boolean).join(', ')}</div>
+        ${addr.country ? `<div>${addr.country}</div>` : ''}
+        ${addr.phone ? `<div style="margin-top:4px;color:#6b7280"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 4h3.5l1.5 4-2 1.5c1 2.2 2.8 4 5 5l1.5-2 4 1.5V17a1.5 1.5 0 01-1.6 1.5A15 15 0 015 5.6 1.5 1.5 0 015 4z"/></svg> ${addr.phone}</div>` : ''}
+      ` : 'No shipping address on file';
     }
 
     /* ========= BLOCK / ENABLE ACTIONS ========= */
@@ -453,6 +454,27 @@ async function loadOrder() {
 
         const actionBtns = [];
 
+        // ── Admin per-item cancel (total override — any non-cancelled state) ──
+        if (item.status !== 'Cancelled') {
+          const outstandingQty = Math.max(0, qty - Number(item.refundedQuantity || 0));
+          const cancelPreview = Math.max(0,
+            price * outstandingQty + Number(item.shippingCost || 0) - Number(item.discountAmount || 0)
+          ).toFixed(2);
+          const isPaidForCancel = ['paid', 'partially_refunded'].includes((order.paymentStatus || '').toLowerCase());
+          const willRefundOnCancel = isPaidForCancel && outstandingQty > 0 && item.refundStatus !== 'processed';
+
+          actionBtns.push(
+            `<button class="admin-cancel-item-btn"
+              data-item-id="${item._id}"
+              data-item-name="${(item.name || '').replace(/"/g, '&quot;')}"
+              data-refund-preview="${cancelPreview}"
+              data-will-refund="${willRefundOnCancel ? '1' : '0'}"
+              style="padding:3px 8px;background:#fff;color:#b91c1c;border:1px solid #b91c1c;border-radius:4px;cursor:pointer;font-size:0.75rem;margin-right:4px;margin-top:2px">
+              Cancel Item
+            </button>`
+          );
+        }
+
         if (returnSt === 'requested' && alreadyRefunded) {
           actionBtns.push(
             `<button disabled title="Already refunded — approving/rejecting no longer applies"
@@ -509,7 +531,7 @@ async function loadOrder() {
             actionBtns.push(
               `<button disabled title="Already refunded"
                 style="padding:3px 8px;background:#e5e7eb;color:#9ca3af;border:none;border-radius:4px;cursor:not-allowed;font-size:0.75rem;margin-top:2px">
-                Refunded ✓
+                Refunded <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg>
               </button>`
             );
           } else if (refundProcessing) {
@@ -535,15 +557,19 @@ async function loadOrder() {
         }
 
         // ── Goodwill refund (no return required) ──────────────
+        // item.shippingAmount is never populated (always 0) — the real
+        // value lives in item.shippingCost. Gate on remaining money
+        // (maxGoodwill), not refund history or cancelled status, since a
+        // cancelled item or a return with shipping withheld can still have
+        // real unrefunded value sitting on it.
         const maxGoodwill = Math.max(0,
           price * qty
-          + Number(item.shippingAmount || 0)
+          + Number(item.shippingCost || 0)
           - Number(item.discountAmount || 0)
           - Number(item.refundedAmount || 0)
         );
-        const goodwillEligible = ['paid', 'partially_refunded'].includes(order.paymentStatus)
-          && item.refundStatus === 'none'
-          && item.status !== 'Cancelled'
+        const goodwillEligible = ['paid', 'partially_refunded', 'refunded'].includes(order.paymentStatus)
+          && item.refundStatus !== 'scheduled'
           && maxGoodwill > 0;
 
         if (goodwillEligible) {
@@ -607,7 +633,12 @@ async function loadOrder() {
 
         const titleHtml = `<div class="admin-title-wrap"><span class="admin-title">${item.name}</span></div>`;
         const nameCell = itemHistory
-          ? `${titleHtml}<details style="font-size:0.75rem;color:#6b7280;margin-top:4px"><summary style="cursor:pointer">History</summary>${itemHistory}</details>`
+          ? `${titleHtml}<div style="margin-top:4px">
+              <button type="button" class="s4l-collapse-toggle" style="font-size:0.75rem;color:#6b7280">
+                History <span class="s4l-collapse-caret">▾</span>
+              </button>
+              <div class="s4l-collapse-body">${itemHistory}</div>
+            </div>`
           : titleHtml;
 
         const tr = document.createElement('tr');
@@ -616,9 +647,18 @@ async function loadOrder() {
           <td>${qty}</td>
           <td>£${price.toFixed(2)}</td>
           <td>£${(qty * price).toFixed(2)}</td>
-          <td>${badge(RETURN_BADGE, item.returnStatus)}</td>
-          <td>${badge(REFUND_BADGE, item.refundStatus)}</td>
-          <td style="white-space:nowrap">${actionBtns.join('')}</td>`;
+          <td>${badge('return', item.returnStatus)}</td>
+          <td>${badge('refund', item.refundStatus)}</td>
+          <td style="white-space:nowrap">
+            <div class="order-actions-wrapper">
+              <button type="button" class="order-actions-toggle" data-item-id="${item._id}" style="font-size:0.8rem;padding:4px 12px">
+                Actions <span class="oat-caret">▾</span>
+              </button>
+              <div class="order-actions-menu" id="item-actions-menu-${item._id}">
+                ${actionBtns.length ? actionBtns.join('') : '<p style="margin:0;font-size:0.78rem;color:#9ca3af">No actions available</p>'}
+              </div>
+            </div>
+          </td>`;
 
         productsTable.appendChild(tr);
       });
@@ -707,6 +747,63 @@ function initGoodwillTimers() {
    CLICK HANDLER (delegated)
 ================================ */
 document.addEventListener('click', async (e) => {
+  /* --- Actions dropdown: open/close (layer 1 of the 2-layer guard —
+     an action can't even be reached without deliberately opening its menu
+     first; the confirm dialog on each action is layer 2). Same pattern as
+     the buyer-facing order-details page (orders-details.js/.order-actions-*). --- */
+  const actionsToggle = e.target.closest('.order-actions-toggle');
+  if (actionsToggle) {
+    const menu = actionsToggle.parentElement.querySelector('.order-actions-menu');
+    document.querySelectorAll('.order-actions-menu.open').forEach(m => { if (m !== menu) m.classList.remove('open'); });
+    menu?.classList.toggle('open');
+    return;
+  }
+  if (!e.target.closest('.order-actions-wrapper')) {
+    document.querySelectorAll('.order-actions-menu.open').forEach(m => m.classList.remove('open'));
+  }
+
+  /* --- Item History collapsible — was a native <details>, which can't be
+     CSS-animated; toggled the same way as the actions menu now. --- */
+  const collapseToggle = e.target.closest('.s4l-collapse-toggle');
+  if (collapseToggle) {
+    collapseToggle.classList.toggle('open');
+    collapseToggle.nextElementSibling?.classList.toggle('open');
+    return;
+  }
+
+  /* --- Admin per-item cancel (total override) --- */
+  const adminCancelBtn = e.target.closest('.admin-cancel-item-btn');
+  if (adminCancelBtn) {
+    const itemId  = adminCancelBtn.dataset.itemId;
+    const name    = adminCancelBtn.dataset.itemName;
+    const amt     = adminCancelBtn.dataset.refundPreview;
+    const willRefund = adminCancelBtn.dataset.willRefund === '1';
+
+    const msg = willRefund
+      ? `Cancel "${name}"?\n\nThis will refund £${amt} to the customer immediately and cannot be undone.`
+      : `Cancel "${name}"?\n\nThis cannot be undone.`;
+
+    const confirmed = await showConfirm(msg);
+    if (!confirmed) return;
+
+    adminCancelBtn.disabled = true;
+    adminCancelBtn.textContent = 'Cancelling...';
+    try {
+      const res = await authFetch(`${API_BASE}/admin/orders/${orderId}/items/${itemId}/cancel`, {
+        method: 'PATCH',
+      });
+      const data = await res.json();
+      if (!res.ok) { await showAlert(data.error || 'Cancel failed'); return; }
+      loadOrder();
+    } catch (err) {
+      await showAlert('Something went wrong');
+    } finally {
+      adminCancelBtn.disabled = false;
+      adminCancelBtn.textContent = 'Cancel Item';
+    }
+    return;
+  }
+
   /* --- Approve return --- */
   const approveBtn = e.target.closest('.approve-return-btn');
   if (approveBtn) {
@@ -936,6 +1033,23 @@ updateBtn.addEventListener('click', async () => {
   const newStatus = statusSelect.value;
   if (!newStatus) return;
 
+  if (newStatus === 'Cancelled') {
+    // Mirrors the backend's shouldScheduleRefund gate (routes/adminOrders.js)
+    // so the preview only claims a refund will fire when one actually will.
+    const alreadyScheduled = currentOrder?.refundStatus === 'scheduled'
+      || currentOrder?.paymentStatus === 'refund_scheduled'
+      || !!currentOrder?.refundScheduledAt;
+    const alreadyRefunded = currentOrder?.paymentStatus === 'refunded' || currentOrder?.refundStatus === 'processed';
+    const willRefund = currentOrder?.paymentStatus === 'paid' && !alreadyScheduled && !alreadyRefunded;
+
+    const msg = willRefund
+      ? `Force cancel this order?\n\nThis schedules a full refund of £${Number(currentOrder.total || 0).toFixed(2)} for the ENTIRE order (all items/vendors) and cannot be undone.`
+      : 'Force cancel this order?\n\nThis cannot be undone.';
+
+    const confirmed = await showConfirm(msg);
+    if (!confirmed) return;
+  }
+
   try {
     updateBtn.disabled    = true;
     updateBtn.textContent = 'Updating...';
@@ -961,6 +1075,238 @@ updateBtn.addEventListener('click', async () => {
     updateBtn.textContent = 'Update Status';
   }
 });
+
+/* ================================
+   TEMPORARY — FORCE CJ ORDER STATUS SYNC
+   Runs the cjOrderStatusSyncWorker's sync on demand for this order,
+   instead of waiting up to 2h for its next tick. Remove once the
+   worker has been confirmed working for a while.
+================================ */
+const cjSyncBtn    = document.getElementById('cjSyncNowBtn');
+const cjSyncResult = document.getElementById('cjSyncResult');
+
+if (cjSyncBtn) {
+  cjSyncBtn.addEventListener('click', async () => {
+    try {
+      cjSyncBtn.disabled    = true;
+      cjSyncBtn.textContent = 'Syncing...';
+      cjSyncResult.style.display = 'none';
+
+      const res  = await authFetch(`${API_BASE}/admin/orders/cj-status-sync-run`, { method: 'POST' });
+      const data = await res.json();
+
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = JSON.stringify(data, null, 2);
+
+      if (res.ok && data.updated > 0) loadOrder();
+    } catch (err) {
+      console.error(err);
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = 'Request failed: ' + err.message;
+    } finally {
+      cjSyncBtn.disabled    = false;
+      cjSyncBtn.textContent = 'Force CJ Sync Now';
+    }
+  });
+}
+
+/* ================================
+   TEMPORARY — ONE-OFF BACKFILLS (platform-wide, not scoped to this order)
+   Remove once run.
+================================ */
+const backfillVendorStatusBtn = document.getElementById('backfillVendorStatusBtn');
+
+if (backfillVendorStatusBtn) {
+  backfillVendorStatusBtn.addEventListener('click', async () => {
+    if (!confirm('Recompute vendorOrders[].status for every order on the platform? Safe to run more than once.')) return;
+    try {
+      backfillVendorStatusBtn.disabled    = true;
+      backfillVendorStatusBtn.textContent = 'Running...';
+      cjSyncResult.style.display = 'none';
+
+      const res  = await authFetch(`${API_BASE}/admin/orders/backfill-vendor-status`, { method: 'POST' });
+      const data = await res.json();
+
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = JSON.stringify(data, null, 2);
+
+      if (res.ok && data.ordersUpdated > 0) loadOrder();
+    } catch (err) {
+      console.error(err);
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = 'Request failed: ' + err.message;
+    } finally {
+      backfillVendorStatusBtn.disabled    = false;
+      backfillVendorStatusBtn.textContent = 'Backfill Vendor Status (All Orders)';
+    }
+  });
+}
+
+const backfillDeliveredNotifyBtn = document.getElementById('backfillDeliveredNotifyBtn');
+
+if (backfillDeliveredNotifyBtn) {
+  backfillDeliveredNotifyBtn.addEventListener('click', async () => {
+    if (!confirm('Send the "Delivered" email + message to every buyer whose item is already Delivered but never got notified? Only run this ONCE — running it again after the live flow has since notified some buyers will re-notify them.')) return;
+    try {
+      backfillDeliveredNotifyBtn.disabled    = true;
+      backfillDeliveredNotifyBtn.textContent = 'Sending...';
+      cjSyncResult.style.display = 'none';
+
+      const res  = await authFetch(`${API_BASE}/admin/orders/backfill-delivered-notifications`, { method: 'POST' });
+      const data = await res.json();
+
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      console.error(err);
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = 'Request failed: ' + err.message;
+    } finally {
+      backfillDeliveredNotifyBtn.disabled    = false;
+      backfillDeliveredNotifyBtn.textContent = 'Send Missed Delivered Notifications (All Orders)';
+    }
+  });
+}
+
+const cjEligibilityBtn = document.getElementById('cjEligibilityBtn');
+
+if (cjEligibilityBtn) {
+  cjEligibilityBtn.addEventListener('click', async () => {
+    try {
+      cjEligibilityBtn.disabled    = true;
+      cjEligibilityBtn.textContent = 'Checking...';
+      cjSyncResult.style.display = 'none';
+
+      const res  = await authFetch(`${API_BASE}/admin/orders/${orderId}/debug-cj-eligibility`);
+      const data = await res.json();
+
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      console.error(err);
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = 'Request failed: ' + err.message;
+    } finally {
+      cjEligibilityBtn.disabled    = false;
+      cjEligibilityBtn.textContent = 'Check CJ Eligibility';
+    }
+  });
+}
+
+const cjSyncMatchBtn = document.getElementById('cjSyncMatchBtn');
+
+if (cjSyncMatchBtn) {
+  cjSyncMatchBtn.addEventListener('click', async () => {
+    try {
+      cjSyncMatchBtn.disabled    = true;
+      cjSyncMatchBtn.textContent = 'Tracing...';
+      cjSyncResult.style.display = 'none';
+
+      const res  = await authFetch(`${API_BASE}/admin/orders/${orderId}/debug-cj-sync-match`);
+      const data = await res.json();
+
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      console.error(err);
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = 'Request failed: ' + err.message;
+    } finally {
+      cjSyncMatchBtn.disabled    = false;
+      cjSyncMatchBtn.textContent = 'Trace Sync Match';
+    }
+  });
+}
+
+const cjBackfillCarrierBtn = document.getElementById('cjBackfillCarrierBtn');
+
+if (cjBackfillCarrierBtn) {
+  cjBackfillCarrierBtn.addEventListener('click', async () => {
+    try {
+      const itemId = currentOrder?.items?.[0]?._id;
+      if (!itemId) { cjSyncResult.style.display = 'block'; cjSyncResult.textContent = 'No item loaded yet'; return; }
+
+      cjBackfillCarrierBtn.disabled    = true;
+      cjBackfillCarrierBtn.textContent = 'Backfilling...';
+      cjSyncResult.style.display = 'none';
+
+      const res  = await authFetch(`${API_BASE}/admin/orders/${orderId}/items/${itemId}/backfill-cj-carrier`, { method: 'POST' });
+      const data = await res.json();
+
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      console.error(err);
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = 'Request failed: ' + err.message;
+    } finally {
+      cjBackfillCarrierBtn.disabled    = false;
+      cjBackfillCarrierBtn.textContent = 'Backfill Carrier (first item)';
+    }
+  });
+}
+
+const cjResendNotifyBtn = document.getElementById('cjResendNotifyBtn');
+
+if (cjResendNotifyBtn) {
+  cjResendNotifyBtn.addEventListener('click', async () => {
+    try {
+      const itemId = currentOrder?.items?.[0]?._id;
+      if (!itemId) { cjSyncResult.style.display = 'block'; cjSyncResult.textContent = 'No item loaded yet'; return; }
+
+      cjResendNotifyBtn.disabled    = true;
+      cjResendNotifyBtn.textContent = 'Resending...';
+      cjSyncResult.style.display = 'none';
+
+      const res  = await authFetch(`${API_BASE}/admin/orders/${orderId}/items/${itemId}/resend-shipped-notification`, { method: 'POST' });
+      const data = await res.json();
+
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      console.error(err);
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = 'Request failed: ' + err.message;
+    } finally {
+      cjResendNotifyBtn.disabled    = false;
+      cjResendNotifyBtn.textContent = 'Resend Shipped Notification (first item)';
+    }
+  });
+}
+
+const cjTestUsShippingBtn = document.getElementById('cjTestUsShippingBtn');
+
+// Sequential, not Promise.all — concurrent calls raced on the per-vendor
+// token cache and one came back "auth-failed" even though the credential
+// was fine (see GB result during the first US-only test on 2026-08-24).
+if (cjTestUsShippingBtn) {
+  cjTestUsShippingBtn.addEventListener('click', async () => {
+    try {
+      const productId = currentOrder?.items?.[0]?.productId;
+      if (!productId) { cjSyncResult.style.display = 'block'; cjSyncResult.textContent = 'No product loaded yet'; return; }
+
+      cjTestUsShippingBtn.disabled    = true;
+      cjSyncResult.style.display = 'none';
+
+      const countries = ['PT', 'BR', 'CV', 'CH', 'GB', 'US', 'DE', 'FR', 'ES', 'IT', 'NL', 'PL', 'IE', 'SE'];
+      const out = {};
+      for (const c of countries) {
+        cjTestUsShippingBtn.textContent = `Testing ${c}...`;
+        const res  = await authFetch(`${API_BASE}/admin/vendors/check-cj-shipping/${productId}/diagnostic?country=${c}`);
+        out[c] = await res.json();
+        cjSyncResult.style.display = 'block';
+        cjSyncResult.textContent = JSON.stringify(out, null, 2);
+      }
+    } catch (err) {
+      console.error(err);
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = 'Request failed: ' + err.message;
+    } finally {
+      cjTestUsShippingBtn.disabled    = false;
+      cjTestUsShippingBtn.textContent = 'Test Shipping Quote (first item, multi-country)';
+    }
+  });
+}
 
 /* ================================
    CANCEL REFUND SCHEDULE

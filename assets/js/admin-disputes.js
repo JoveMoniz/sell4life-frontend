@@ -25,6 +25,7 @@ const STATUS_LABELS = {
   try {
     const res = await authFetch(`${API}/admin/vendors/disputes`);
     if (res.status === 401 || res.status === 403) {
+      localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
       window.location.href = '/account/admin/signin.html';
       return;
     }

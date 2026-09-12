@@ -32,6 +32,13 @@ console.log('product.js loaded');
 
   if (!product) { console.error('Product not found:', productId || productSlug); return; }
 
+  // Currency detection runs in parallel with the product fetch above (both
+  // kick off as soon as their scripts load) — this just waits for whichever
+  // one hasn't resolved yet, so every price render below already knows the
+  // right currency/rate instead of flashing £ first.
+  if (window.S4L_CURRENCY_READY) await window.S4L_CURRENCY_READY;
+  const fmtPrice = window.s4lFormatPrice || ((n) => `£${Number(n || 0).toFixed(2)}`);
+
   const pid = product._id || product.id;
 
   // Track recently viewed (for shop browse rows)
@@ -41,6 +48,10 @@ console.log('product.js loaded');
     const updated = [pid, ...stored.filter(id => id !== pid)].slice(0, 20);
     localStorage.setItem(key, JSON.stringify(updated));
   } catch { /* storage unavailable */ }
+
+  if (window.s4lTrack) {
+    window.s4lTrack('product_view', { productId: pid, name: product.name, price: Number(product.price || 0) });
+  }
   const firstImage = product.images?.[0] || '';
   const productImage = firstImage.startsWith('http') ? firstImage : IMAGE_BASE + firstImage;
 
@@ -54,11 +65,52 @@ console.log('product.js loaded');
   _setMeta('meta[property="og:title"]', `${product.name} | Sell4Life`);
   _setMeta('meta[property="og:description"]', _desc);
 
+  // ── JSON-LD structured data (SEO) ──────────────────────────
+  try {
+    const ldImages = (product.images || []).map(img => img.startsWith('http') ? img : IMAGE_BASE + img);
+    const availability = (product.stock === undefined || product.stock > 0)
+      ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock';
+    const ld = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: product.name,
+      description: _desc,
+      sku: pid,
+      offers: {
+        '@type': 'Offer',
+        url: window.location.href,
+        priceCurrency: 'GBP',
+        price: Number(product.price || 0).toFixed(2),
+        availability,
+      },
+    };
+    if (ldImages.length) ld.image = ldImages;
+    if (product.condition) {
+      ld.itemCondition = product.condition === 'New'
+        ? 'https://schema.org/NewCondition' : 'https://schema.org/UsedCondition';
+    }
+    const ldScript = document.createElement('script');
+    ldScript.type = 'application/ld+json';
+    ldScript.textContent = JSON.stringify(ld);
+    document.head.appendChild(ldScript);
+  } catch { /* non-critical */ }
+
   // ── Category breadcrumb ────────────────────────────────────
   if ($('.product-category')) {
     const cat = product.category || '';
     const sub = product.subcategory || '';
     $('.product-category').textContent = sub ? `${cat} › ${sub}` : cat;
+  }
+
+  // ── Condition badge (casual listings) ──────────────────────
+  const conditionEl = document.getElementById('pd-condition-badge');
+  if (conditionEl) {
+    if (product.condition) {
+      conditionEl.textContent = product.condition;
+      conditionEl.style.display = '';
+    } else {
+      conditionEl.style.display = 'none';
+    }
   }
 
   // Casual vendors sell single items → use "Sold" instead of "Out of stock"
@@ -69,14 +121,25 @@ console.log('product.js loaded');
 
   // ── Price ──────────────────────────────────────────────────
   if ($('.product-price')) {
-    $('.product-price').textContent = `£${Number(product.price).toFixed(2)}`;
+    $('.product-price').textContent = fmtPrice(product.price);
   }
 
   // ── Shipping note ─────────────────────────────────────────
   const shippingNote = document.getElementById('pd-shipping-note');
   if (shippingNote) {
-    shippingNote.textContent = window.s4lShippingText(product.shippingCost);
+    const effectiveShip = product.shipIncluded ? 0 : product.shippingCost;
+    shippingNote.textContent = window.s4lShippingText(effectiveShip, product.collectionOnly);
     shippingNote.style.display = 'block';
+  }
+  const collectionNote = document.getElementById('pd-collection-note');
+  if (collectionNote) {
+    collectionNote.style.display = product.collectionOnly ? 'block' : 'none';
+  }
+  // Show "Free delivery included" when shipping is baked into price or genuinely
+  // free — never for collection-only (there's no delivery at all to be "free")
+  const freeDeliveryEl = document.getElementById('pd-free-delivery');
+  if (freeDeliveryEl) {
+    freeDeliveryEl.style.display = (!product.collectionOnly && (product.shipIncluded || Number(product.shippingCost) === 0)) ? '' : 'none';
   }
 
   // ── Estimated delivery ──────────────────────────────────────
@@ -90,9 +153,7 @@ console.log('product.js loaded');
         d.setDate(d.getDate() + days);
         return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
       };
-      deliveryEl.textContent = minDays === maxDays
-        ? `Estimated delivery: ${fmt(minDays)}`
-        : `Estimated delivery: ${fmt(minDays)} – ${fmt(maxDays)}`;
+      deliveryEl.textContent = `Delivery by ${fmt(maxDays)}`;
       deliveryEl.style.display = 'block';
     } else {
       deliveryEl.style.display = 'none';
@@ -108,11 +169,11 @@ console.log('product.js loaded');
       ? !!product.vendor.freeReturns
       : false;
     const freeReturns = typeof product.freeReturns === 'boolean' ? product.freeReturns : vendorFreeReturns;
-    const returnCost = Number(product.shippingCost || 0);
+    const returnCost = product.shipIncluded ? 0 : Number(product.shippingCost || 0);
     if (freeReturns) {
-      postageNoteEl.textContent = '✓ Free returns — this seller covers return postage for change-of-mind returns.';
+      postageNoteEl.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg> Free returns — this seller covers return postage for change-of-mind returns.';
     } else if (returnCost > 0) {
-      postageNoteEl.textContent = `For change-of-mind returns, return postage (approx. £${returnCost.toFixed(2)}) may be paid by the buyer.`;
+      postageNoteEl.textContent = `For change-of-mind returns, return postage (approx. ${fmtPrice(returnCost)}) may be paid by the buyer.`;
     } else {
       postageNoteEl.textContent = 'For change-of-mind returns, return postage may be paid by the buyer.';
     }
@@ -123,7 +184,13 @@ console.log('product.js loaded');
   const compareRaw = product.comparePrice ?? product.compare_price ?? null;
   const compareEl = document.getElementById('pd-compare-price');
   if (compareEl && compareRaw && Number(compareRaw) > Number(product.price)) {
-    compareEl.textContent = `£${Number(compareRaw).toFixed(2)}`;
+    compareEl.textContent = fmtPrice(compareRaw);
+  }
+
+  // ── "Or best offer" ─────────────────────────────────────────
+  const oboEl = document.getElementById('pd-obo');
+  if (oboEl && product.acceptOffers) {
+    oboEl.textContent = 'or best offer';
   }
 
   // ── Stock badge ────────────────────────────────────────────
@@ -205,6 +272,15 @@ console.log('product.js loaded');
     });
   }
 
+  // ── Is this the vendor's own listing? (needed by Ask Seller, Make an
+  //    Offer, and the Buy/Edit button below — computed once here) ──────
+  const _myVendorId = localStorage.getItem('s4l_vendorId');
+  const _productVendorId = typeof product.vendor === 'object'
+    ? (product.vendor?._id || product.vendor?.id)
+    : product.vendor;
+  const _loggedIn = !!localStorage.getItem('s4l_token');
+  const _isOwnListing = !!(_loggedIn && _myVendorId && _productVendorId && _myVendorId === String(_productVendorId));
+
   // ── Seller strip ───────────────────────────────────────────
   const sellerStrip = document.getElementById('pd-seller-strip');
   const sellerAvatarEl = document.getElementById('pd-seller-avatar');
@@ -248,7 +324,7 @@ console.log('product.js loaded');
     if (vObj?.refurbishedBadge && vObj?.type === 'refurbished') {
       const refurbBadge = document.createElement('span');
       refurbBadge.className = 'pd-refurb-badge';
-      refurbBadge.textContent = '🔧 Verified Refurbisher';
+      refurbBadge.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 005.4-5.4l-2.3 2.3-2-2 2.3-2.3z"/></svg> Verified Refurbisher';
       const sellerInfo = document.querySelector('.pd-seller-info');
       if (sellerInfo) sellerInfo.appendChild(refurbBadge);
     }
@@ -262,13 +338,14 @@ console.log('product.js loaded');
     const askMsg      = document.getElementById('ask-modal-msg');
     const askTitle    = document.getElementById('ask-modal-product-name');
 
-    if (askBtn && pid) {
+    if (askBtn && pid && !_isOwnListing) {
       askBtn.style.display = 'inline-flex';
       if (askTitle) askTitle.textContent = product.name;
 
       askBtn.addEventListener('click', () => {
         if (!localStorage.getItem('s4l_token')) {
-          window.location.href = `/account/signin.html?next=${encodeURIComponent(window.location.href)}`;
+          localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
+        window.location.href = '/account/signin.html';
           return;
         }
         askBackdrop?.classList.add('open');
@@ -288,7 +365,7 @@ console.log('product.js loaded');
       askSubmit?.addEventListener('click', async () => {
         const text = askBody?.value.trim();
         if (!text) { if (askMsg) { askMsg.textContent = 'Please write a message.'; askMsg.className = 'ask-modal-msg err'; } return; }
-        askSubmit.disabled = true;
+        window.setButtonLoading?.(askSubmit, true, 'Sending…');
         if (askMsg) { askMsg.textContent = ''; askMsg.className = 'ask-modal-msg'; }
         try {
           const res = await fetch(`${API}/messages`, {
@@ -304,9 +381,11 @@ console.log('product.js loaded');
         } catch (err) {
           if (askMsg) { askMsg.textContent = err.message; askMsg.className = 'ask-modal-msg err'; }
         } finally {
-          askSubmit.disabled = false;
+          window.setButtonLoading?.(askSubmit, false);
         }
       });
+    } else if (askBtn && _isOwnListing) {
+      askBtn.style.display = 'none'; // can't ask yourself a question
     }
   } else {
     if (sellerStrip) sellerStrip.style.display = 'none';
@@ -364,6 +443,30 @@ console.log('product.js loaded');
   const variantDivider = document.getElementById('pd-divider-variants');
   const priceEl = $('.product-price');
 
+  // Reassigned below once attrNames/selections exist — lets addToCart/Buy Now
+  // (defined much further down) name exactly which attribute is still unpicked.
+  let getMissingVariantAttrs = () => [];
+
+  // Toast naming the specific missing attribute(s) + a brief red shake/outline
+  // on that pill row, instead of a generic "select a variant" message that
+  // leaves the buyer hunting for which one still needs picking.
+  function promptSelectVariant() {
+    const missing = getMissingVariantAttrs();
+    if (!missing.length) { window.showToast?.('Please select an option'); return; }
+    window.showToast?.(`Please select a ${missing.join(' and ')}`);
+    if (!variantsEl) return;
+    variantsEl.querySelectorAll('.pd-variant-group.pd-variant-missing').forEach((g) => g.classList.remove('pd-variant-missing'));
+    variantsEl.querySelectorAll('.pd-variant-label').forEach((label) => {
+      const attrName = label.textContent.replace(/^Choose\s+/, '');
+      if (!missing.includes(attrName)) return;
+      const group = label.closest('.pd-variant-group');
+      if (!group) return;
+      group.classList.add('pd-variant-missing');
+      group.addEventListener('animationend', () => group.classList.remove('pd-variant-missing'), { once: true });
+    });
+    variantsEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   if (product.variants && product.variants.length > 0 && variantsEl) {
     const sampleAttrs = product.variants[0].attributes || {};
     const attrNames = Object.keys(sampleAttrs);
@@ -415,6 +518,7 @@ console.log('product.js loaded');
       if (variantDivider) variantDivider.style.display = '';
 
       const selections = {};
+      getMissingVariantAttrs = () => attrNames.filter((name) => !selections[name]);
 
       function findMatchingVariant() {
         return product.variants.find((v) =>
@@ -437,7 +541,7 @@ console.log('product.js loaded');
         currentVariant = v;
         const price = (v && v.price != null) ? v.price : product.price;
         const stockVal = (v && v.stock != null) ? v.stock : product.stock;
-        if (priceEl) priceEl.textContent = `£${Number(price).toFixed(2)}`;
+        if (priceEl) priceEl.textContent = fmtPrice(price);
         // Don't change buttons if product is Coming Soon
         if (!product.comingSoon) {
           const oos = stockVal !== undefined && stockVal <= 0;
@@ -494,7 +598,7 @@ console.log('product.js loaded');
             <div class="pd-addon-name">${ao.name}</div>
             ${ao.description ? `<div class="pd-addon-desc">${ao.description}</div>` : ''}
           </div>
-          <div class="pd-addon-price">+£${Number(ao.price).toFixed(2)}</div>
+          <div class="pd-addon-price">+${fmtPrice(ao.price)}</div>
         </label>
       `).join('')}
     `;
@@ -509,7 +613,7 @@ console.log('product.js loaded');
       });
       const basePrice = (currentVariant && currentVariant.price != null) ? currentVariant.price : product.price;
       const addOnTotal = selectedAddOns.reduce((s, ao) => s + ao.price, 0);
-      if (priceEl) priceEl.textContent = `£${(basePrice + addOnTotal).toFixed(2)}`;
+      if (priceEl) priceEl.textContent = fmtPrice(basePrice + addOnTotal);
     }
 
     addOnsEl.addEventListener('change', (e) => {
@@ -530,13 +634,24 @@ console.log('product.js loaded');
     if (buyBtn) { buyBtn.disabled = true; buyBtn.textContent = _oosLabel; }
   }
 
+  // ── Not shippable to the buyer's (GeoIP-detected) country ──
+  // Seller-set scope only, checked server-side in the product fetch — see
+  // shippingScope.js. Doesn't block browsing, just purchase, and never
+  // overrides isOos's own messaging if both are true.
+  if (!isOos && product.shippableToBuyer === false) {
+    addBtns.forEach((btn) => { btn.disabled = true; btn.textContent = 'Not available in your country'; });
+    if (buyBtn) { buyBtn.disabled = true; buyBtn.textContent = 'Not available in your country'; }
+
+    const stockBadgeEl = document.getElementById('pd-stock-badge');
+    const notice = document.createElement('div');
+    notice.className = 'pd-stock-badge oos';
+    notice.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M6.5 6.5l11 11"/></svg> This item is not shipped to your location';
+    (stockBadgeEl || $('.product-title'))?.insertAdjacentElement('afterend', notice);
+  }
+
   // ── Prevent vendor from purchasing their own product ──────────────────
-  const _myVendorId = localStorage.getItem('s4l_vendorId');
-  const _productVendorId = typeof product.vendor === 'object'
-    ? (product.vendor?._id || product.vendor?.id)
-    : product.vendor;
-  const _loggedIn = !!localStorage.getItem('s4l_token');
-  if (_loggedIn && _myVendorId && _productVendorId && _myVendorId === String(_productVendorId)) {
+  // (_isOwnListing already computed above, before the seller strip)
+  if (_isOwnListing) {
     const _pid = product._id || product.id;
     addBtns.forEach((btn) => {
       btn.disabled = true;
@@ -545,7 +660,7 @@ console.log('product.js loaded');
     });
     if (buyBtn) {
       buyBtn.disabled = false;
-      buyBtn.textContent = '✏️ Edit product';
+      buyBtn.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M4 20l1-4.5L15.5 5 19 8.5 8.5 19 4 20z"/><path d="M13 7l3.5 3.5"/></svg> Edit product';
       buyBtn.style.cssText = 'background:#0b6b6a;color:#fff';
       buyBtn.onclick = (e) => {
         e.preventDefault();
@@ -554,11 +669,75 @@ console.log('product.js loaded');
     }
   }
 
+  // ── Make an Offer button ────────────────────────────────────
+  const offerBtn      = document.getElementById('pd-make-offer');
+  const offerBackdrop = document.getElementById('offer-modal-backdrop');
+  const offerCancel   = document.getElementById('offer-modal-cancel');
+  const offerSubmit   = document.getElementById('offer-modal-submit');
+  const offerAmountEl = document.getElementById('offer-modal-amount');
+  const offerMsg      = document.getElementById('offer-modal-msg');
+  const offerTitle    = document.getElementById('offer-modal-product-name');
+  const offerListed   = document.getElementById('offer-modal-listed-price');
+
+  if (offerBtn && pid && product.acceptOffers && !_isOwnListing && !isOos) {
+    offerBtn.style.display = 'inline-flex';
+    if (offerTitle) offerTitle.textContent = product.name;
+    if (offerListed) offerListed.textContent = `Listed at ${fmtPrice(product.price)}`;
+
+    offerBtn.addEventListener('click', () => {
+      if (!localStorage.getItem('s4l_token')) {
+        localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
+        window.location.href = '/account/signin.html';
+        return;
+      }
+      offerBackdrop?.classList.add('open');
+      offerAmountEl?.focus();
+    });
+
+    offerCancel?.addEventListener('click', () => {
+      offerBackdrop?.classList.remove('open');
+      if (offerMsg) { offerMsg.textContent = ''; offerMsg.className = 'ask-modal-msg'; }
+      if (offerAmountEl) offerAmountEl.value = '';
+    });
+
+    offerBackdrop?.addEventListener('click', (e) => {
+      if (e.target === offerBackdrop) offerCancel?.click();
+    });
+
+    offerSubmit?.addEventListener('click', async () => {
+      const amount = Number(offerAmountEl?.value);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        if (offerMsg) { offerMsg.textContent = 'Enter a valid offer amount.'; offerMsg.className = 'ask-modal-msg err'; }
+        return;
+      }
+      window.setButtonLoading?.(offerSubmit, true, 'Sending…');
+      if (offerMsg) { offerMsg.textContent = ''; offerMsg.className = 'ask-modal-msg'; }
+      try {
+        const res = await fetch(`${API}/messages/offer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('s4l_token')}` },
+          body: JSON.stringify({ productId: pid, amount }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to send offer.');
+        if (offerMsg) {
+          offerMsg.innerHTML = `Offer sent! <a href="/account/messages.html?id=${data.conversation._id}" style="color:inherit;text-decoration:underline">View in Messages →</a>`;
+          offerMsg.className = 'ask-modal-msg ok';
+        }
+        if (offerAmountEl) offerAmountEl.value = '';
+      } catch (err) {
+        if (offerMsg) { offerMsg.textContent = err.message; offerMsg.className = 'ask-modal-msg err'; }
+      } finally {
+        window.setButtonLoading?.(offerSubmit, false);
+      }
+    });
+  }
+
   // ── Coming Soon ────────────────────────────────────────────
   if (product.comingSoon) {
     // Disable all buy buttons and replace text
-    addBtns.forEach((btn) => { btn.disabled = true; btn.textContent = '🕐 Coming Soon'; btn.classList.add('btn-coming-soon'); });
-    if (buyBtn) { buyBtn.disabled = true; buyBtn.textContent = '🕐 Coming Soon'; buyBtn.classList.add('btn-coming-soon'); }
+    addBtns.forEach((btn) => { btn.disabled = true; btn.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg> Coming Soon'; btn.classList.add('btn-coming-soon'); });
+    if (buyBtn) { buyBtn.disabled = true; buyBtn.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg> Coming Soon'; buyBtn.classList.add('btn-coming-soon'); }
     // Disable quantity stepper
     const qMinus = document.getElementById('pd-qty-minus');
     const qPlus  = document.getElementById('pd-qty-plus');
@@ -569,7 +748,7 @@ console.log('product.js loaded');
     if (priceBlock) {
       const banner = document.createElement('div');
       banner.className = 'pd-coming-soon-banner';
-      banner.innerHTML = '🕐 <strong>Coming Soon</strong> — This product is not yet available for purchase.';
+      banner.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg> <strong>Coming Soon</strong> — This product is not yet available for purchase.';
       priceBlock.insertAdjacentElement('afterend', banner);
     }
   }
@@ -601,7 +780,7 @@ console.log('product.js loaded');
   function addToCart() {
     const hasVariants = product.variants && product.variants.length > 0;
     if (hasVariants && !currentVariant) {
-      window.showToast?.('Please select a variant first');
+      promptSelectVariant();
       return { added: false };
     }
 
@@ -665,27 +844,33 @@ console.log('product.js loaded');
   });
 
   // ── Buy Now ────────────────────────────────────────────────
+  // Stored in its own key, entirely separate from the real basket (`cart`)
+  // — checkout reads from here instead when buyNow is set. This means an
+  // abandoned Buy Now never touches the buyer's actual basket contents,
+  // unlike the old backup/restore approach which only restored the basket
+  // on a *successful* purchase and silently stranded it otherwise.
   if (buyBtn) {
     buyBtn.addEventListener('click', () => {
-      const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-      if (existingCart.length && !localStorage.getItem('cart_backup')) {
-        localStorage.setItem('cart_backup', JSON.stringify(existingCart));
-      }
+      if (_isOwnListing) return; // button is repurposed as "Edit product" — its own onclick handles this
       const hasVariants = product.variants && product.variants.length > 0;
       if (hasVariants && !currentVariant) {
-        window.showToast?.('Please select a variant first');
+        promptSelectVariant();
         return;
       }
       const buyAddOnTotal = selectedAddOns.reduce((s, ao) => s + ao.price, 0);
       const buyPrice = ((currentVariant && currentVariant.price != null) ? currentVariant.price : product.price) + buyAddOnTotal;
-      localStorage.setItem('cart', JSON.stringify([{
+      localStorage.setItem('buyNowItem', JSON.stringify({
         productId: pid, name: product.name,
         price: buyPrice, image: productImage,
         quantity: currentQty,
         variant: currentVariant ? { attributes: currentVariant.attributes, sku: currentVariant.sku, price: currentVariant.price } : undefined,
         addOns: selectedAddOns.length ? selectedAddOns.map((ao) => ({ name: ao.name, price: ao.price })) : undefined,
-      }]));
+      }));
       localStorage.setItem('buyNow', 'true');
+      // Navigation itself is the "loading" state here — this just gives
+      // instant feedback and blocks a second click in the brief window
+      // before the page actually unloads.
+      window.setButtonLoading?.(buyBtn, true, 'Redirecting…');
       window.location.href = '/cart/checkout.html';
     });
   }
@@ -724,22 +909,17 @@ console.log('product.js loaded');
 
     if (!products.length) return;
 
-    relGrid.innerHTML = products.map((p) => {
-      const raw = p.images?.[0] || '';
-      const imgSrc = raw ? (raw.startsWith('http') ? raw : IMAGE_BASE + raw) : '';
-      const id = p._id || p.id;
-      const imgEl = imgSrc
-        ? `<img class="pd-rel-img" src="${imgSrc}" alt="${p.name}" loading="lazy" />`
-        : `<div class="pd-rel-img"></div>`;
-      return `
-        <a href="/product/product.html?id=${id}" class="pd-rel-card">
-          ${imgEl}
-          <div class="pd-rel-info">
-            <p class="pd-rel-name">${p.name}</p>
-            <p class="pd-rel-price">£${Number(p.price).toFixed(2)}</p>
-          </div>
-        </a>`;
-    }).join('');
+    let reviewsConfig = { reviewsEnabled: false, reviewsMinCount: 3 };
+    try {
+      const rvRes = await fetch(`${API}/reviews/config`);
+      if (rvRes.ok) reviewsConfig = await rvRes.json();
+    } catch (e) {}
+
+    // Same card renderer used on Shop/Store, so related products show the
+    // same shipping/star-rating/basket-button as everywhere else on the site.
+    relGrid.innerHTML = products
+      .map((p) => window.s4lProductCardHTML(p, { reviewsConfig, showBasketButton: true }))
+      .join('');
 
     relSection.style.display = 'block';
   }

@@ -15,9 +15,24 @@ document.addEventListener('click', (e) => {
   const isVendor = btn.dataset.isVendor === 'true';
   const vendorStatus = btn.dataset.vendorStatus;
 
-  // 🔴 NOT LOGGED IN → SELL LANDING PAGE
+  // 🔴 NOT LOGGED IN → SELL LANDING PAGE, unless we're already on the landing
+  // page (its own CTA must move forward, not bounce back to itself) or on the
+  // homepage (the hero CTA is already a direct "start selling" intent, so it
+  // skips the pitch page). From there, go to Sign In rather than straight to
+  // Create Account — plenty of visitors already have a buyer account. Sign In
+  // already links to "Create one" for anyone who doesn't, and setting
+  // s4l_intent='sell' preserves the intent across the sign-in step:
+  // user-signin.js reads it and sends an existing vendor to their dashboard
+  // or a new one straight to /account/vendor/create.html.
   if (!token) {
-    window.location.href = '/sell/';
+    const onSellPage = /^\/sell\/?(index\.html)?$/.test(window.location.pathname);
+    const onHomePage = /^\/(index\.html)?$/.test(window.location.pathname);
+    if (onSellPage || onHomePage) {
+      localStorage.setItem('s4l_intent', 'sell');
+      window.location.href = '/account/signin.html';
+    } else {
+      window.location.href = '/sell/';
+    }
     return;
   }
 
@@ -143,6 +158,9 @@ async function initVendorButtons() {
               btn.appendChild(badge);
             }
           });
+          // Header "Dashboard" nav dot is handled site-wide by layout.js
+          // (applyVendorNavDot) — this file only loads on the homepage and
+          // /sell/, but the header appears on every page.
         } catch { /* non-critical */ }
       }
     } else {

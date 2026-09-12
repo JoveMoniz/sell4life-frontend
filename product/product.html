@@ -4,17 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sell4Life | Product</title>
-  <meta name="description" content="Shop on Sell4Life — thousands of products from independent sellers." />
+  <meta name="description" content="Shop on Sell4Life — unique products from independent sellers." />
   <meta property="og:title" content="Sell4Life | Product" />
-  <meta property="og:description" content="Shop on Sell4Life — thousands of products from independent sellers." />
+  <meta property="og:description" content="Shop on Sell4Life — unique products from independent sellers." />
   <meta property="og:type" content="product" />
   <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png">
-  <link rel="stylesheet" href="/assets/css/layout.css" />
-  <link rel="stylesheet" href="/assets/css/product.css" />
-  <link rel="stylesheet" href="/assets/css/gallery-slider.css" />
+  <link rel="stylesheet" href="/assets/css/layout.css?v=20260831a" />
+  <link rel="stylesheet" href="/assets/css/product.css?v=20260830a" />
+  <link rel="stylesheet" href="/assets/css/gallery-slider.css?v=20260714a" />
   <link rel="stylesheet" href="/assets/css/quick-add.css?v=20260622b" />
   <link rel="stylesheet" href="/assets/css/reviews.css?v=20260622b" />
-  <link rel="stylesheet" href="/assets/css/messages.css?v=20260623" />
+  <link rel="stylesheet" href="/assets/css/product-card.css?v=20260830a" />
+  <link rel="stylesheet" href="/assets/css/messages.css?v=20260811c" />
     <style id="s4l-fouc">html{visibility:hidden}</style>
   </head>
 <body class="s4l-loading">
@@ -43,6 +44,7 @@
 
       <h1 class="product-title"></h1>
       <p class="product-category"></p>
+      <span class="pd-condition-badge" id="pd-condition-badge" style="display:none"></span>
 
       <!-- Star rating summary (injected by reviews.js when enabled + threshold met) -->
       <div id="pd-rating-header"></div>
@@ -53,15 +55,17 @@
       <div class="pd-price-row">
         <span class="product-price"></span>
         <span class="product-compare-price" id="pd-compare-price"></span>
+        <span class="pd-obo" id="pd-obo"></span>
         <span class="pd-stock-badge" id="pd-stock-badge"></span>
       </div>
       <p class="pd-shipping-note" id="pd-shipping-note"></p>
+      <p class="pd-shipping-note" id="pd-collection-note">Collect in person, or arrange your own courier to collect on your behalf.</p>
       <p class="pd-delivery-estimate" id="pd-delivery-estimate"></p>
 
       <!-- Delivery & Returns info — postage line depends on the seller's free-returns setting -->
       <div class="pd-returns-info">
-        <p class="pd-returns-item pd-returns-good">&#10003; Free delivery included.</p>
-        <p class="pd-returns-item pd-returns-good">&#10003; 14-day returns available.</p>
+        <p class="pd-returns-item pd-returns-good" id="pd-free-delivery"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg> Free delivery included.</p>
+        <p class="pd-returns-item pd-returns-good"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg> 14-day returns available.</p>
         <p class="pd-returns-item" id="pd-returns-postage-note">For change-of-mind returns, return postage may be paid by the buyer.</p>
         <p class="pd-returns-item">Faulty, damaged, incorrect or misdescribed items are covered by our <a href="/returns-refunds.html">Returns &amp; Refunds Policy</a>.</p>
       </div>
@@ -83,16 +87,21 @@
           <span class="pd-seller-label">Sold by</span>
           <div class="pd-seller-name-row">
             <span class="pd-seller-name" id="pd-seller-name">Seller</span>
-            <span class="pd-verified-badge" id="pd-verified-badge">✓ Verified</span>
+            <span class="pd-verified-badge" id="pd-verified-badge"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg> Verified</span>
           </div>
           <a class="pd-seller-link" id="pd-seller-link" href="#">Visit Store →</a>
         </div>
       </div>
 
-      <!-- Ask Seller button (shown by product.js when vendor is known) -->
-      <button type="button" class="ask-seller-btn" id="pd-ask-seller">
-        &#9993; Ask Seller
-      </button>
+      <!-- Ask Seller / Make an Offer buttons (shown by product.js when vendor is known) -->
+      <div class="pd-seller-actions">
+        <button type="button" class="ask-seller-btn" id="pd-ask-seller">
+          <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 6.5l9 6 9-6"/></svg> Ask Seller
+        </button>
+        <button type="button" class="ask-seller-btn offer-btn" id="pd-make-offer" style="display:none">
+          <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M9.5 15.5a2.5 2.5 0 003.5.6c1.3-.9 1-2.4-.5-2.9l-1-.3c-1.5-.5-1.8-2-.5-2.9a2.5 2.5 0 013.5.6"/><path d="M12 7.5v1M12 15.5v1"/></svg> Make an Offer
+        </button>
+      </div>
 
       <div class="pd-divider" id="pd-divider-after-seller"></div>
 
@@ -106,6 +115,21 @@
           <div class="ask-modal-actions">
             <button type="button" class="ask-modal-cancel" id="ask-modal-cancel">Cancel</button>
             <button type="button" class="ask-modal-submit" id="ask-modal-submit">Send</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Make an Offer modal -->
+      <div class="ask-modal-backdrop" id="offer-modal-backdrop">
+        <div class="ask-modal">
+          <h3>Make an Offer</h3>
+          <p id="offer-modal-product-name"></p>
+          <p class="offer-modal-hint" id="offer-modal-listed-price"></p>
+          <input type="number" id="offer-modal-amount" min="0.01" step="0.01" placeholder="Your offer (£)" />
+          <div class="ask-modal-msg" id="offer-modal-msg"></div>
+          <div class="ask-modal-actions">
+            <button type="button" class="ask-modal-cancel" id="offer-modal-cancel">Cancel</button>
+            <button type="button" class="ask-modal-submit" id="offer-modal-submit">Send Offer</button>
           </div>
         </div>
       </div>
@@ -153,13 +177,17 @@
   </section>
 
   <script src="/assets/js/config-global.js"></script>
+  <script src="/assets/js/icons.js"></script>
+  <script src="/assets/js/client-info.js"></script>
+  <script src="/assets/js/currency.js"></script>
   <script src="/assets/js/reviews.js"></script>
 
   <script>
     window.__pageScripts = [
       "/assets/js/shipping-label.js",
+      "/assets/js/product-card.js",
       "/assets/js/gallery-slider.js",
-      "/assets/js/product.js?v=20260623"
+      "/assets/js/product.js?v=20260904a"
     ];
   </script>
 

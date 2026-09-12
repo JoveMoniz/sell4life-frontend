@@ -30,7 +30,11 @@ async function load(period = 'all') {
     : `${API}/vendor/payouts`;
   try {
     const res = await authFetch(url);
-    if (res.status === 401) { window.location.href = '/account/signin.html'; return; }
+    if (res.status === 401) {
+      localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
+      window.location.href = '/account/signin.html';
+      return;
+    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       wrap.innerHTML = `<p style="color:#b91c1c">${err.error || 'Failed to load payouts.'}</p>`;
@@ -134,11 +138,23 @@ function render(data, wrap) {
       }).join('')
     : `<tr><td colspan="5" class="payout-empty">No payout history yet.</td></tr>`;
 
-  // Net sales + commission are period-sensitive; stripe fees + reserve are always all-time totals
+  // Net sales + commission are period-sensitive; reserve is always an all-time total
   const netSalesVal   = ps ? ps.netAfterFees   : b.netAfterFeesAllTime;
   const commissionVal = ps ? ps.commissionPaid : b.commissionAllTime;
 
+  const fs = b.foundingSeller;
+  const foundingRatePct = fs ? Math.round(fs.rate * 100) : 0;
+  const foundingJoinedText = fs?.joinedAt
+    ? ` Joined the program ${new Date(fs.joinedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}.`
+    : '';
+  const foundingBannerHtml = fs?.active
+    ? `<div class="txn-founding-banner"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="8" r="5"/><path d="M9 12.5L7 21l5-3 5 3-2-8.5"/></svg> Founding Seller — ${foundingRatePct === 0 ? "you're paying 0% platform fee" : `you're paying a discounted ${foundingRatePct}% platform fee`}. ${fs.remaining} free sale${fs.remaining !== 1 ? 's' : ''} left (${fs.used}/${fs.limit} used, normally ${Math.round(b.normalCommissionRate * 100)}%).${foundingJoinedText}</div>`
+    : fs?.enrolled
+      ? `<div class="txn-founding-banner">Your Founding Seller sales have all been used (${fs.used}/${fs.limit}) — the normal ${Math.round(b.normalCommissionRate * 100)}% rate now applies.${foundingJoinedText}</div>`
+      : '';
+
   wrap.innerHTML = `
+    ${foundingBannerHtml}
     <div class="payout-cards">
       <div class="payout-card">
         <div class="payout-card-label">Available</div>
@@ -168,14 +184,9 @@ function render(data, wrap) {
       ${b.vendorType === 'casual' ? `
       <div class="payout-card">
         <div class="payout-card-label">Your Rate</div>
-        <div class="payout-card-value">${Math.round((b.commissionRate || 0.08) * 100)}%</div>
-        <div class="payout-card-sub">current platform fee</div>
+        <div class="payout-card-value" style="${fs?.active ? 'color:#854d0e' : ''}">${fs?.active ? (foundingRatePct === 0 ? `Free ${window.s4lIcon ? window.s4lIcon('award') : ''}` : `${foundingRatePct}% ${window.s4lIcon ? window.s4lIcon('award') : ''}`) : Math.round((b.commissionRate || 0.08) * 100) + '%'}</div>
+        <div class="payout-card-sub">${fs?.active ? `${fs.remaining} free sale${fs.remaining !== 1 ? 's' : ''} left` : 'current platform fee'}</div>
       </div>` : ''}
-      <div class="payout-card">
-        <div class="payout-card-label">Stripe Fees</div>
-        <div class="payout-card-value" style="color:#1d4ed8">${fmt(b.totalStripeFees)}</div>
-        <div class="payout-card-sub">all time, covered by platform</div>
-      </div>
       <div class="payout-card">
         <div class="payout-card-label">In Reserve</div>
         <div class="payout-card-value" style="color:#f59e0b">${fmt(b.reservedBalance)}</div>
@@ -185,7 +196,7 @@ function render(data, wrap) {
       <div class="payout-card">
         <div class="payout-card-label">Reserve Rate</div>
         <div class="payout-card-value">${Math.round((b.reserveRate || 0.10) * 100)}%</div>
-        <div class="payout-card-sub">current reserve hold${b.trustedSeller ? ' · ✓ Trusted' : ''}</div>
+        <div class="payout-card-sub">current reserve hold${b.trustedSeller ? ' · <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg> Trusted' : ''}</div>
       </div>` : ''}
     </div>
 

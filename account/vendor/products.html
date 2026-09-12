@@ -8,8 +8,8 @@
     <meta http-equiv="Expires" content="0" />
     <title>My Products | Sell4Life</title>
 
-    <link rel="stylesheet" href="/assets/css/layout.css" />
-    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260622b" />
+    <link rel="stylesheet" href="/assets/css/layout.css?v=20260831a" />
+    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260904g" />
     <style id="s4l-fouc">html{visibility:hidden}</style>
   </head>
 
@@ -21,7 +21,7 @@
       <main class="vendor-main">
         <div class="vendor-container">
           <a href="/account/vendor/dashboard.html" class="vendor-back-link">
-             Back to dashboard
+             ← Back to dashboard
           </a>
 
           <div class="vp-page-header">
@@ -29,71 +29,140 @@
             <div class="vp-header-actions">
               <button type="button" class="btn-import-csv" id="btn-import-csv">&#8593; Import CSV</button>
               <input type="file" accept=".csv" id="csv-file-input" class="csv-file-input-hidden" />
+              <div class="order-actions-wrapper vp-toolbar-menu">
+                <button type="button" class="order-actions-toggle vp-toolbar-menu-toggle">Tools <span class="oat-caret">&#9662;</span></button>
+                <div class="order-actions-menu">
+                  <button type="button" class="btn-bulk-cj-images" id="btn-bulk-cj-images" hidden><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M4 12a8 8 0 0114-5.3M20 12a8 8 0 01-14 5.3"/><path d="M18 3v5h-5M6 21v-5h5"/></svg> Sync from CJ</button>
+                  <button type="button" class="btn-bulk-cj-images" id="btn-check-uk-shipping" hidden title="Ask CJ right now whether each product still has a freight route to the UK"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><rect x="2" y="8" width="12" height="8" rx="1"/><path d="M14 11h4l3 3v2h-7z"/><circle cx="6.5" cy="18" r="1.5"/><circle cx="16.5" cy="18" r="1.5"/></svg> Check UK shipping</button>
+                  <button type="button" class="btn-bulk-cj-images" id="btn-bulk-rematch-category" hidden title="Re-derive category/subcategory from title (and CJ if needed) and overwrite what's set now, for every selected product"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M3 11V5a2 2 0 012-2h6l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1.1" fill="currentColor" stroke="none"/></svg> Re-match Category</button>
+                  <button type="button" class="btn-bulk-cj-images" id="btn-bulk-generate-listing" hidden title="Use AI to write title, descriptions, bullet points and category from each product's photos and current title, for every selected product"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z"/></svg> Generate Listing (AI)</button>
+                </div>
+              </div>
               <a href="/account/vendor/add-product.html" class="btn-add-product-header">+ Add Product</a>
             </div>
           </div>
 
+          <div class="vp-sticky-bulk">
           <div class="vp-bulk-bar" id="vp-bulk-bar" hidden>
-            <label class="vp-bulk-select-all" title="Select all visible products">
-              <input type="checkbox" id="vp-select-all" />
-              <span>Select All</span>
-            </label>
             <span id="vp-bulk-count" class="vp-bulk-count-badge">0 selected</span>
             <div class="vp-bulk-actions">
-              <button type="button" class="vp-bulk-btn vp-bulk-btn-edit" id="btn-bulk-price">£ Price</button>
-              <button type="button" class="vp-bulk-btn vp-bulk-btn-edit" id="btn-bulk-stock">Stock</button>
-              <button type="button" class="vp-bulk-btn" id="btn-bulk-coming-soon">ðŸ• Coming Soon</button>
-              <button type="button" class="vp-bulk-btn" id="btn-bulk-archive">Archive</button>
-              <button type="button" class="vp-bulk-btn" id="btn-bulk-unarchive" hidden>Restore</button>
-              <button type="button" class="vp-bulk-btn vp-bulk-btn-danger" id="btn-bulk-delete">Delete</button>
-              <button type="button" class="vp-bulk-btn" id="btn-bulk-restore-trash" hidden>Restore</button>
-              <button type="button" class="vp-bulk-btn vp-bulk-btn-danger" id="btn-bulk-empty-trash" hidden>Delete Forever</button>
+              <div class="order-actions-wrapper vp-toolbar-menu">
+                <button type="button" class="order-actions-toggle vp-toolbar-menu-toggle">AI &amp; CJ Tools <span class="oat-caret">&#9662;</span></button>
+                <div class="order-actions-menu">
+                  <button type="button" class="vp-bulk-btn vp-bulk-btn-cj" id="btn-bulk-cj-sync" hidden><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M4 12a8 8 0 0114-5.3M20 12a8 8 0 01-14 5.3"/><path d="M18 3v5h-5M6 21v-5h5"/></svg> Sync CJ</button>
+                  <button type="button" class="vp-bulk-btn vp-bulk-btn-cj" id="btn-bulk-rematch-sync" hidden><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M3 11V5a2 2 0 012-2h6l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1.1" fill="currentColor" stroke="none"/></svg> Re-match Category</button>
+                  <button type="button" class="vp-bulk-btn vp-bulk-btn-cj" id="btn-bulk-generate-listing-sync" hidden><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z"/></svg> Generate Listing (AI)</button>
+                </div>
+              </div>
+              <div class="order-actions-wrapper vp-toolbar-menu">
+                <button type="button" class="order-actions-toggle vp-toolbar-menu-toggle">Edit <span class="oat-caret">&#9662;</span></button>
+                <div class="order-actions-menu">
+                  <button type="button" class="vp-bulk-btn vp-bulk-btn-edit" id="btn-bulk-price">£ Price</button>
+                  <button type="button" class="vp-bulk-btn vp-bulk-btn-edit" id="btn-bulk-adjust">± Adjust</button>
+                  <button type="button" class="vp-bulk-btn vp-bulk-btn-edit" id="btn-bulk-stock">Stock</button>
+                  <button type="button" class="vp-bulk-btn vp-bulk-btn-edit" id="btn-bulk-delivery"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><rect x="2" y="8" width="12" height="8" rx="1"/><path d="M14 11h4l3 3v2h-7z"/><circle cx="6.5" cy="18" r="1.5"/><circle cx="16.5" cy="18" r="1.5"/></svg> Delivery</button>
+                </div>
+              </div>
+              <button type="button" class="vp-bulk-btn" id="btn-bulk-coming-soon"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg> Coming Soon</button>
+              <div class="order-actions-wrapper vp-toolbar-menu">
+                <button type="button" class="order-actions-toggle vp-toolbar-menu-toggle">Manage <span class="oat-caret">&#9662;</span></button>
+                <div class="order-actions-menu">
+                  <button type="button" class="vp-bulk-btn" id="btn-bulk-archive">Archive</button>
+                  <button type="button" class="vp-bulk-btn" id="btn-bulk-unarchive" hidden>Restore</button>
+                  <button type="button" class="vp-bulk-btn vp-bulk-btn-danger" id="btn-bulk-delete">Delete</button>
+                  <button type="button" class="vp-bulk-btn" id="btn-bulk-restore-trash" hidden>Restore</button>
+                  <button type="button" class="vp-bulk-btn vp-bulk-btn-danger" id="btn-bulk-empty-trash" hidden>Delete Forever</button>
+                </div>
+              </div>
             </div>
-            <button type="button" class="vp-bulk-clear" id="btn-bulk-clear" title="Clear selection">&#10005;</button>
+            <button type="button" class="vp-bulk-clear" id="btn-bulk-clear" title="Clear selection"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
 
           <!-- Bulk edit inline panel (slides open below bulk bar) -->
           <div class="vp-bulk-edit-panel" id="vp-bulk-edit-panel" hidden>
-            <span class="vp-bulk-edit-label" id="vp-bulk-edit-label">Set price (£)</span>
-            <input type="number" id="vp-bulk-edit-value" min="0" step="0.01" placeholder="0.00" />
-            <button type="button" class="vp-bulk-btn vp-bulk-btn-edit" id="btn-bulk-edit-apply">Apply to selected</button>
-            <button type="button" class="vp-bulk-clear" id="btn-bulk-edit-cancel" title="Close">&#10005;</button>
+            <!-- Flat value mode (Stock) -->
+            <span class="vp-bulk-edit-label" id="vp-bulk-edit-label">Set stock (qty)</span>
+            <input type="number" id="vp-bulk-edit-value" min="0" step="1" placeholder="0" />
+            <!-- Markup mode (Price) -->
+            <span id="vp-bulk-markup-wrap" class="vp-bulk-markup-wrap">
+              <span class="vp-bulk-markup-lbl">Markup</span>
+              <input type="number" id="vp-bulk-markup" class="vp-bulk-markup-input" min="0" step="1" />
+              <span class="vp-bulk-markup-lbl">%</span>
+              <label class="vp-bulk-ship-label">
+                <input type="checkbox" id="vp-bulk-incl-ship" /> + shipping
+              </label>
+              <span class="vp-bulk-markup-lbl">&rarr; &pound;</span>
+              <input type="number" id="vp-bulk-price" class="vp-bulk-price-input" min="0.01" step="0.01" placeholder="0.00" title="Type a price directly to apply it to all selected — markup% will update to match" />
+            </span>
+            <!-- Adjust mode (± Adjust) — delta on top of each product's own current price -->
+            <span id="vp-bulk-adjust-wrap" class="vp-bulk-markup-wrap">
+              <span class="vp-bulk-markup-lbl">Adjust by &pound;</span>
+              <input type="number" id="vp-bulk-adjust-amount" class="vp-bulk-markup-input" step="0.01" placeholder="0.00" title="Positive to increase, negative to decrease — e.g. -0.50" />
+              <label class="vp-bulk-ship-label">
+                <input type="checkbox" id="vp-bulk-round99" /> Round to .99
+              </label>
+              <span id="vp-bulk-adjust-preview" class="vp-bulk-adjust-preview"></span>
+            </span>
+            <!-- Delivery window mode -->
+            <span id="vp-bulk-delivery-wrap" class="vp-bulk-markup-wrap">
+              <span class="vp-bulk-markup-lbl">Delivery</span>
+              <input type="number" id="vp-bulk-delivery-min" class="vp-bulk-markup-input" min="0" step="1" placeholder="min" />
+              <span class="vp-bulk-markup-lbl">&ndash;</span>
+              <input type="number" id="vp-bulk-delivery-max" class="vp-bulk-markup-input" min="0" step="1" placeholder="max" />
+              <span class="vp-bulk-markup-lbl">days</span>
+            </span>
+            <button type="button" class="vp-bulk-btn vp-bulk-btn-primary" id="btn-bulk-edit-apply">Apply to selected</button>
+            <button type="button" class="vp-bulk-clear" id="btn-bulk-edit-cancel" title="Close"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
 
           <div class="vp-toolbar" id="vp-toolbar" hidden>
-            <input type="text" id="vp-search" class="vp-search" placeholder="Search products&hellip;" />
-            <div class="vp-filter-btns">
-              <button type="button" class="vp-filter-btn active" data-status="all">All</button>
-              <button type="button" class="vp-filter-btn" data-status="active">Active</button>
-              <button type="button" class="vp-filter-btn" data-status="draft">Draft</button>
-              <button type="button" class="vp-filter-btn" data-status="archived">Archived</button>
-              <button type="button" class="vp-filter-btn" data-status="trash">Trash</button>
+            <div class="vp-toolbar-row">
+              <input type="text" id="vp-search" class="vp-search" placeholder="Search products&hellip;" />
+              <span class="vp-cost-filter" title="Filter by total cost (item + shipping) — select all products in a price band, then apply a markup% to just that band">
+                <span class="vp-cost-filter-lbl">Filter by total cost</span>
+                <span>&pound;</span>
+                <input type="number" id="vp-cost-min" class="vp-cost-filter-input" min="0" step="0.01" placeholder="min" aria-label="Minimum cost price" />
+                <span class="vp-cost-filter-sep">&ndash;</span>
+                <input type="number" id="vp-cost-max" class="vp-cost-filter-input" min="0" step="0.01" placeholder="max" aria-label="Maximum cost price" />
+              </span>
+              <button type="button" class="vp-clear-filters" id="btn-clear-filters" title="Clear search and price filter" hidden>Clear</button>
             </div>
-            <select id="vp-sort" class="vp-sort">
-              <option value="newest">Newest</option>
-              <option value="name">Name A&ndash;Z</option>
-              <option value="price-asc">Price &uarr;</option>
-              <option value="price-desc">Price &darr;</option>
-              <option value="stock-asc">Stock &uarr;</option>
-            </select>
-            <div class="vp-view-toggle">
-              <button type="button" class="vp-view-btn active" data-view="grid" title="Grid view">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                  <rect x="0" y="0" width="7" height="7" rx="1"/>
-                  <rect x="9" y="0" width="7" height="7" rx="1"/>
-                  <rect x="0" y="9" width="7" height="7" rx="1"/>
-                  <rect x="9" y="9" width="7" height="7" rx="1"/>
-                </svg>
-              </button>
-              <button type="button" class="vp-view-btn" data-view="list" title="List view">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                  <rect x="0" y="1" width="16" height="3" rx="1"/>
-                  <rect x="0" y="7" width="16" height="3" rx="1"/>
-                  <rect x="0" y="13" width="16" height="3" rx="1"/>
-                </svg>
-              </button>
+            <div class="vp-toolbar-row">
+              <div class="vp-filter-btns">
+                <button type="button" class="vp-filter-btn active" data-status="all">All</button>
+                <button type="button" class="vp-filter-btn" data-status="active">Active</button>
+                <button type="button" class="vp-filter-btn" data-status="draft">Draft</button>
+                <button type="button" class="vp-filter-btn" data-status="archived">Archived</button>
+                <button type="button" class="vp-filter-btn" data-status="trash">Trash</button>
+              </div>
+              <select id="vp-sort" class="vp-sort">
+                <option value="newest">Newest</option>
+                <option value="name">Name A&ndash;Z</option>
+                <option value="price-asc">Price &uarr;</option>
+                <option value="price-desc">Price &darr;</option>
+                <option value="stock-asc">Stock &uarr;</option>
+              </select>
+              <button type="button" class="vp-view-btn" id="btn-multi-select" title="Select all visible products">Select All</button>
+              <div class="vp-view-toggle">
+                <button type="button" class="vp-view-btn active" data-view="grid" title="Grid view">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <rect x="0" y="0" width="7" height="7" rx="1"/>
+                    <rect x="9" y="0" width="7" height="7" rx="1"/>
+                    <rect x="0" y="9" width="7" height="7" rx="1"/>
+                    <rect x="9" y="9" width="7" height="7" rx="1"/>
+                  </svg>
+                </button>
+                <button type="button" class="vp-view-btn" data-view="list" title="List view">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <rect x="0" y="1" width="16" height="3" rx="1"/>
+                    <rect x="0" y="7" width="16" height="3" rx="1"/>
+                    <rect x="0" y="13" width="16" height="3" rx="1"/>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
+          </div><!-- /vp-sticky-bulk -->
 
           <div id="vendor-products" class="vendor-products-grid">
             <p class="products-loading">Loading products...</p>
@@ -102,9 +171,24 @@
       </main>
     </div>
 
+    <!-- Bulk CJ image fetch progress overlay -->
+    <div id="cj-bulk-overlay" class="cj-bulk-overlay">
+      <div class="cj-bulk-modal">
+        <h3>Syncing from CJ</h3>
+        <div class="cj-bulk-progress-track">
+          <div id="cj-bulk-bar" class="cj-bulk-progress-bar"></div>
+        </div>
+        <p id="cj-bulk-status" class="cj-bulk-status"></p>
+        <p id="cj-bulk-counts" class="cj-bulk-counts"></p>
+        <button type="button" id="cj-bulk-cancel" class="cj-bulk-cancel" hidden>Cancel</button>
+      </div>
+    </div>
+
     <script src="/assets/js/config-global.js"></script>
+    <script src="/assets/js/icons.js"></script>
+    <script src="/assets/js/client-info.js"></script>
     <script src="/assets/js/vendor-guard.js"></script>
-    <script src="/assets/js/layout.js?v=20260627"></script>
-    <script src="/assets/js/vendor-products.js?v=20260622b"></script>
+    <script src="/assets/js/layout.js?v=20260814b"></script>
+    <script src="/assets/js/vendor-products.js?v=20260911a"></script>
   </body>
 </html>

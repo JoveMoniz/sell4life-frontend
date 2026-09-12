@@ -31,6 +31,7 @@ async function loadProducts(vendorId) {
   try {
     const res = await authFetch(`${API}/admin/vendors/${vendorId}/products`);
     if (res.status === 401 || res.status === 403) {
+      localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
       window.location.href = '/account/admin/signin.html';
       return;
     }
@@ -113,7 +114,7 @@ function renderGrid(products) {
         p.images && p.images[0]
           ? `<img class="vp-card-img" src="${p.images[0]}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
           : '';
-      const placeholder = `<div class="vp-card-img-placeholder" ${img ? 'style="display:none"' : ''}>📦</div>`;
+      const placeholder = `<div class="vp-card-img-placeholder" ${img ? 'style="display:none"' : ''}><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M3 8v9l9 4 9-4V8"/><path d="M12 12v9"/></svg></div>`;
       const price = p.price != null ? `£${Number(p.price).toFixed(2)}` : '—';
       const stock = p.stock != null ? `${p.stock} in stock` : '';
       const category = p.category || '';
@@ -123,18 +124,58 @@ function renderGrid(products) {
         year: 'numeric',
       });
       const archivedTag = p.archived ? '<span class="vp-archived-tag">archived</span>' : '';
+      const suspendedTag = p.adminSuspended ? '<span class="vp-suspended-tag">admin suspended</span>' : '';
+      const suspendReason = p.adminSuspended && p.adminSuspendedReason
+        ? `<div class="vp-card-suspend-reason">Reason: ${p.adminSuspendedReason}</div>` : '';
+      const suspendBtn = p.adminSuspended
+        ? `<button type="button" class="vp-suspend-btn vp-reinstate-btn" data-id="${p._id}">Reinstate listing</button>`
+        : `<button type="button" class="vp-suspend-btn" data-id="${p._id}">Suspend listing</button>`;
 
       return `<div class="vp-card">
       ${img}${placeholder}
       <div class="vp-card-body">
-        <div class="vp-card-name">${p.name}${archivedTag}</div>
+        <div class="vp-card-name">${p.name}${archivedTag}${suspendedTag}</div>
         <div class="vp-card-price">${price}</div>
         <div class="vp-card-meta">${[stock, category, created].filter(Boolean).join(' · ')}</div>
+        ${suspendReason}
+        ${suspendBtn}
       </div>
     </div>`;
     })
     .join('');
 }
+
+async function suspendProduct(id) {
+  const reason = window.prompt('Reason for suspending this listing (shown to you only, not the vendor):');
+  if (reason === null) return;
+  const res = await authFetch(`${API}/products/${id}/suspend`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  });
+  if (!res.ok) { alert('Failed to suspend listing.'); return; }
+  const updated = await res.json();
+  const idx = allProducts.findIndex((p) => p._id === id);
+  if (idx !== -1) allProducts[idx] = updated.product;
+  renderPage(currentPage);
+}
+
+async function reinstateProduct(id) {
+  if (!window.confirm('Reinstate this listing? It will become visible in the shop again.')) return;
+  const res = await authFetch(`${API}/products/${id}/reinstate`, { method: 'PATCH' });
+  if (!res.ok) { alert('Failed to reinstate listing.'); return; }
+  const updated = await res.json();
+  const idx = allProducts.findIndex((p) => p._id === id);
+  if (idx !== -1) allProducts[idx] = updated.product;
+  renderPage(currentPage);
+}
+
+document.addEventListener('click', (e) => {
+  const reinstateBtn = e.target.closest('.vp-reinstate-btn');
+  if (reinstateBtn) { reinstateProduct(reinstateBtn.dataset.id); return; }
+  const suspendBtn = e.target.closest('.vp-suspend-btn');
+  if (suspendBtn) { suspendProduct(suspendBtn.dataset.id); return; }
+});
 
 function renderPagination(page, pages) {
   const container = document.getElementById('vp-pagination');

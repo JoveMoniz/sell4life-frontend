@@ -3,6 +3,7 @@
 
   const token = localStorage.getItem('s4l_token');
   if (!token) {
+    localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
     window.location.replace('/account/signin.html');
     return;
   }
@@ -26,6 +27,7 @@
 
     document.documentElement.style.visibility = '';
   } catch {
+    localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
     window.location.replace('/account/signin.html');
   }
 })();

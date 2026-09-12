@@ -23,19 +23,19 @@ const ORDERS_PER_PAGE = 20;
 ====================================================== */
 function getDisplayStatus(o) {
   const payment = (o.paymentStatus || '').toLowerCase();
-  const status = o.status;
+  const badge = window.s4lStatusBadge ? window.s4lStatusBadge(o.status) : o.status;
 
-  if (payment === 'refunded') return `${status} • Refunded`;
-  if (payment === 'partially_refunded') return `${status} • Partial Refund`;
+  if (payment === 'refunded') return `${badge} ${window.s4lRefundBadge ? window.s4lRefundBadge('processed') : '• Refunded'}`;
+  if (payment === 'partially_refunded') return `${badge} ${window.s4lRefundBadge ? window.s4lRefundBadge('partially_refunded') : '• Partial Refund'}`;
 
   if (payment === 'refund_scheduled' && o.refundScheduledAt) {
     return `
-      ${status} • Refund Scheduled
+      ${badge} ${window.s4lRefundBadge ? window.s4lRefundBadge('scheduled') : '• Refund Scheduled'}
       <span class="refund-timer" data-time="${o.refundScheduledAt}"></span>
     `;
   }
 
-  return status;
+  return badge;
 }
 
 /* ======================================================
@@ -46,6 +46,9 @@ function renderOrderCard(o, vendorId) {
   if (!id) return '';
 
   const displayId = o.shortId || `S4L-${id.slice(0, 10).toUpperCase()}`;
+  const placedAt = o.createdAt
+    ? new Date(o.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : '';
 
   const vendorItems = (o.items || []).filter(
     (item) => String(item.vendorId) === String(vendorId)
@@ -106,6 +109,7 @@ function renderOrderCard(o, vendorId) {
           : '-'
       }
     </div>
+    ${placedAt ? `<div class="order-date">${placedAt}</div>` : ''}
   </div>
 
   <span class="order-status">
@@ -119,7 +123,7 @@ function renderOrderCard(o, vendorId) {
   </span>
 
   <div class="order-actions">
-    <a class="btn-view-order" href="/account/vendor/order-details.html?id=${id}">
+    <a class="btn-view-order${hasPendingActions ? ' btn-view-order--action' : ''}" href="/account/vendor/order-details.html?id=${id}">
       ${hasPendingActions ? 'Action needed →' : 'View Details →'}
     </a>
   </div>
@@ -207,6 +211,7 @@ async function loadVendorOrders(status = 'all', q = '') {
 
   if (!vendorRes.ok) {
     if (vendorRes.status === 401) {
+      localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
       window.location.href = '/account/signin.html';
       return;
     }

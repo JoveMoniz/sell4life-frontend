@@ -2,6 +2,7 @@ const token = localStorage.getItem('s4l_token');
 const role = localStorage.getItem('s4l_role');
 
 if (!token || role !== 'admin') {
+  localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
   window.location.href = '/account/admin/signin.html';
 }
 
@@ -19,7 +20,7 @@ async function loadCounts() {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) return;
-    const { pendingVendors, pendingPayouts, pendingUpgrades } = await res.json();
+    const { pendingVendors, pendingPayouts } = await res.json();
 
     const vendorBadge = document.getElementById('badge-vendors');
     const payoutWrap = document.getElementById('badge-payouts-wrap');
@@ -27,7 +28,7 @@ async function loadCounts() {
     const payoutPlural = document.getElementById('badge-payouts-plural');
 
     if (vendorBadge) {
-      const vendorTotal = (pendingVendors || 0) + (pendingUpgrades || 0);
+      const vendorTotal = pendingVendors || 0;
       if (vendorTotal > 0) {
         vendorBadge.textContent = vendorTotal;
         vendorBadge.classList.remove('dash-badge--hidden');

@@ -221,6 +221,10 @@
   opacity: 0.88;
 }
 
+.ty-btn[hidden] {
+  display: none;
+}
+
 .ty-btn-outline {
   background: #fff;
   color: #0b6b6a;
@@ -230,6 +234,60 @@
 .ty-btn-outline:hover {
   background: #f0f8f8;
   opacity: 1;
+}
+
+.ty-track-panel {
+  margin-top: 24px;
+  padding: 18px;
+  background: #f0f9f8;
+  border: 1px solid #cdece9;
+  border-radius: 10px;
+}
+
+.ty-track-panel h3 {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+  color: #0b6b6a;
+}
+
+.ty-track-panel p {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  color: #52514e;
+}
+
+.ty-track-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ty-track-form input {
+  flex: 1;
+  min-width: 200px;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+
+.ty-track-form .ty-btn {
+  width: auto;
+  flex-shrink: 0;
+  padding: 12px 20px;
+}
+
+.ty-track-message {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+}
+.ty-track-message.ty-track-success { color: #15803d; }
+.ty-track-message.ty-track-error { color: #b91c1c; }
+
+@media (max-width: 480px) {
+  .ty-track-form { flex-direction: column; }
+  .ty-track-form .ty-btn { width: 100%; }
 }
 
 /* ── Responsive ───────────────────────────────────────── */

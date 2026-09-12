@@ -10,6 +10,7 @@
   const token = localStorage.getItem('s4l_token');
 
   if (!token) {
+    localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
     window.location.replace('/account/signin.html');
     return;
   }
@@ -24,6 +25,7 @@
     .catch(() => {
       localStorage.removeItem('s4l_token');
       localStorage.removeItem('s4l_user');
+      localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
       window.location.replace('/account/signin.html');
     });
 })();

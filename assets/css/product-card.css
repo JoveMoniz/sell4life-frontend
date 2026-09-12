@@ -73,4 +73,15 @@
 .sp-price     { font-size: 0.95rem; font-weight: 700; color: #0b6b6a; }
 .sp-compare   { font-size: 0.8rem; color: #bbb; text-decoration: line-through; }
 
-.sp-shipping  { display: block; font-size: 0.74rem; color: #9ca3af; margin-top: 2px; }
+.sp-shipping-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+.sp-shipping      { font-size: 0.74rem; color: #9ca3af; }
+
+.sp-offer-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #0b6b6a;
+  background: #e6f4f3;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}

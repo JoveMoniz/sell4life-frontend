@@ -19,32 +19,15 @@ function authFetch(url, opts = {}) {
 /* ======================================================
    BADGE HELPERS
 ====================================================== */
-const RETURN_BADGE = {
-  requested:          { label: 'Return Requested',    color: '#b45309', bg: '#fef3c7' },
-  approved:           { label: 'Return Approved',     color: '#1d4ed8', bg: '#dbeafe' },
-  rejected:           { label: 'Return Rejected',     color: '#b91c1c', bg: '#fee2e2' },
-  partially_returned: { label: 'Partially Returned',  color: '#c2410c', bg: '#ffedd5' },
-  returned:           { label: 'Returned',            color: '#15803d', bg: '#dcfce7' },
-};
-
-const REFUND_BADGE = {
-  scheduled:          { label: 'Refund Scheduled',   color: '#1d4ed8', bg: '#dbeafe' },
-  processing:         { label: 'Refund Processing',  color: '#6d28d9', bg: '#ede9fe' },
-  processed:          { label: 'Refunded ✓',         color: '#15803d', bg: '#dcfce7' },
-  partially_refunded: { label: 'Partially Refunded', color: '#c2410c', bg: '#ffedd5' },
-  failed:             { label: 'Refund Failed',      color: '#b91c1c', bg: '#fee2e2' },
-};
-
+// Badge rendering itself lives in the shared order-status.js
+// (window.s4lReturnBadge/s4lRefundBadge) so buyer/vendor/admin all show
+// the exact same colors for the same status.
 function returnBadge(status) {
-  const b = RETURN_BADGE[status];
-  if (!b) return '';
-  return `<span class="item-badge" style="background:${b.bg};color:${b.color};padding:2px 8px;border-radius:12px;font-size:0.75rem;font-weight:600">${b.label}</span>`;
+  return window.s4lReturnBadge ? window.s4lReturnBadge(status) : '';
 }
 
 function refundBadge(status) {
-  const b = REFUND_BADGE[status];
-  if (!b) return '';
-  return `<span class="item-badge" style="background:${b.bg};color:${b.color};padding:2px 8px;border-radius:12px;font-size:0.75rem;font-weight:600">${b.label}</span>`;
+  return window.s4lRefundBadge ? window.s4lRefundBadge(status) : '';
 }
 
 function canRequestReturn(item) {
@@ -54,19 +37,26 @@ function canRequestReturn(item) {
   );
 }
 
+function canReview(item) {
+  return item.status === 'Delivered' && !!item.productId;
+}
+
 function canRequestCancel(item) {
   return ['Pending', 'Processing'].includes(item.status);
 }
 
 function formatHistoryStatus(status) {
+  const check = window.s4lIcon ? window.s4lIcon('check') : '';
+  const close = window.s4lIcon ? window.s4lIcon('close') : '';
+  const money = window.s4lIcon ? window.s4lIcon('money') : '';
   const map = {
     'Cancel Requested': 'Cancel requested',
     'Return Requested': 'Return requested',
-    'Return Approved':  'Return approved ✅',
-    'Return Rejected':  'Return rejected ❌',
+    'Return Approved':  `Return approved ${check}`,
+    'Return Rejected':  `Return rejected ${close}`,
     Returned:           'Item returned',
     Cancelled:          'Order cancelled',
-    Refunded:           'Refund issued 💸',
+    Refunded:           `Refund issued ${money}`,
   };
   return map[status] || status;
 }
@@ -97,15 +87,21 @@ function buildItemHTML(item) {
     refundedQty   > 0 ? `${refundedQty} refunded`    : '',
   ].filter(Boolean).join(' · ');
 
+  const contactSellerBtn = item.productId ? `
+    <button class="btn-contact-seller" data-product-id="${item.productId}"
+      data-product-name="${(item.name || 'this product').replace(/"/g, '&quot;')}">
+      <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M4 5h16v11H8l-4 4V5z"/></svg> Contact Seller
+    </button>` : '';
+
   const cancelBtn = canRequestCancel(item) ? `
     <button class="btn-cancel-item" data-item-id="${item._id}"
-      style="margin-top:8px;font-size:0.8rem;padding:4px 10px;cursor:pointer;background:#fee2e2;border:1px solid #fca5a5;border-radius:4px;color:#b91c1c">
+      style="font-size:0.8rem;padding:4px 10px;cursor:pointer;background:#fee2e2;border:1px solid #fca5a5;border-radius:4px;color:#b91c1c">
       Cancel this item
     </button>` : '';
 
   const returnForm = canRequestReturn(item) ? `
     <button class="btn-show-return-form" data-item-id="${item._id}"
-      style="margin-top:8px;font-size:0.8rem;padding:4px 10px;cursor:pointer">
+      style="font-size:0.8rem;padding:4px 10px;cursor:pointer">
       Return this item
     </button>
     <div class="item-return-form" id="return-form-${item._id}" style="display:none;margin-top:10px;padding:10px;border:1px solid #e5e7eb;border-radius:6px">
@@ -141,6 +137,25 @@ function buildItemHTML(item) {
     </div>
   ` : '';
 
+  const reviewBtn = canReview(item) ? `
+    <button class="btn-show-review-form" data-item-id="${item._id}" data-product-id="${item.productId}"
+      style="font-size:0.8rem;padding:4px 10px;cursor:pointer">
+      <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 4l2.5 5.5L20 10l-4.2 4 1 5.8L12 17l-4.8 2.8 1-5.8L4 10l5.5-.5L12 4z"/></svg> Review this item
+    </button>
+    <div class="item-review-form" id="review-form-${item._id}" style="display:none;margin-top:10px"></div>` : '';
+
+  const hasAnyAction = !!(item.productId || canRequestCancel(item) || canRequestReturn(item));
+  const itemActions = hasAnyAction ? `
+    <div class="order-actions-wrapper" style="margin-top:14px">
+      <button class="order-actions-toggle" data-item-id="${item._id}" style="font-size:0.8rem;padding:4px 12px">Actions <span class="oat-caret">▾</span></button>
+      <div class="order-actions-menu" id="item-actions-menu-${item._id}">
+        ${contactSellerBtn}
+        ${reviewBtn}
+        ${cancelBtn}
+        ${returnForm}
+      </div>
+    </div>` : '';
+
   return `
     <div class="order-item" data-item-id="${item._id}">
       <img class="order-thumb"
@@ -150,16 +165,18 @@ function buildItemHTML(item) {
 
       <div class="order-info" style="flex:1">
         <div class="order-name">${item.name || 'Unnamed product'}</div>
+        ${window.s4lVariantLabel && window.s4lVariantLabel(item.attributes)
+          ? `<div style="font-size:0.8rem;color:#0b6b6a;font-weight:600;margin-top:2px">${window.s4lVariantLabel(item.attributes)}</div>`
+          : ''}
         <div class="order-qty">${qty} × £${price.toFixed(2)}</div>
-        ${badges ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${badges}</div>` : ''}
-        ${quantityDetail ? `<div style="font-size:0.75rem;color:#6b7280;margin-top:2px">${quantityDetail}</div>` : ''}
+        ${badges ? `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:4px">${badges}</div>` : ''}
+        ${quantityDetail ? `<div style="font-size:0.75rem;color:#6b7280;margin-top:6px">${quantityDetail}</div>` : ''}
         ${item.trackingNumber
-          ? `<div style="font-size:0.8rem;color:#374151;margin-top:5px">
+          ? `<div style="font-size:0.8rem;color:#374151;margin-top:10px">
                Tracking: <strong>${item.trackingNumber}</strong>${item.carrier ? ` via ${item.carrier}` : ''}
              </div>`
           : ''}
-        ${cancelBtn}
-        ${returnForm}
+        ${itemActions}
       </div>
 
       <div class="order-line-price">£${line.toFixed(2)}</div>
@@ -171,15 +188,6 @@ function buildItemHTML(item) {
    BUILD VENDOR SHIPMENT GROUP (buyer view)
 ====================================================== */
 function buildVendorGroup(vo, groupItems) {
-  const STATUS_COLOR = {
-    Pending:            '#92400e',
-    Processing:         '#1d4ed8',
-    Shipped:            '#6d28d9',
-    Delivered:          '#15803d',
-    'Partially Delivered': '#0e7490',
-    Cancelled:          '#b91c1c',
-  };
-  const color   = STATUS_COLOR[vo.status] || '#374151';
   const tracking = vo.trackingNumber
     ? `<span style="font-size:0.8rem;color:#374151;margin-left:auto">
          Tracking: <strong>${vo.trackingNumber}</strong>${vo.carrier ? ` via ${vo.carrier}` : ''}
@@ -190,7 +198,7 @@ function buildVendorGroup(vo, groupItems) {
     <div style="border:1px solid #e5e7eb;border-radius:8px;margin-bottom:16px;overflow:hidden">
       <div style="background:#f9fafb;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid #e5e7eb">
         <strong style="font-size:0.88rem">${vo.vendorStoreName || 'Seller'}</strong>
-        <span style="font-size:0.78rem;font-weight:600;color:${color}">${vo.status || ''}</span>
+        ${window.s4lStatusBadge ? window.s4lStatusBadge(vo.status) : (vo.status || '')}
         ${tracking}
       </div>
       <div style="padding:0 4px">
@@ -217,6 +225,7 @@ async function loadOrderDetails() {
 
   const token = localStorage.getItem('s4l_token');
   if (!token) {
+    localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
     window.location.href = '/account/signin.html';
     return;
   }
@@ -243,7 +252,7 @@ async function loadOrderDetails() {
     container.innerHTML = `
       <h2 class="order-id">${displayId}</h2>
 
-      <p>Fulfillment: <strong class="order-status">${order.status || '—'}</strong></p>
+      <p>Fulfillment: <strong class="order-status">${window.s4lStatusBadge ? window.s4lStatusBadge(order.status) : (order.status || '—')}</strong></p>
 
       <p>Payment:
         <strong class="payment-status ${paymentStatus}">${paymentLabel}</strong>
@@ -252,7 +261,7 @@ async function loadOrderDetails() {
       <p>Date: ${order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}</p>
 
       <div class="order-history">
-        <h4>Order activity</h4>
+        <button type="button" class="order-history-toggle">Order activity <span class="oh-caret">▾</span></button>
         <ul class="order-history-list">
           ${Array.isArray(order.statusHistory)
             ? order.statusHistory.slice()
@@ -287,18 +296,6 @@ async function loadOrderDetails() {
         })()}
       </div>
 
-      <div class="order-actions-wrapper">
-        <button class="order-actions-toggle" id="orderActionsToggle">Actions ▼</button>
-        <div class="order-actions-menu" id="orderActionsMenu">
-          <button id="requestCancelBtn" style="display:none">Request Cancel</button>
-          <button id="requestRefundBtn" style="display:none">Refund Pending Review</button>
-          <button id="trackOrderBtn"    style="display:none">Track Order</button>
-          <button id="contactVendorBtn" style="display:none">Contact Vendor</button>
-          <button id="downloadInvoiceBtn" style="display:none">Download Invoice</button>
-          <button id="reportIssueBtn"   style="display:none">Report Issue</button>
-        </div>
-      </div>
-
       <div class="order-total"><h3>£${Number(order.total ?? 0).toFixed(2)}</h3></div>
     `;
 
@@ -317,6 +314,80 @@ function setupButtons(order, id) {
 }
 
 /* ======================================================
+   CONTACT SELLER MODAL (per item — reuses ask-modal styles)
+====================================================== */
+let _contactModalReady = false;
+let _contactProductId  = null;
+
+function ensureContactModal() {
+  if (_contactModalReady) return;
+  _contactModalReady = true;
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'ask-modal-backdrop';
+  backdrop.id = 'ask-modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="ask-modal">
+      <h3>Message seller about</h3>
+      <p id="ask-modal-product-name"></p>
+      <textarea id="ask-modal-body" placeholder="Type your question…"></textarea>
+      <div class="ask-modal-msg" id="ask-modal-msg"></div>
+      <div class="ask-modal-actions">
+        <button class="ask-modal-cancel" id="ask-modal-cancel">Cancel</button>
+        <button class="ask-modal-submit" id="ask-modal-submit">Send</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+
+  const askBody   = document.getElementById('ask-modal-body');
+  const askMsg    = document.getElementById('ask-modal-msg');
+  const askCancel = document.getElementById('ask-modal-cancel');
+  const askSubmit = document.getElementById('ask-modal-submit');
+
+  const close = () => {
+    backdrop.classList.remove('open');
+    if (askMsg) { askMsg.textContent = ''; askMsg.className = 'ask-modal-msg'; }
+    if (askBody) askBody.value = '';
+    _contactProductId = null;
+  };
+
+  askCancel?.addEventListener('click', close);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+
+  askSubmit?.addEventListener('click', async () => {
+    const text = askBody?.value.trim();
+    if (!text) { if (askMsg) { askMsg.textContent = 'Please write a message.'; askMsg.className = 'ask-modal-msg err'; } return; }
+    if (!_contactProductId) return;
+    askSubmit.disabled = true;
+    if (askMsg) { askMsg.textContent = ''; askMsg.className = 'ask-modal-msg'; }
+    try {
+      const res = await authFetch(`${API}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: _contactProductId, body: text }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send.');
+      if (askMsg) { askMsg.textContent = 'Message sent!'; askMsg.className = 'ask-modal-msg ok'; }
+      setTimeout(close, 1200);
+    } catch (err) {
+      if (askMsg) { askMsg.textContent = err.message; askMsg.className = 'ask-modal-msg err'; }
+    } finally {
+      askSubmit.disabled = false;
+    }
+  });
+}
+
+function openContactModal(productId, productName) {
+  ensureContactModal();
+  _contactProductId = productId;
+  const nameEl = document.getElementById('ask-modal-product-name');
+  if (nameEl) nameEl.textContent = productName;
+  document.getElementById('ask-modal-backdrop')?.classList.add('open');
+  document.getElementById('ask-modal-body')?.focus();
+}
+
+/* ======================================================
    PER-ITEM RETURN HANDLERS (delegated — added once)
 ====================================================== */
 let _returnHandlerReady = false;
@@ -326,6 +397,19 @@ function ensureReturnHandler() {
   _returnHandlerReady = true;
 
   document.addEventListener('click', async (e) => {
+    // Contact seller about this item
+    const contactBtn = e.target.closest('.btn-contact-seller');
+    if (contactBtn) {
+      contactBtn.closest('.order-actions-menu')?.classList.remove('open');
+      if (!localStorage.getItem('s4l_token')) {
+        localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
+        window.location.href = '/account/signin.html';
+        return;
+      }
+      openContactModal(contactBtn.dataset.productId, contactBtn.dataset.productName);
+      return;
+    }
+
     // Cancel item
     const cancelItemBtn = e.target.closest('.btn-cancel-item');
     if (cancelItemBtn) {
@@ -357,6 +441,31 @@ function ensureReturnHandler() {
       const itemId = showBtn.dataset.itemId;
       const form   = document.getElementById(`return-form-${itemId}`);
       if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
+      return;
+    }
+
+    // Toggle inline "write a review" form — reuses reviews.js's own
+    // buildForm() so the write/submit logic lives in exactly one place.
+    const showReviewBtn = e.target.closest('.btn-show-review-form');
+    if (showReviewBtn) {
+      const itemId    = showReviewBtn.dataset.itemId;
+      const productId = showReviewBtn.dataset.productId;
+      const container = document.getElementById(`review-form-${itemId}`);
+      if (!container) return;
+
+      if (container.childElementCount) {
+        container.style.display = container.style.display === 'none' ? 'block' : 'none';
+        return;
+      }
+      if (typeof window.buildReviewForm !== 'function') return;
+
+      const formEl = window.buildReviewForm(productId, () => {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        showReviewBtn.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 4l2.5 5.5L20 10l-4.2 4 1 5.8L12 17l-4.8 2.8 1-5.8L4 10l5.5-.5L12 4z"/></svg> Review this item';
+      });
+      container.appendChild(formEl);
+      container.style.display = 'block';
       return;
     }
 
@@ -423,7 +532,7 @@ async function refreshOrderStatus() {
     const statusEl  = document.querySelector('.order-status');
     const paymentEl = document.querySelector('.payment-status');
 
-    if (statusEl) statusEl.textContent = order.status;
+    if (statusEl) statusEl.innerHTML = window.s4lStatusBadge ? window.s4lStatusBadge(order.status) : order.status;
 
     if (paymentEl) {
       const payment = (order.paymentStatus || '').toLowerCase();
@@ -442,17 +551,27 @@ async function refreshOrderStatus() {
 }
 
 /* ======================================================
-   ACTION DROPDOWN
+   ACTION DROPDOWN (one per item)
 ====================================================== */
 document.addEventListener('click', (e) => {
-  if (e.target.closest('#orderActionsToggle')) {
-    const menu = document.getElementById('orderActionsMenu');
-    if (menu) menu.classList.toggle('open');
+  const toggle = e.target.closest('.order-actions-toggle');
+  if (toggle) {
+    const menu = toggle.parentElement.querySelector('.order-actions-menu');
+    // Close any other open menus first
+    document.querySelectorAll('.order-actions-menu.open').forEach(m => { if (m !== menu) m.classList.remove('open'); });
+    menu?.classList.toggle('open');
     return;
   }
-  const menu = document.getElementById('orderActionsMenu');
-  if (menu && !e.target.closest('.order-actions-wrapper')) {
-    menu.classList.remove('open');
+  if (!e.target.closest('.order-actions-wrapper')) {
+    document.querySelectorAll('.order-actions-menu.open').forEach(m => m.classList.remove('open'));
+  }
+
+  // Order activity history — hover already peeks it (CSS); a click pins
+  // it open so it stays visible without holding the mouse there.
+  const historyToggle = e.target.closest('.order-history-toggle');
+  if (historyToggle) {
+    historyToggle.classList.toggle('open');
+    historyToggle.nextElementSibling?.classList.toggle('open');
   }
 });
 

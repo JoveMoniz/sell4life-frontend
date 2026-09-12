@@ -4,6 +4,53 @@
 
 const API = window.API_BASE;
 
+/* ======================================================
+   TAX REGIME LABELS
+   Only GB and PT are supported vendor countries today (see
+   stripeConnectCountries.js) — PT is EU/DAC7, so a simple GB/EU split
+   covers both. Revisit this if a non-EU country is ever added.
+====================================================== */
+let _vendorCountry = 'GB';
+
+function taxRegionFor(country) {
+  return country === 'GB' ? 'GB' : 'EU';
+}
+
+// The TIN goes by a different local name in each country — shown instead
+// of the generic term when we have it. Add an entry here as each new EU
+// country is opened up for vendors (falls back to "TIN" otherwise).
+const TIN_LOCAL_NAME = {
+  PT: 'NIF – Número de Contribuinte',
+};
+
+const TAX_LABELS = {
+  GB: {
+    sectionTitle: 'Tax Information (HMRC)',
+    intro: 'Please provide your details for HMRC digital platform reporting. All information is encrypted and stored securely.',
+    thresholdText: '30 transactions or £1,700',
+    thresholdNote: 'HMRC reporting threshold',
+    idOptions: [
+      { value: 'ni', label: 'National Insurance Number (NI)' },
+      { value: 'utr', label: 'Unique Taxpayer Reference (UTR)' },
+      { value: 'other', label: 'Other' },
+    ],
+    idLabelMap: { ni: 'National Insurance Number', utr: 'UTR Number', other: 'Other Tax ID' },
+    showVatField: false,
+  },
+  EU: {
+    sectionTitle: 'Tax Information (EU Digital Platform Reporting)',
+    intro: 'Please provide your details for EU digital platform reporting under DAC7. All information is encrypted and stored securely.',
+    thresholdText: '30 transactions or €2,000',
+    thresholdNote: 'DAC7 reporting threshold',
+    idOptions: [
+      { value: 'tin', label: 'Tax Identification Number (TIN)' },
+      { value: 'other', label: 'Other' },
+    ],
+    idLabelMap: { tin: 'Tax ID (TIN)', other: 'Other Tax ID' },
+    showVatField: true,
+  },
+};
+
 function authFetch(url, opts = {}) {
   const token = localStorage.getItem('s4l_token');
   const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
@@ -19,7 +66,11 @@ async function loadSettings() {
 
   try {
     const res = await authFetch(`${API}/vendor/me`);
-    if (res.status === 401) { window.location.href = '/account/signin.html'; return; }
+    if (res.status === 401) {
+      localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
+      window.location.href = '/account/signin.html';
+      return;
+    }
     const data = await res.json();
     const v = data.vendor;
     if (!v) { window.location.href = '/account/vendor/create.html'; return; }
@@ -37,6 +88,9 @@ async function loadSettings() {
 function renderForm(v) {
   const wrap = document.getElementById('settings-form-wrap');
   if (!wrap) return;
+
+  _vendorCountry = v.country || 'GB';
+  const taxLabels = TAX_LABELS[taxRegionFor(_vendorCountry)];
 
   wrap.innerHTML = `
     <!-- Store Identity -->
@@ -68,12 +122,10 @@ function renderForm(v) {
         <label class="settings-label">Account Tier</label>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-size:13px;color:#374151">Current tier: <strong style="text-transform:capitalize">${esc(v.type || 'casual')}</strong></span>
-          ${v.type !== 'enterprise'
-            ? (v.upgradeRequest?.status === 'pending'
-                ? '<button type="button" id="btn-upgrade-toggle" disabled style="font-size:11px;padding:3px 10px;background:#f3f4f6;color:#9ca3af;border:1px solid #e5e7eb;border-radius:4px;cursor:not-allowed;white-space:nowrap">Requested ✓</button>'
-                : '<button type="button" id="btn-upgrade-toggle" style="font-size:11px;padding:3px 10px;background:#f3f4f6;color:#6b7280;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;white-space:nowrap">Request Upgrade</button>')
-            : ''}
         </div>
+        ${v.type !== 'enterprise'
+          ? '<div class="settings-hint" style="margin-top:6px">Want to sell as a different tier? <a href="/account/vendor/create.html">Create a new seller account</a> — tiers can\'t be changed on an existing one.</div>'
+          : ''}
       </div>
     </div>
 
@@ -111,19 +163,26 @@ function renderForm(v) {
       </div>
     </div>
 
-    <!-- Tax Information (HMRC) — shown only when approaching/required -->
+    <!-- Tax Information (HMRC for GB, DAC7 for EU) -->
     <div id="hmrc-tax-section" style="display:none">
       <div class="settings-section">
-        <div class="settings-section-title">Tax Information (HMRC)</div>
+        <div class="settings-section-title">${taxLabels.sectionTitle}</div>
         <div id="hmrc-tax-body" style="color:#6b7280;font-size:13px">Loading…</div>
       </div>
     </div>
 
-    <!-- Connect Supplier -->
+    <!-- Payouts (Stripe Connect) -->
+    <div class="settings-section" id="payout-stripe-section">
+      <div class="settings-section-title">Payouts &mdash; Bank Account</div>
+      <div id="payout-stripe-body" style="color:#9ca3af;font-size:13px">Loading…</div>
+    </div>
+
+    <!-- Connect Supplier (irrelevant to casual sellers, who list their own items rather than sourcing from a supplier catalog) -->
+    ${v.type !== 'casual' ? `
     <div class="settings-section" id="supplier-connect-section">
       <div class="settings-section-title">Connect Supplier</div>
       <div id="supplier-section-body" style="color:#9ca3af;font-size:13px">Loading…</div>
-    </div>
+    </div>` : ''}
 
     <!-- Save Store Settings -->
     <div class="settings-save-bar">
@@ -254,33 +313,6 @@ function renderForm(v) {
     });
   }
 
-  // Request tier upgrade
-  const upgradeToggle = document.getElementById('btn-upgrade-toggle');
-
-  if (upgradeToggle && !upgradeToggle.disabled) {
-    upgradeToggle.addEventListener('click', async () => {
-      upgradeToggle.disabled = true;
-      upgradeToggle.textContent = 'Sending…';
-      try {
-        const res = await authFetch(`${API}/vendor/request-upgrade`, {
-          method: 'POST',
-          body: JSON.stringify({ message: '' }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Request failed');
-        window.showToast?.(data.message || 'Upgrade request sent!');
-        upgradeToggle.textContent = 'Requested ✓';
-        upgradeToggle.style.color = '#9ca3af';
-        upgradeToggle.style.borderColor = '#e5e7eb';
-        upgradeToggle.style.cursor = 'not-allowed';
-      } catch (err) {
-        window.showToast?.(err.message || 'Failed to send upgrade request', 'error');
-        upgradeToggle.disabled = false;
-        upgradeToggle.textContent = 'Request Upgrade';
-      }
-    });
-  }
-
   // Account section
   attachAccountHandlers();
   loadAccountProfile();
@@ -288,8 +320,19 @@ function renderForm(v) {
   // Load HMRC tax section asynchronously (fetches status from API)
   loadTaxInfoSection();
 
-  // Load supplier connection section
-  loadSupplierSection();
+  // Load supplier connection section (not applicable to casual sellers)
+  if (v.type !== 'casual') loadSupplierSection();
+
+  // Load payout (Stripe Connect) section
+  loadPayoutStripeSection();
+
+  // Sections above are injected asynchronously, so the browser's own
+  // hash-jump on initial page load happens before the target element
+  // exists — scroll to it manually now that the form is in the DOM.
+  if (window.location.hash) {
+    const target = document.querySelector(window.location.hash);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 /* ======================================================
@@ -463,11 +506,13 @@ async function loadTaxInfoSection() {
     if (!res.ok) { body.textContent = 'Could not load tax information.'; return; }
     const d = await res.json();
     const status = d.reportingStatus || 'none';
+    const region = taxRegionFor(d.country || _vendorCountry);
+    const taxLabels = TAX_LABELS[region];
 
     let statusBanner = '';
     if (status === 'required') {
       statusBanner = `<div style="background:#fef2f2;border-left:4px solid #ef4444;border-radius:5px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#991b1b">
-        <strong>Action required</strong> — your store has crossed the HMRC reporting threshold. You must submit your tax details below.
+        <strong>Action required</strong> — your store has crossed the ${taxLabels.thresholdNote}. You must submit your tax details below.
       </div>`;
     } else if (status === 'approaching') {
       statusBanner = `<div style="background:#fffbeb;border-left:4px solid #f59e0b;border-radius:5px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#92400e">
@@ -475,7 +520,12 @@ async function loadTaxInfoSection() {
       </div>`;
     } else {
       statusBanner = `<div style="font-size:13px;color:#6b7280;margin-bottom:12px">
-        You can provide your tax information in advance. If your store later approaches the HMRC reporting threshold, this will save time.
+        You can provide your tax information in advance. If your store later approaches the ${taxLabels.thresholdNote}, this will save time.
+      </div>`;
+    }
+    if (region === 'EU') {
+      statusBanner += `<div style="font-size:12px;color:#9ca3af;margin-bottom:12px">
+        Note: exact EU reporting thresholds and requirements are still being confirmed — this form collects the information in advance either way.
       </div>`;
     }
 
@@ -486,7 +536,7 @@ async function loadTaxInfoSection() {
     const progressInfo = status !== 'none'
       ? `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#374151">
           ${year} progress: <strong>${transactionCount}</strong> transactions · <strong>£${grossTotal}</strong> gross payout
-          <span style="color:#9ca3af">(thresholds: 30 transactions or £1,700)</span>
+          <span style="color:#9ca3af">(thresholds: ${taxLabels.thresholdText})</span>
          </div>`
       : '';
 
@@ -494,7 +544,13 @@ async function loadTaxInfoSection() {
       const confirmedDate = d.taxInfo.confirmedAt
         ? new Date(d.taxInfo.confirmedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
         : 'unknown date';
-      const taxIdTypeLabel = { ni: 'National Insurance Number', utr: 'UTR Number', other: 'Other Tax ID' }[d.taxInfo.taxIdType] || d.taxInfo.taxIdType || '—';
+      const localTinName = TIN_LOCAL_NAME[d.country || _vendorCountry];
+      const taxIdTypeLabel = (region === 'EU' && d.taxInfo.taxIdType === 'tin' && localTinName)
+        ? `${localTinName} (TIN)`
+        : (taxLabels.idLabelMap[d.taxInfo.taxIdType] || d.taxInfo.taxIdType || '—');
+      const vatLine = d.taxInfo.maskedVatId
+        ? `<div style="font-size:12px;color:#374151;margin-top:2px">VAT Number: ${esc(d.taxInfo.maskedVatId)}</div>`
+        : '';
 
       body.innerHTML = `
         ${statusBanner}${progressInfo}
@@ -502,6 +558,7 @@ async function loadTaxInfoSection() {
           <div style="font-weight:700;color:#166534;margin-bottom:4px">Tax details submitted</div>
           <div style="font-size:12px;color:#374151">Submitted on ${confirmedDate}</div>
           <div style="font-size:12px;color:#374151;margin-top:4px">${taxIdTypeLabel}: ${esc(d.taxInfo.maskedTaxId || '—')}</div>
+          ${vatLine}
         </div>
         <button type="button" id="hmrc-resubmit-btn" style="font-size:12px;padding:4px 12px;background:#f9fafb;border:1px solid #d1d5db;border-radius:5px;cursor:pointer;color:#374151">Update tax details</button>
         <div id="hmrc-form-wrap" style="display:none;margin-top:14px"></div>`;
@@ -525,9 +582,26 @@ function renderTaxForm(containerId) {
   const wrap = document.getElementById(containerId);
   if (!wrap) return;
 
+  const region = taxRegionFor(_vendorCountry);
+  const taxLabels = TAX_LABELS[region];
+  const countryName = (Array.isArray(window.S4L_COUNTRIES)
+    ? window.S4L_COUNTRIES.find((c) => c.code === _vendorCountry)?.name
+    : null) || (_vendorCountry === 'GB' ? 'United Kingdom' : _vendorCountry);
+
+  const localTinName = TIN_LOCAL_NAME[_vendorCountry];
+  const idOptions = (region === 'EU' && localTinName)
+    ? taxLabels.idOptions.map((o) => o.value === 'tin' ? { ...o, label: `${localTinName} (TIN)` } : o)
+    : taxLabels.idOptions;
+
+  const vatField = taxLabels.showVatField ? `
+    <div class="settings-field">
+      <label class="settings-label" for="hmrc-vat-id">VAT Number <span style="color:#9ca3af;font-size:11px">(if registered)</span></label>
+      <input class="settings-input" id="hmrc-vat-id" type="text" placeholder="e.g. PT123456789" maxlength="40" />
+    </div>` : '';
+
   wrap.innerHTML = `
     <div style="font-size:13px;color:#374151;margin-bottom:14px">
-      Please provide your details for HMRC digital platform reporting. All information is encrypted and stored securely.
+      ${taxLabels.intro}
     </div>
     <div class="settings-field">
       <label class="settings-label" for="hmrc-legal-name">Legal Full Name <span style="color:#b91c1c">*</span></label>
@@ -555,22 +629,22 @@ function renderTaxForm(containerId) {
     </div>
     <div class="settings-field">
       <label class="settings-label" for="hmrc-country">Country <span style="color:#b91c1c">*</span></label>
-      <input class="settings-input" id="hmrc-country" type="text" value="United Kingdom" maxlength="100" />
+      <input class="settings-input" id="hmrc-country" type="text" value="${esc(countryName)}" maxlength="100" readonly style="background:#f9fafb;color:#6b7280" />
+      <div class="settings-hint">Matches the business country set for your store — update that in Payouts above if it's wrong.</div>
     </div>
     <div class="settings-field">
       <label class="settings-label" for="hmrc-id-type">Tax ID Type <span style="color:#b91c1c">*</span></label>
       <select class="settings-input" id="hmrc-id-type" style="max-width:280px">
         <option value="">— Select —</option>
-        <option value="ni">National Insurance Number (NI)</option>
-        <option value="utr">Unique Taxpayer Reference (UTR)</option>
-        <option value="other">Other</option>
+        ${idOptions.map((o) => `<option value="${o.value}">${o.label}</option>`).join('')}
       </select>
     </div>
     <div class="settings-field">
       <label class="settings-label" for="hmrc-id-value">Tax ID Value <span style="color:#b91c1c">*</span></label>
       <input class="settings-input" id="hmrc-id-value" type="text" placeholder="e.g. AB 12 34 56 C or 1234567890" maxlength="40" />
-      <div class="settings-hint">Enter your NI number, UTR, or other tax identifier. This will be encrypted and never shared publicly.</div>
+      <div class="settings-hint">This will be encrypted and never shared publicly.</div>
     </div>
+    ${vatField}
     <div class="settings-save-bar" style="margin-top:0">
       <button class="settings-save-btn" id="hmrc-submit-btn">Submit Tax Information</button>
       <span class="settings-msg" id="hmrc-msg"></span>
@@ -593,6 +667,7 @@ async function submitTaxInfo() {
     addrCountry:  document.getElementById('hmrc-country')?.value?.trim(),
     taxIdType:    document.getElementById('hmrc-id-type')?.value?.trim(),
     taxIdValue:   document.getElementById('hmrc-id-value')?.value?.trim(),
+    vatId:        document.getElementById('hmrc-vat-id')?.value?.trim() || '',
   };
 
   const missingLabels = [];
@@ -634,6 +709,172 @@ async function submitTaxInfo() {
   } finally {
     btn.disabled = false;
     btn.textContent = 'Submit Tax Information';
+  }
+}
+
+/* ======================================================
+   PAYOUTS (STRIPE CONNECT)
+====================================================== */
+
+async function loadPayoutStripeSection() {
+  const body = document.getElementById('payout-stripe-body');
+  if (!body) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const returning = params.get('stripe');
+
+  try {
+    const res = await authFetch(`${API}/vendor/stripe/status`);
+    if (!res.ok) { body.textContent = 'Could not load payout status.'; return; }
+    const status = await res.json();
+    renderPayoutStripeCard(status);
+
+    if (returning) {
+      history.replaceState(null, '', window.location.pathname);
+      if (returning === 'return' && status.payoutEnabled) {
+        window.showToast?.('Bank account connected — payouts are now enabled.');
+      } else if (returning === 'return') {
+        window.showToast?.('Almost there — a few more details are needed to enable payouts.', 'error');
+      }
+    }
+  } catch (_) {
+    body.textContent = 'Could not load payout status.';
+  }
+}
+
+// Codes from /vendor/stripe-connect-countries, resolved to display names
+// via window.S4L_COUNTRIES (already loaded for the checkout country picker).
+let _connectCountries = null;
+async function getConnectCountries() {
+  if (_connectCountries) return _connectCountries;
+  try {
+    const res = await authFetch(`${API}/vendor/stripe-connect-countries`);
+    const data = await res.json();
+    const codes = Array.isArray(data.countries) ? data.countries : ['GB'];
+    const all = Array.isArray(window.S4L_COUNTRIES) ? window.S4L_COUNTRIES : [];
+    _connectCountries = codes.map((code) => {
+      const match = all.find((c) => c.code === code);
+      return { code, name: match ? match.name : code };
+    });
+  } catch {
+    _connectCountries = [{ code: 'GB', name: 'United Kingdom' }];
+  }
+  return _connectCountries;
+}
+
+function renderPayoutStripeCard(status) {
+  const body = document.getElementById('payout-stripe-body');
+  if (!body) return;
+
+  // A vendor must have their business country set — and it must be one we
+  // actually support payouts for — before Stripe can create their account.
+  // Already-connected vendors skip this: the country is locked in on their
+  // existing Stripe account regardless of what's stored on our side (older
+  // accounts predate this field entirely).
+  if (!status.connected && !status.country) {
+    getConnectCountries().then((countries) => {
+      body.innerHTML = `
+        <p style="font-size:13px;color:#6b7280;margin:0 0 12px">
+          Tell us which country your business is based in, so we can set up your payout account correctly.
+        </p>
+        <div class="settings-field" style="margin-bottom:12px">
+          <label class="settings-label" for="connect-country">Business country</label>
+          <select class="settings-input" id="connect-country">
+            <option value="">Select a country…</option>
+            ${countries.map((c) => `<option value="${c.code}">${esc(c.name)}</option>`).join('')}
+          </select>
+          <div class="settings-hint">We don't yet support every country for payouts — if yours isn't listed, contact us.</div>
+        </div>
+        <button type="button" class="settings-save-btn" id="btn-save-connect-country" style="font-size:13px;padding:7px 18px">Save country</button>
+        <span class="settings-msg" id="payout-stripe-msg"></span>`;
+
+      document.getElementById('btn-save-connect-country')?.addEventListener('click', saveConnectCountry);
+    });
+    return;
+  }
+
+  if (!status.connected) {
+    const countryLine = `<div style="font-size:12px;color:#9ca3af;margin-bottom:10px">Business country: <strong>${esc(status.country)}</strong></div>`;
+    body.innerHTML = `
+      ${countryLine}
+      <p style="font-size:13px;color:#6b7280;margin:0 0 14px">
+        Connect a bank account with Stripe so approved payouts are paid out to you automatically — no need to send us your bank details.
+      </p>
+      <button type="button" class="settings-save-btn" id="btn-stripe-connect" style="font-size:13px;padding:7px 18px">Connect bank account with Stripe</button>
+      <span class="settings-msg" id="payout-stripe-msg"></span>`;
+  } else if (!status.payoutEnabled) {
+    body.innerHTML = `
+      <div style="background:#fffbeb;border-left:4px solid #f59e0b;border-radius:5px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#92400e">
+        <strong>Setup incomplete</strong> — finish onboarding with Stripe to start receiving automatic payouts.
+      </div>
+      <button type="button" class="settings-save-btn" id="btn-stripe-connect" style="font-size:13px;padding:7px 18px">Continue setup</button>
+      <span class="settings-msg" id="payout-stripe-msg"></span>`;
+  } else {
+    body.innerHTML = `
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:12px 16px;margin-bottom:12px">
+        <div style="font-weight:700;color:#166534">Bank account connected <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg></div>
+        <div style="font-size:12px;color:#374151;margin-top:2px">Approved payouts are sent straight to your bank via Stripe.</div>
+      </div>
+      <button type="button" id="btn-stripe-connect" style="font-size:12px;padding:4px 12px;background:#f9fafb;border:1px solid #d1d5db;border-radius:5px;cursor:pointer;color:#374151">Update bank details</button>
+      <span class="settings-msg" id="payout-stripe-msg"></span>`;
+  }
+
+  document.getElementById('btn-stripe-connect')?.addEventListener('click', startStripeConnect);
+}
+
+async function saveConnectCountry() {
+  const sel = document.getElementById('connect-country');
+  const btn = document.getElementById('btn-save-connect-country');
+  const msg = document.getElementById('payout-stripe-msg');
+  const code = sel?.value || '';
+
+  if (!code) {
+    if (msg) { msg.textContent = 'Please select a country.'; msg.className = 'settings-msg error'; }
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  if (msg) { msg.textContent = ''; msg.className = 'settings-msg'; }
+
+  try {
+    const res = await authFetch(`${API}/vendor/settings`, {
+      method: 'PATCH',
+      body: JSON.stringify({ country: code }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      if (msg) { msg.textContent = data.error || 'Could not save country.'; msg.className = 'settings-msg error'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Save country'; }
+      return;
+    }
+    loadPayoutStripeSection();
+  } catch {
+    if (msg) { msg.textContent = 'Network error.'; msg.className = 'settings-msg error'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Save country'; }
+  }
+}
+
+async function startStripeConnect() {
+  const btn = document.getElementById('btn-stripe-connect');
+  const msg = document.getElementById('payout-stripe-msg');
+  if (btn) { btn.disabled = true; btn.textContent = 'Redirecting…'; }
+  if (msg) { msg.textContent = ''; msg.className = 'settings-msg'; }
+
+  try {
+    const res = await authFetch(`${API}/vendor/stripe/connect`, {
+      method: 'POST',
+      body: JSON.stringify({ origin: window.location.origin }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.url) {
+      if (msg) { msg.textContent = data.error || 'Could not start Stripe setup.'; msg.className = 'settings-msg error'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Connect bank account with Stripe'; }
+      return;
+    }
+    window.location.href = data.url;
+  } catch (_) {
+    if (msg) { msg.textContent = 'Network error.'; msg.className = 'settings-msg error'; }
+    if (btn) { btn.disabled = false; }
   }
 }
 

@@ -174,8 +174,7 @@ async function loadLayout() {
         const res = await fetch('/includes/header.html', { cache: 'no-store' });
         const html = await res.text();
         document.body.insertAdjacentHTML('afterbegin', html);
-        drawLogoUnderline('s4l-logo-desktop', 's4l-logo-txt-d', 44, '3');
-        drawLogoUnderline('s4l-logo-mobile',  's4l-logo-txt-m', 38, '2.5');
+        drawLogoUnderline('s4l-logo-desktop', 's4l-logo-txt-d', 25, '2.2');
       }
 
       // ⚠️ delay to ensure DOM ready
@@ -239,6 +238,13 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// Close any open account dropdown (header or sticky bar) as soon as the page scrolls
+document.addEventListener('scroll', () => {
+  document.querySelectorAll('.account-dropdown.open').forEach((menu) => {
+    menu.classList.remove('open');
+  });
+}, { passive: true, capture: true });
+
 // =====================================================
 // VENDOR SIDEBAR
 // =====================================================
@@ -251,6 +257,7 @@ async function loadVendorSidebar() {
   const token = localStorage.getItem('s4l_token');
   const isVendor = localStorage.getItem('s4l_isVendor') === 'true';
   if (!token || !isVendor) {
+    localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
     window.location.replace('/account/signin.html');
     return;
   }
@@ -326,6 +333,9 @@ async function loadVendorSidebar() {
     // Orders badge
     loadOrderBadge(container);
 
+    // Messages badge
+    loadMessageBadge(container);
+
     // Wire logout link
     const logoutLink = container.querySelector('.vendor-logout');
     if (logoutLink) {
@@ -378,6 +388,28 @@ async function loadOrderBadge(container) {
   }
 }
 
+async function loadMessageBadge(container) {
+  try {
+    const token = localStorage.getItem('s4l_token');
+    if (!token) return;
+    const res = await fetch(`${window.API_BASE}/messages/unread-count?view=vendor`, {
+      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
+    });
+    if (!res.ok) return;
+    const { unread } = await res.json();
+    if (!unread) return;
+
+    const badge = container.querySelector('#sidebar-msg-badge');
+    if (badge) {
+      badge.textContent = unread > 99 ? '99+' : unread;
+      badge.className = 'sidebar-msg-badge';
+    }
+  } catch {
+    // badge is non-critical
+  }
+}
+
 function injectMobileBar() {
   if (document.querySelector('.vendor-mobile-bar')) return;
 
@@ -404,6 +436,7 @@ function injectMobileBar() {
 
   const mobileNavMap = {
     casual: [
+      { href: '/',                                       label: `${window.s4lIcon ? window.s4lIcon('home') : ''} Back to Site`, cls: 'vendor-nav-home' },
       { href: '/account/vendor/dashboard-casual.html',   label: 'Dashboard' },
       { href: '/account/vendor/products.html',           label: 'My Listings' },
       { href: '/account/vendor/add-product-casual.html', label: 'Add Product' },
@@ -414,6 +447,7 @@ function injectMobileBar() {
       { href: '/account/signin.html',                    label: 'Logout', cls: 'vendor-logout' },
     ],
     refurbished: [
+      { href: '/',                                       label: `${window.s4lIcon ? window.s4lIcon('home') : ''} Back to Site`, cls: 'vendor-nav-home' },
       { href: '/account/vendor/dashboard.html',          label: 'Dashboard' },
       { href: '/account/vendor/products.html',           label: 'Products' },
       { href: '/account/vendor/add-product.html',        label: 'Add Product' },
@@ -422,9 +456,11 @@ function injectMobileBar() {
       { href: '/account/vendor/payouts.html',            label: 'Payouts' },
       { href: '/account/vendor/messages.html',           label: 'Messages', badge: 'mob-msg-badge' },
       { href: '/account/vendor/settings.html',           label: 'Store Settings' },
+      { href: '/account/vendor/screen-recorder.html',    label: `${window.s4lIcon ? window.s4lIcon('video') : ''} Screen Recorder` },
       { href: '/account/signin.html',                    label: 'Logout', cls: 'vendor-logout' },
     ],
     professional: [
+      { href: '/',                                       label: `${window.s4lIcon ? window.s4lIcon('home') : ''} Back to Site`, cls: 'vendor-nav-home' },
       { href: '/account/vendor/dashboard.html',          label: 'Dashboard' },
       { href: '/account/vendor/products.html',           label: 'Products' },
       { href: '/account/vendor/add-product.html',        label: 'Add Product' },
@@ -434,6 +470,7 @@ function injectMobileBar() {
       { href: '/account/vendor/messages.html',           label: 'Messages', badge: 'mob-msg-badge' },
       { href: '/account/vendor/settings.html',           label: 'Store Settings' },
       { href: '/account/vendor/tools.html',              label: 'Tools' },
+      { href: '/account/vendor/screen-recorder.html',    label: `${window.s4lIcon ? window.s4lIcon('video') : ''} Screen Recorder` },
       { href: '/account/signin.html',                    label: 'Logout', cls: 'vendor-logout' },
     ],
   };
@@ -545,6 +582,13 @@ async function populateVendorIdentity(container, prefetchedVendor = null) {
     if (vendor.type) {
       localStorage.setItem('s4l_vendorType', vendor.type);
       document.dispatchEvent(new CustomEvent('vendorLoaded', { detail: { type: vendor.type, vendor } }));
+
+      const tierBadge = container.querySelector('#sidebar-tier-badge');
+      if (tierBadge) {
+        const TIER_LABELS = { casual: 'Casual', refurbished: 'Refurbished', professional: 'Professional', enterprise: 'Enterprise' };
+        tierBadge.textContent = TIER_LABELS[vendor.type] || 'Casual';
+        tierBadge.dataset.tier = vendor.type;
+      }
     }
   } catch (err) {
     console.warn('Vendor identity skipped', err);
@@ -557,6 +601,25 @@ async function populateVendorIdentity(container, prefetchedVendor = null) {
 // =====================================================
 
 let _buyerBadgeDone = false;
+
+// A plain dot, not a number — small badges reading "44" etc. were
+// unreadable at this size, and the count already lives on the specific
+// dropdown links (.dd-order-badge / .dd-msg-badge). This just says
+// "something's new". Exposed on window since the sticky bar's account
+// button (a separate element, loaded on its own async timeline) needs
+// to apply the same dot once it exists, whichever order the two load in.
+window.__s4lHasNotif = false;
+function applyNotifDot() {
+  if (!window.__s4lHasNotif) return;
+  document.querySelectorAll('#accountBtnDesktop, .s4l-account-btn').forEach((btn) => {
+    if (!btn.querySelector('.buyer-notif-badge')) {
+      const b = document.createElement('span');
+      b.className = 'buyer-notif-badge';
+      btn.appendChild(b);
+    }
+  });
+}
+window.applyNotifDot = applyNotifDot;
 
 async function applyBuyerBadge() {
   if (_buyerBadgeDone) return;
@@ -584,7 +647,9 @@ async function applyBuyerBadge() {
     const msgCount = (msgRes.status === 'fulfilled' && msgRes.value?.ok)
       ? ((await msgRes.value.json()).unread || 0) : 0;
 
-    // Populate message badge inside the dropdown link
+    // Populate message/order badges inside their own dropdown links —
+    // the avatar badge below is just the combined total; each link gets
+    // its own specific count so you know what's new without opening it.
     if (msgCount > 0) {
       const label = msgCount > 99 ? '99+' : String(msgCount);
       document.querySelectorAll('.dd-msg-badge').forEach(b => {
@@ -592,21 +657,55 @@ async function applyBuyerBadge() {
         b.style.display = 'inline-block';
       });
     }
-
-    const total = orderCount + msgCount;
-    if (!total) return;
-
-    const label = total > 99 ? '99+' : String(total);
-
-    ['accountBtnDesktop', 'accountBtnMobile'].forEach((id) => {
-      const btn = document.getElementById(id);
-      if (btn && !btn.querySelector('.buyer-notif-badge')) {
-        const b = document.createElement('span');
-        b.className = 'buyer-notif-badge';
+    if (orderCount > 0) {
+      const label = orderCount > 99 ? '99+' : String(orderCount);
+      document.querySelectorAll('.dd-order-badge').forEach(b => {
         b.textContent = label;
-        btn.appendChild(b);
-      }
-    });
+        b.style.display = 'inline-block';
+      });
+    }
+
+    window.__s4lHasNotif = (orderCount + msgCount) > 0;
+    applyNotifDot();
+  } catch {
+    /* non-critical */
+  }
+}
+
+// =====================================================
+// VENDOR "DASHBOARD" NAV DOT
+// Runs on every page (unlike vendor-button.js, which only loads on the
+// homepage / sell page for the hero CTA) — the header's Sell→Dashboard
+// link appears everywhere, so its notification dot needs to too.
+// =====================================================
+
+let _vendorNavDotDone = false;
+
+async function applyVendorNavDot() {
+  if (_vendorNavDotDone) return;
+  _vendorNavDotDone = true;
+
+  const token = localStorage.getItem('s4l_token');
+  const isVendor = localStorage.getItem('s4l_isVendor') === 'true';
+  if (!token || !isVendor) return;
+
+  try {
+    const [or, mr] = await Promise.allSettled([
+      fetch(`${window.API_BASE}/vendor/orders/pending-count`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${window.API_BASE}/messages/unread-count?view=vendor`, { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    const orderCount   = (or.status === 'fulfilled' && or.value.ok) ? (await or.value.json()).count  || 0 : 0;
+    const messageCount = (mr.status === 'fulfilled' && mr.value.ok) ? (await mr.value.json()).unread || 0 : 0;
+
+    if (orderCount + messageCount > 0) {
+      document.querySelectorAll('#nav-sell-desktop, #nav-sell-mobile').forEach((el) => {
+        if (!el.querySelector('.nav-dashboard-dot')) {
+          const dot = document.createElement('span');
+          dot.className = 'nav-dashboard-dot';
+          el.appendChild(dot);
+        }
+      });
+    }
   } catch {
     /* non-critical */
   }
@@ -623,13 +722,31 @@ document.addEventListener('headerLoaded', () => {
     try {
       const user = JSON.parse(userRaw);
       const displayName = user.name ? user.name.split(' ')[0] : user.username;
+      const initial = (displayName || '?').charAt(0).toUpperCase();
 
       const desktopBtn = document.getElementById('accountBtnDesktop');
       const mobileBtn = document.getElementById('accountBtnMobile');
 
-      if (desktopBtn) desktopBtn.textContent = displayName + ' ▾';
-      if (mobileBtn) mobileBtn.textContent = displayName + ' ▾';
+      [desktopBtn, mobileBtn].forEach((btn) => {
+        if (!btn) return;
+        btn.classList.add('account-avatar-btn', 'logged-in');
+        btn.setAttribute('title', displayName);
+        btn.setAttribute('aria-label', `Account: ${displayName}`);
+        btn.textContent = initial;
+      });
     } catch {}
+  }
+
+  // Logged-in vendors get a "Dashboard" link straight to their store instead of the generic "Sell" pitch
+  if (localStorage.getItem('s4l_token') && localStorage.getItem('s4l_isVendor') === 'true') {
+    const vendorType = localStorage.getItem('s4l_vendorType') || 'casual';
+    const dashboardHref = vendorType === 'casual'
+      ? '/account/vendor/dashboard-casual.html'
+      : '/account/vendor/dashboard.html';
+    document.querySelectorAll('#nav-sell-desktop, #nav-sell-mobile').forEach((el) => {
+      el.href = dashboardHref;
+      el.textContent = 'Dashboard';
+    });
   }
 
   function setupAccount(btnId, menuId) {
@@ -710,6 +827,7 @@ document.addEventListener('headerLoaded', () => {
   }
 
   applyBuyerBadge();
+  applyVendorNavDot();
   initEmailVerificationBanner();
 });
 
@@ -756,15 +874,28 @@ document.addEventListener('headerLoaded', () => {
     window.__coreLoaded = true;
     const _p = location.pathname;
     const _isBackoffice = _p.includes('/account/admin/') || _p.includes('/account/vendor/');
+    const _noStickyBar = _p.includes('/thankyou/')
+      || _p.includes('/account/orders.html')
+      || _p.includes('/account/orders-details.html')
+      || _p.includes('/account/register.html')
+      || _p.includes('/account/signin.html')
+      || _p.includes('/cart/cart.html')
+      || _p.includes('/cart/checkout.html');
     // Buyer-facing scripts and cookie banner — skip on admin and vendor pages
     if (!_isBackoffice) {
       initCookieBanner();
       loadScript('/assets/js/quick-add.js');
       loadScript('/assets/js/cart.js');
       loadScript('/assets/js/search.js');
-      loadScript('/assets/js/sticky-bar.js');
+      // Sticky bar (shopping nav) doesn't belong on order-confirmation/order-status pages
+      if (!_noStickyBar) loadScript('/assets/js/sticky-bar.js');
     }
   }
+
+  // Loaded unconditionally (buyer + admin/vendor) and before any page
+  // script, since those wire up window.setButtonLoading/guardedClick at
+  // setup time and expect it to already exist.
+  loadScript('/assets/js/button-loading.js');
 
   if (window.__pageScripts && Array.isArray(window.__pageScripts)) {
     window.__pageScripts.forEach(loadScript);
@@ -856,6 +987,16 @@ function initEmailVerificationBanner() {
       });
       const d = await r.json();
       if (d.ok && d.msg === 'already_verified') {
+        // The account was verified server-side (e.g. an email security
+        // scanner auto-visited the link) but our cached user object never
+        // learned about it — patch it so the banner doesn't reappear.
+        try {
+          const cached = JSON.parse(localStorage.getItem('s4l_user') || 'null');
+          if (cached) {
+            cached.emailVerified = true;
+            localStorage.setItem('s4l_user', JSON.stringify(cached));
+          }
+        } catch {}
         bar.remove();
       } else if (d.ok) {
         resendBtn.textContent = 'Email sent!';

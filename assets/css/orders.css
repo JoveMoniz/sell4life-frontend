@@ -30,6 +30,9 @@ body {
 .page-top {
   max-width: 900px;
   margin: 0 auto 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .auth-back {
@@ -276,10 +279,17 @@ body {
   display: inline-block;
 }
 .order-actions-menu {
-  display: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   position: absolute;
-  top: 50px;
+  /* Was a fixed top:50px, unrelated to the toggle button's actual height —
+     left a dead gap making the menu look like a separate floating panel
+     instead of something that opened out of the button. Anchor tight to
+     the button's own bottom edge instead. */
+  top: 100%;
   left: 0;
+  margin-top: 10px;
   min-width: 220px;
   background: #ffffff;
   border-radius: 12px;
@@ -287,18 +297,168 @@ body {
   box-shadow: 0 10px 30px rgba(0,0,0,0.15);
   z-index: 50;
   border: 1px solid #e5e7eb;
+  /* Was an instant display:none/flex swap — fade + scale it open/closed
+     instead so it doesn't just snap into existence. */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px) scale(0.98);
+  transform-origin: top left;
+  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0s linear 0.16s;
+  pointer-events: none;
 }
 .order-actions-menu.open {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0s linear 0s;
+  pointer-events: auto;
+}
+/* Pointer so the menu visibly "comes out of" the toggle button — a clean
+   triangle (border-color layer behind a slightly smaller fill-color
+   layer, the standard CSS-triangle-with-outline trick), not a rotated
+   square, which read as having an odd extra "tail". */
+.order-actions-menu::before,
+.order-actions-menu::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+}
+.order-actions-menu::before {
+  top: -9px;
+  left: 15px;
+  border-bottom: 9px solid #e5e7eb;
+}
+.order-actions-menu::after {
+  top: -8px;
+  left: 16px;
+  border-bottom: 8px solid #ffffff;
 }
 
-/* Order history list */
+/* Trigger and every action button on an order (dropdown items, plus the
+   standalone Cancel/Return buttons below) were relying on unstyled
+   default <button> chrome ("plain square, says nothing") — give them
+   real depth so hovering visibly signals "clickable". Layered on top
+   of whatever inline color/border each button already sets. */
+.order-actions-toggle {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #111;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  transition: background 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+}
+.order-actions-toggle:hover {
+  background: #f9fafb;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+  transform: translateY(-1px);
+}
+.order-actions-toggle:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+.oat-caret {
+  display: inline-block;
+  font-size: 1.6em;
+  line-height: 0;
+  vertical-align: -3px;
+  margin-left: 1px;
+}
+.order-actions-menu button,
+.btn-cancel-item,
+.btn-show-return-form,
+.btn-submit-return,
+.btn-cancel-return-form {
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+.order-actions-menu button:hover:not(:disabled),
+.btn-cancel-item:hover,
+.btn-show-return-form:hover,
+.btn-submit-return:hover,
+.btn-cancel-return-form:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.14);
+  filter: brightness(0.96);
+}
+.order-actions-menu button:active:not(:disabled),
+.btn-cancel-item:active,
+.btn-show-return-form:active,
+.btn-submit-return:active,
+.btn-cancel-return-form:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+.order-actions-menu button:disabled {
+  cursor: not-allowed;
+}
+
+/* Order history — hover peeks it, click pins it open.
+   .order-history was an unstyled block div, so it stretched to the full
+   width of its card — the hover-trigger zone extended way past the
+   visible "Order activity" text, reading as one giant invisible button
+   spanning the whole panel. Shrink it to fit its content, and give the
+   toggle real button chrome so the clickable area is visually obvious. */
+.order-history {
+  display: inline-block;
+}
+.order-history-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 6px 12px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  transition: background 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+}
+.order-history-toggle:hover {
+  background: #f9fafb;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+  transform: translateY(-1px);
+}
+.order-history-toggle:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+.order-history-toggle .oh-caret {
+  display: inline-block;
+  font-size: 20px;
+  line-height: 0;
+  color: #0b6b6a;
+  transition: transform 0.2s ease;
+}
+.order-history-toggle.open .oh-caret,
+.order-history:hover .oh-caret {
+  transform: rotate(180deg);
+}
+.order-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease, margin-top 0.25s ease;
+}
+.order-history:hover .order-history-list,
+.order-history-list.open {
+  max-height: 600px;
+  margin-top: 10px;
+}
 .order-history-list li {
   display: flex;
   justify-content: space-between;
   font-size: 14px;
+  padding: 4px 0;
 }
 .history-label { font-weight: 500; }
 

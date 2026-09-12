@@ -70,6 +70,16 @@
       font-size: 22px; font-weight: 900; line-height: 1; color: #0b6b6a;
       opacity: 0.72;
     }
+    /* ── Account avatar (logged-in initial, replaces the plain icon) ── */
+    .s4l-account-avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: #f18c28;
+      color: #1c1206;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; line-height: 1;
+      border: 1.5px solid rgba(255,255,255,0.5);
+    }
     /* ── Basket circle ──────────────────────────────── */
     .s4l-basket-circle {
       width: 34px; height: 34px; border-radius: 50%;
@@ -106,6 +116,49 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 13px; font-weight: 800; color: #e07b1a; line-height: 1;
     }
+    /* messages: rectangle, blue — distinct from orders on either side */
+    .s4l-pill-vendor-msg .s4l-pill-inner,
+    .s4l-pill-buyer-msg .s4l-pill-inner {
+      min-width: 34px; padding: 0 9px; height: 34px;
+      border-radius: 6px;
+      border: 1px solid rgba(37,99,235,0.7);
+      display: flex; align-items: center; justify-content: center;
+      gap: 4px;
+      font-size: 13px; font-weight: 800; color: #2563eb; line-height: 1;
+    }
+    .s4l-pill-vendor-msg svg,
+    .s4l-pill-buyer-msg svg { flex-shrink: 0; }
+    /* ── Account dropdown (replicates header's account-dropdown, opens upward) ── */
+    .s4l-account-wrap { position: relative; }
+    .s4l-account-btn { position: relative; }
+    /* .buyer-notif-badge's default offset (-2px/-2px) hugs the header's
+       small ~27px avatar button, but this button is a much bigger 58px
+       tap target with a small centered icon — that offset left the dot
+       floating in empty space near the outer edge instead of on the icon.
+       Pull it in to sit against the icon itself. */
+    .s4l-account-btn .buyer-notif-badge {
+      top: 9px;
+      right: 15px;
+    }
+    @media (max-width: 768px) {
+      .s4l-account-btn .buyer-notif-badge {
+        top: 8px;
+        right: 12px;
+      }
+    }
+    #s4l-account-dropdown {
+      position: absolute;
+      bottom: 100%;
+      top: auto;
+      left: 50%;
+      right: auto;
+      margin-bottom: 10px;
+      box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.25);
+      transform: translateX(-50%) translateY(8px);
+    }
+    #s4l-account-dropdown.open {
+      transform: translateX(-50%) translateY(0);
+    }
     /* ── Mobile ──────────────────────────────────────── */
     @media (max-width: 768px) {
       .s4l-sticky-btn,
@@ -114,10 +167,13 @@
       .s4l-arrow-up      { font-size: 24px; -webkit-text-stroke: 0.6px #0b6b6a; transform: scaleY(1.4); display: inline-block; }
       .s4l-sticky-btn svg { stroke-width: 2.6; }
       .s4l-basket-circle { width: 36px; height: 36px; border-width: 2px; border-color: rgba(11,107,106,0.85); }
+      .s4l-account-avatar { width: 36px; height: 36px; font-size: 14px; font-weight: 900; }
       .s4l-basket-circle svg { opacity: 1; stroke-width: 2.2; }
       .s4l-basket-n      { font-size: 14px; font-weight: 900; }
       .s4l-pill-vendor .s4l-pill-inner { width: 36px; height: 36px; border-width: 2px; font-size: 14px; font-weight: 900; }
       .s4l-pill-buyer  .s4l-pill-inner { min-width: 36px; height: 36px; border-width: 2px; font-size: 14px; font-weight: 900; }
+      .s4l-pill-vendor-msg .s4l-pill-inner,
+      .s4l-pill-buyer-msg  .s4l-pill-inner { min-width: 36px; height: 36px; border-width: 2px; font-size: 14px; font-weight: 900; }
     }
   `;
   document.head.appendChild(css);
@@ -131,6 +187,12 @@
         <button class="s4l-pill s4l-pill-vendor" aria-label="Vendor orders">
           <span class="s4l-pill-inner"></span>
         </button>
+        <button class="s4l-pill s4l-pill-vendor-msg" aria-label="Vendor messages">
+          <span class="s4l-pill-inner">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4V6a2 2 0 0 1 2-2z"/></svg>
+            <span class="s4l-pill-num"></span>
+          </span>
+        </button>
         <div class="s4l-sep s4l-sep-v"></div>
 
         <button class="s4l-sticky-btn s4l-top-btn" aria-label="Back to top">
@@ -138,14 +200,24 @@
         </button>
         <div class="s4l-sep"></div>
 
-        <button class="s4l-sticky-btn s4l-account-btn" aria-label="My account">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="8" r="4"/>
-            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-          </svg>
-        </button>
+        <div class="account-menu s4l-account-wrap">
+          <button class="s4l-sticky-btn s4l-account-btn" aria-label="Account menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+            </svg>
+          </button>
+          <div class="account-dropdown" id="s4l-account-dropdown">
+            <a href="/account/signin.html" class="auth dd-login">Sign in</a>
+            <a href="/account/register.html" class="auth dd-register">Register</a>
+            <a href="/account/orders.html" class="auth dd-orders">My Orders <span class="dd-order-badge"></span></a>
+            <a href="/account/messages.html" class="auth dd-messages">My Messages <span class="dd-msg-badge"></span></a>
+            <a href="/account/settings.html" class="auth dd-settings">Account Settings</a>
+            <button type="button" class="dd-logout">Logout</button>
+          </div>
+        </div>
         <div class="s4l-sep"></div>
 
         <button class="s4l-sticky-btn s4l-cart-btn" aria-label="View basket" disabled>
@@ -159,55 +231,30 @@
             <span class="s4l-basket-n"></span>
           </div>
         </button>
-        <div class="s4l-sep s4l-sep-b"></div>
-
-        <button class="s4l-pill s4l-pill-buyer" aria-label="Your orders">
-          <span class="s4l-pill-inner"></span>
-        </button>
       </div>
     `;
     document.body.appendChild(bar);
 
+    // In case layout.js's notification check already resolved before this
+    // bar existed — covers whichever of the two loads first.
+    window.applyNotifDot && window.applyNotifDot();
+
     // ── Scroll-linked reveal ──────────────────────────────────
     function initVisibility() {
-      // Mobile: show only when header has scrolled off screen
-      if (window.innerWidth <= 1280) {
-        const mobileHeader = document.querySelector('.s4l-header-mobile');
-        let footerVisible = false;
-
-        function setBar(show) {
-          bar.style.transform    = show ? 'none' : 'translateY(110%)';
-          bar.style.pointerEvents = show ? 'auto' : 'none';
-        }
-
-        if (mobileHeader) {
-          new IntersectionObserver(([e]) => {
-            if (!footerVisible) setBar(!e.isIntersecting);
-          }, { threshold: 0 }).observe(mobileHeader);
-        }
-
-        let footerObserved = false;
-        function tryObserveFooterMobile() {
-          if (footerObserved) return;
-          const btn = document.querySelector('.back-to-top');
-          if (!btn) return;
-          footerObserved = true;
-          new IntersectionObserver(([e]) => {
-            footerVisible = e.isIntersecting;
-            setBar(!e.isIntersecting && window.scrollY > (mobileHeader ? mobileHeader.offsetHeight : 0));
-          }, { threshold: 0 }).observe(btn);
-        }
-        setTimeout(tryObserveFooterMobile, 1000);
+      // Mobile: bar is always visible — it's the only way to reach account/basket nav
+      if (window.innerWidth <= 767) {
+        bar.style.transform = 'none';
+        bar.style.pointerEvents = 'auto';
         return;
       }
-      // Desktop: reveal after scrolling past the header
+      // Tablet/Desktop: reveal only once the header has scrolled off screen
       const candidates = ['.basket-wrapper:not(.mobile-basket)', '.basket-wrapper', '.s4l-header-desktop', 'header'];
       let headerEl = null;
       for (const sel of candidates) {
         const el = document.querySelector(sel);
         if (el && el.offsetHeight > 0) { headerEl = el; break; }
       }
-      const triggerAt  = headerEl ? headerEl.getBoundingClientRect().bottom + window.scrollY - 80 : 10;
+      const triggerAt  = headerEl ? Math.max(10, headerEl.getBoundingClientRect().bottom + window.scrollY) : 10;
       const revealOver = 15;
       let footerVisible = false, footerObserved = false;
       function tryObserveFooter() {
@@ -252,30 +299,23 @@
           ]);
           const orderCount   = (or.status === 'fulfilled' && or.value.ok) ? (await or.value.json()).count  || 0 : 0;
           const messageCount = (mr.status === 'fulfilled' && mr.value.ok) ? (await mr.value.json()).unread || 0 : 0;
-          const total = orderCount + messageCount;
-          if (total > 0) {
-            bar.querySelector('.s4l-pill-vendor .s4l-pill-inner').textContent = total > 99 ? '99+' : total;
+          if (orderCount > 0) {
             bar.querySelector('.s4l-pill-vendor').classList.add('s4l-show');
             bar.querySelector('.s4l-sep-v').classList.add('s4l-show');
+            bar.querySelector('.s4l-pill-vendor .s4l-pill-inner').textContent = orderCount > 99 ? '99+' : orderCount;
+          }
+          if (messageCount > 0) {
+            bar.querySelector('.s4l-pill-vendor-msg').classList.add('s4l-show');
+            bar.querySelector('.s4l-sep-v').classList.add('s4l-show');
+            bar.querySelector('.s4l-pill-vendor-msg .s4l-pill-num').textContent = messageCount > 99 ? '99+' : messageCount;
           }
         } catch {}
       }
 
-      const since = localStorage.getItem('s4l_orders_seen') || 0;
-      try {
-        const [or, mr] = await Promise.allSettled([
-          fetch(`${window.API_BASE}/account/unseen-orders?since=${since}`, { headers: { Authorization: `Bearer ${token}` }, credentials: 'include' }),
-          isVendor ? null : fetch(`${window.API_BASE}/messages/unread-count?view=buyer`, { headers: { Authorization: `Bearer ${token}` }, credentials: 'include' }),
-        ]);
-        const orderCount   = (or.status === 'fulfilled' && or.value?.ok) ? (await or.value.json()).count  || 0 : 0;
-        const messageCount = (!isVendor && mr.status === 'fulfilled' && mr.value?.ok) ? (await mr.value.json()).unread || 0 : 0;
-        const total = orderCount + messageCount;
-        if (total > 0) {
-          bar.querySelector('.s4l-pill-buyer .s4l-pill-inner').textContent = total > 99 ? '99+' : total;
-          bar.querySelector('.s4l-pill-buyer').classList.add('s4l-show');
-          bar.querySelector('.s4l-sep-b').classList.add('s4l-show');
-        }
-      } catch {}
+      // Buyer order/message counts are no longer shown as separate pills
+      // here — they duplicated the account avatar's badge and its per-link
+      // dropdown badges (My Orders / My Messages), which is now the single
+      // place notifications live. See layout.js's applyBuyerBadge().
     }
 
     // ── Init ──────────────────────────────────────────────────
@@ -289,7 +329,64 @@
 
     // ── Actions ───────────────────────────────────────────────
     bar.querySelector('.s4l-top-btn').addEventListener('click',    () => window.scrollTo({ top: 0, behavior: 'smooth' }));
-    bar.querySelector('.s4l-account-btn').addEventListener('click', () => { window.location.href = localStorage.getItem('s4l_token') ? '/account/orders.html' : '/account/signin.html'; });
+
+    // Account dropdown — replicates the header's account-dropdown (same links,
+    // same login/logged-out visibility rules), opening upward since this bar
+    // is fixed to the bottom of the viewport. Outside-click close is handled
+    // by layout.js's existing global handler (it already closes any
+    // `.account-dropdown` when a click lands outside `.account-menu`).
+    (function setupStickyAccount() {
+      const accBtn = bar.querySelector('.s4l-account-btn');
+      const menu   = bar.querySelector('#s4l-account-dropdown');
+
+      accBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const isOpen = menu.classList.contains('open');
+        document.querySelectorAll('.account-dropdown').forEach((m) => m.classList.remove('open'));
+        if (!isOpen) menu.classList.add('open');
+      });
+
+      const token    = localStorage.getItem('s4l_token');
+      const login    = menu.querySelector('.dd-login');
+      const register = menu.querySelector('.dd-register');
+      const orders   = menu.querySelector('.dd-orders');
+      const messages = menu.querySelector('.dd-messages');
+      const settings = menu.querySelector('.dd-settings');
+      const logoutBtn = menu.querySelector('.dd-logout');
+
+      if (token) {
+        login.style.display = 'none';
+        register.style.display = 'none';
+        orders.style.display = 'block';
+        messages.style.display = 'block';
+        settings.style.display = 'block';
+        logoutBtn.style.display = 'block';
+        logoutBtn.addEventListener('click', () => { menu.classList.remove('open'); logout(); });
+
+        // Swap the generic person icon for the user's initial — same
+        // identity cue as the header's account avatar. Especially useful
+        // here since the sticky bar (always visible on mobile) is often
+        // the only account entry point on screen at all.
+        try {
+          const user = JSON.parse(localStorage.getItem('s4l_user') || 'null');
+          const displayName = user?.name ? user.name.split(' ')[0] : user?.username;
+          const initial = (displayName || '').charAt(0).toUpperCase();
+          if (initial) {
+            accBtn.innerHTML = `<span class="s4l-account-avatar">${initial}</span>`;
+            accBtn.setAttribute('title', displayName);
+            accBtn.setAttribute('aria-label', `Account: ${displayName}`);
+          }
+        } catch {}
+      } else {
+        orders.style.display = 'none';
+        messages.style.display = 'none';
+        settings.style.display = 'none';
+        logoutBtn.style.display = 'none';
+        login.style.display = 'block';
+        register.style.display = 'block';
+      }
+    })();
     // Cart button: click/tap → popup with "Go to Basket" + "Clear Basket"
     (function() {
       const cartBtn = bar.querySelector('.s4l-cart-btn');
@@ -314,8 +411,8 @@
           'z-index:99999', 'min-width:210px',
         ].join(';');
         pop.innerHTML = `
-          <button id="s4l-pop-go"    style="width:100%;padding:11px 16px;background:#0b6b6a;color:#fff;border:none;border-radius:9px;font-size:0.9rem;font-weight:700;cursor:pointer;text-align:left">🛒 Go to Basket</button>
-          <button id="s4l-pop-clear" style="width:100%;padding:11px 16px;background:#fff;color:#dc2626;border:1.5px solid #fca5a5;border-radius:9px;font-size:0.9rem;font-weight:700;cursor:pointer;text-align:left">✕ Clear Basket</button>
+          <button id="s4l-pop-go"    style="width:100%;padding:11px 16px;background:#0b6b6a;color:#fff;border:none;border-radius:9px;font-size:0.9rem;font-weight:700;cursor:pointer;text-align:left"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M3 4h2l1 12h12l2-8H7"/><circle cx="9" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/></svg> Go to Basket</button>
+          <button id="s4l-pop-clear" style="width:100%;padding:11px 16px;background:#fff;color:#dc2626;border:1.5px solid #fca5a5;border-radius:9px;font-size:0.9rem;font-weight:700;cursor:pointer;text-align:left"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M6 6l12 12M18 6L6 18"/></svg> Clear Basket</button>
         `;
         document.body.appendChild(pop);
 
@@ -351,8 +448,8 @@
 
       cartBtn.title = 'View basket';
     })();
-    bar.querySelector('.s4l-pill-vendor').addEventListener('click', () => { window.location.href = '/account/vendor/orders.html'; });
-    bar.querySelector('.s4l-pill-buyer').addEventListener('click',  () => { window.location.href = '/account/orders.html'; });
+    bar.querySelector('.s4l-pill-vendor').addEventListener('click',     () => { window.location.href = '/account/vendor/orders.html'; });
+    bar.querySelector('.s4l-pill-vendor-msg').addEventListener('click', () => { window.location.href = '/account/vendor/messages.html'; });
   }
 
   if (document.readyState === 'loading') {

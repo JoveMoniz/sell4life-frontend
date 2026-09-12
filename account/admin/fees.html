@@ -8,7 +8,7 @@
     <meta http-equiv="Expires" content="0" />
     <title>Fee Management | Admin</title>
     <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png" />
-    <link rel="stylesheet" href="/assets/css/admin.css?v=20260625e" />
+    <link rel="stylesheet" href="/assets/css/admin.css?v=20260813h" />
     <style>
       #logoutBtn { padding: 5px 10px; font-size: 12px; font-weight: 500; }
 
@@ -236,6 +236,25 @@
 
       .fee-loading { color: #9ca3af; text-align: center; padding: 30px; font-size: 14px; }
 
+      .founding-badge {
+        display: inline-block;
+        padding: 1px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 600;
+        background: #fef9c3;
+        color: #854d0e;
+      }
+      .founding-used { font-size: 11px; color: #9ca3af; display: block; margin-top: 2px; }
+      .founding-none { color: #d1d5db; }
+
+      .founding-counter {
+        font-size: 13px;
+        font-weight: 600;
+        color: #374151;
+        margin-left: auto;
+      }
+
       /* info banner */
       .fee-info {
         background: #f0fdf4;
@@ -361,6 +380,63 @@
         </div>
       </div>
 
+      <!-- ══ FOUNDING SELLER PROGRAM ══ -->
+      <div class="fee-section">
+        <div class="fee-section-title">
+          Founding Seller Program
+          <span class="fee-section-subtitle">Discounts commission for each seller's first N sales, for the first "cap" sellers overall. Cap and rate are locked in per-seller at signup — editing them here only affects new signups, e.g. a lower-discount "wave 2" once the current cap fills up.</span>
+        </div>
+        <div class="fee-grid">
+          <div class="fee-field">
+            <label>Overall Cap <span class="fee-field-hint">(total spots, all tiers)</span></label>
+            <div class="fee-input-wrap">
+              <input type="number" id="inp-founding-cap" min="0" step="1" placeholder="50">
+              <span class="fee-input-unit">spots</span>
+            </div>
+          </div>
+          <div class="fee-field">
+            <label>Rate During Free Sales <span class="fee-field-hint">(0 = fully free)</span></label>
+            <div class="fee-input-wrap">
+              <input type="number" id="inp-founding-rate" min="0" max="100" step="0.1" placeholder="0">
+              <span class="fee-input-unit">%</span>
+            </div>
+          </div>
+          <div class="fee-field">
+            <label>Casual</label>
+            <div class="fee-input-wrap">
+              <input type="number" id="inp-founding-casual" min="0" step="1" placeholder="10">
+              <span class="fee-input-unit">sales</span>
+            </div>
+          </div>
+          <div class="fee-field">
+            <label>Refurbished</label>
+            <div class="fee-input-wrap">
+              <input type="number" id="inp-founding-refurbished" min="0" step="1" placeholder="10">
+              <span class="fee-input-unit">sales</span>
+            </div>
+          </div>
+          <div class="fee-field">
+            <label>Professional</label>
+            <div class="fee-input-wrap">
+              <input type="number" id="inp-founding-professional" min="0" step="1" placeholder="30">
+              <span class="fee-input-unit">sales</span>
+            </div>
+          </div>
+          <div class="fee-field">
+            <label>Enterprise</label>
+            <div class="fee-input-wrap">
+              <input type="number" id="inp-founding-enterprise" min="0" step="1" placeholder="30">
+              <span class="fee-input-unit">sales</span>
+            </div>
+          </div>
+        </div>
+        <div class="fee-save-row">
+          <button type="button" class="btn-save" id="btn-save-founding">Save Founding Seller Config</button>
+          <span class="fee-save-status" id="status-founding"></span>
+          <span class="founding-counter" id="founding-counter"></span>
+        </div>
+      </div>
+
       <!-- ══ PER-VENDOR OVERRIDES ══ -->
       <div class="fee-section">
         <div class="fee-section-title">
@@ -377,12 +453,13 @@
                 <th>Store</th>
                 <th>Tier</th>
                 <th>Effective Rate</th>
+                <th>Founding Seller</th>
                 <th>Override %</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody id="vendor-rate-table">
-              <tr><td colspan="5" class="fee-loading">Loading…</td></tr>
+              <tr><td colspan="6" class="fee-loading">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -391,8 +468,10 @@
     </div>
 
     <script src="/assets/js/config-global.js"></script>
+    <script src="/assets/js/icons.js"></script>
+    <script src="/assets/js/client-info.js"></script>
     <script src="/assets/js/require-admin.js"></script>
-    <script type="module" src="/assets/js/admin-fees.js?v=20260621"></script>
+    <script type="module" src="/assets/js/admin-fees.js?v=20260830c"></script>
     <script type="module" src="/assets/js/admin-logout.js?v=20260621"></script>
   </body>
 </html>

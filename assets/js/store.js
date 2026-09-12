@@ -81,6 +81,7 @@
         heroEl.style.backgroundPosition = 'center';
       }
       document.getElementById('store-hero').style.display = 'block';
+      if (window.S4L_CURRENCY_READY) await window.S4L_CURRENCY_READY;
       renderProducts(products || []);
     } catch (err) {
       console.error('Store load error:', err);

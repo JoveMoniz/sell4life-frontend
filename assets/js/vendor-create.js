@@ -1,6 +1,27 @@
 const form = document.getElementById('vendorForm');
 const msg = document.getElementById('msg');
 const slugPreview = document.getElementById('slug-preview');
+const countrySel = document.getElementById('vendorCountry');
+
+// Populate from the same allowlist the backend validates against — adding
+// a country there is enough to make it show up here too.
+(async () => {
+  if (!countrySel) return;
+  try {
+    const res = await fetch(`${window.API_BASE}/vendor/stripe-connect-countries`);
+    const data = await res.json();
+    const codes = Array.isArray(data.countries) ? data.countries : ['GB'];
+    const all = Array.isArray(window.S4L_COUNTRIES) ? window.S4L_COUNTRIES : [];
+    countrySel.innerHTML = '<option value="">Select a country…</option>' + codes
+      .map((code) => {
+        const match = all.find((c) => c.code === code);
+        return `<option value="${code}">${match ? match.name : code}</option>`;
+      })
+      .join('');
+  } catch {
+    countrySel.innerHTML = '<option value="GB">United Kingdom</option>';
+  }
+})();
 
 document.getElementById('storeName').addEventListener('input', (e) => {
   const slug = e.target.value
@@ -27,6 +48,7 @@ form.addEventListener('submit', async (e) => {
 
   const token = localStorage.getItem('s4l_token');
   if (!token) {
+    localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
     window.location.replace('/account/signin.html');
     return;
   }
@@ -39,6 +61,15 @@ form.addEventListener('submit', async (e) => {
     .replace(/^-+|-+$/g, '');
   const storeDescription = (document.getElementById('storeDescription')?.value || '').trim();
   const storeType = document.getElementById('storeType')?.value || 'casual';
+  const country = countrySel?.value || '';
+
+  if (!country) {
+    msg.textContent = 'Please select your business country.';
+    msg.style.color = '#dc2626';
+    button.disabled = false;
+    button.textContent = 'Apply to Sell';
+    return;
+  }
 
   if (!storeName || storeName.length < 3) {
     msg.textContent = 'Store name must be at least 3 characters.';
@@ -56,6 +87,16 @@ form.addEventListener('submit', async (e) => {
     return;
   }
 
+  // Same UTM/referrer this session already recorded for visit tracking
+  // (client-info.js) — reused so vendor-store creation can be attributed
+  // to a traffic source/campaign, same as buyer registration.
+  let utm = {};
+  let referrer = '';
+  try {
+    utm = JSON.parse(sessionStorage.getItem('s4l_session_utm') || '{}');
+    referrer = sessionStorage.getItem('s4l_session_referrer') || '';
+  } catch { /* attribution is best-effort only */ }
+
   try {
     const res = await fetch(`${window.API_BASE}/vendor/create`, {
       method: 'POST',
@@ -63,7 +104,7 @@ form.addEventListener('submit', async (e) => {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ storeName, storeSlug, storeDescription, type: storeType }),
+      body: JSON.stringify({ storeName, storeSlug, storeDescription, type: storeType, country, utm, referrer }),
     });
 
     const data = await res.json();

@@ -97,7 +97,7 @@ async function loadReviews() {
           </div>
           <div class="arv-row-info">
             <p class="arv-row-product">${productLink}</p>
-            <p class="arv-row-author">${r.buyerName || 'Buyer'}${r.verified ? ' <span style="font-size:10px;color:#059669">✓ Verified</span>' : ''}</p>
+            <p class="arv-row-author">${r.buyerName || 'Buyer'}${r.verified ? ' <span style="font-size:10px;color:#059669"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg> Verified</span>' : ''}</p>
             ${r.title ? `<p class="arv-row-title">"${r.title}"</p>` : ''}
             ${r.body  ? `<p class="arv-row-body">${r.body}</p>` : ''}
             <p style="font-size:11px;color:#9ca3af;margin:4px 0 0">${new Date(r.createdAt).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}</p>

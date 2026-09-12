@@ -1,5 +1,6 @@
 let currentPage = 1;
 let currentQuery = '';
+let usersController = null;
 
 const API = window.API_BASE;
 
@@ -8,6 +9,18 @@ function authFetch(url, opts = {}) {
   const headers = { ...(opts.headers || {}) };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   return fetch(url, { ...opts, credentials: 'include', headers });
+}
+
+// Names get stored however someone typed them at signup — title-case for
+// display, and shown as its own column so search results (sorted by name)
+// have a visible column to actually look sorted by.
+function titleCase(name) {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .split(' ')
+    .map(w => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(' ');
 }
 
 /* ================================
@@ -19,14 +32,24 @@ async function loadUsers(query = '', page = 1) {
   currentPage  = page;
   currentQuery = query;
 
+  if (usersController) usersController.abort();
+  usersController = new AbortController();
+
   let url = `${API}/admin/users?page=${page}`;
   if (query) url += `&q=${encodeURIComponent(query)}`;
 
-  tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7">Loading...</td></tr>';
 
-  const res = await authFetch(url);
+  let res;
+  try {
+    res = await authFetch(url, { signal: usersController.signal });
+  } catch (err) {
+    if (err.name === 'AbortError') return;
+    throw err;
+  }
 
   if (res.status === 401 || res.status === 403) {
+    localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
     window.location.href = '/account/admin/signin.html';
     return;
   }
@@ -34,7 +57,7 @@ async function loadUsers(query = '', page = 1) {
   const data = await res.json();
 
   if (!data.users || !Array.isArray(data.users)) {
-    tbody.innerHTML = '<tr><td colspan="6">No users found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7">No users found</td></tr>';
     return;
   }
 
@@ -51,6 +74,7 @@ async function loadUsers(query = '', page = 1) {
 
     const shortUId = '...' + String(user._id || '').slice(-6).toUpperCase();
     tr.innerHTML = `
+      <td>${titleCase(user.name) || user.username || '—'}</td>
       <td>
         ${user.email || '—'}
         <strong style="font-family:monospace;font-size:0.72rem;color:#6b7280;margin-left:4px">${shortUId}</strong>
@@ -97,7 +121,7 @@ function buildUserPanel(user) {
     : '<span style="background:#f3f4f6;color:#374151;padding:1px 8px;border-radius:10px;font-size:0.75rem;font-weight:600">User</span>';
 
   const emailVerified = user.emailVerified
-    ? '<span style="color:#15803d">✓ Verified</span>'
+    ? '<span style="color:#15803d"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg> Verified</span>'
     : '<span style="color:#9ca3af">Not verified</span>';
 
   const addr = user.defaultShippingAddress;
@@ -106,7 +130,11 @@ function buildUserPanel(user) {
        <div>${addr.address1}${addr.address2 ? ', ' + addr.address2 : ''}</div>
        <div>${[addr.city, addr.county, addr.postcode].filter(Boolean).join(', ')}</div>
        <div>${addr.country || ''}</div>`
-    : '<span style="color:#9ca3af">No address saved</span>';
+    // Buyer never (or hasn't yet) ticked "Save as my default shipping address"
+    // at checkout, so the User record itself has nothing — check their most
+    // recent order for the address they actually typed in instead of just
+    // reporting "No address saved" when one clearly exists on an order.
+    : `<span id="addr-fallback-${user._id}" style="color:#9ca3af">Checking recent orders…</span>`;
 
   const vendorHtml = user.vendor
     ? `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
@@ -292,7 +320,39 @@ document.getElementById('usersTable').addEventListener('click', async e => {
   wrapper.style.height = '0px';
   wrapper.offsetHeight;
   requestAnimationFrame(() => { wrapper.style.height = fullHeight; });
+
+  if (!user.defaultShippingAddress) loadAddressFallback(user._id);
 });
+
+/* ================================
+   ADDRESS FALLBACK — no defaultShippingAddress saved on the User (buyer
+   never ticked "Save as default" at checkout, or the order predates that
+   field), so pull the address off their most recent order instead of just
+   reporting "No address saved" when one clearly exists on an order.
+================================ */
+async function loadAddressFallback(userId) {
+  const el = document.getElementById(`addr-fallback-${userId}`);
+  if (!el) return;
+  try {
+    const res = await authFetch(`${API}/admin/users/${userId}/orders`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    const order = (data.orders || []).find(o => o.shippingAddress && o.shippingAddress.address1);
+    if (!order) {
+      el.textContent = 'No address saved';
+      return;
+    }
+    const addr = order.shippingAddress;
+    el.outerHTML = `
+      <div>${addr.name || ''}</div>
+      <div>${addr.address1}${addr.address2 ? ', ' + addr.address2 : ''}</div>
+      <div>${[addr.city, addr.county, addr.postcode].filter(Boolean).join(', ')}</div>
+      <div>${addr.country || ''}</div>
+      <div style="font-size:0.75rem;color:#9ca3af;margin-top:2px">From order ${order.displayId} — not saved as default</div>`;
+  } catch {
+    el.textContent = 'No address saved';
+  }
+}
 
 /* ================================
    SAVE ROLE (shared)
@@ -312,7 +372,9 @@ async function saveRole(userId, newRole, btn) {
 
     if (data.requiresReauth) {
       await showAlert('Your role changed. Please sign in again.');
+      const returnTo = window.location.pathname + window.location.search;
       localStorage.clear();
+      localStorage.setItem('postLoginRedirect', returnTo);
       window.location.href = '/account/admin/signin.html';
       return;
     }
@@ -332,10 +394,26 @@ async function saveRole(userId, newRole, btn) {
 ================================ */
 const searchInput = document.getElementById('userSearch');
 let searchTimer;
+let userSearchWasEmpty = true;
 if (searchInput) {
   searchInput.addEventListener('input', () => {
     clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => loadUsers(searchInput.value.trim()), 300);
+    const q = searchInput.value.trim();
+    // Fire immediately on the first character of a new search — otherwise a
+    // fast typist cancels every debounce timer before it fires, and results
+    // only appear once they happen to pause, at whatever character count
+    // that lands on.
+    if (!q) {
+      userSearchWasEmpty = true;
+      loadUsers('');
+      return;
+    }
+    if (userSearchWasEmpty) {
+      userSearchWasEmpty = false;
+      loadUsers(q);
+    } else {
+      searchTimer = setTimeout(() => loadUsers(q), 300);
+    }
   });
 }
 

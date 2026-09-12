@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Start Selling | Sell4Life</title>
     <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png" />
-    <link rel="stylesheet" href="/assets/css/layout.css" />
+    <link rel="stylesheet" href="/assets/css/layout.css?v=20260831a" />
     <style>
       .sell-hero {
         background: #0b6b6a;
@@ -39,6 +39,25 @@
         transition: background 0.2s;
       }
       .sell-cta-btn:hover { background: #d97820; }
+
+      /* display only when NOT [hidden] — an unconditional `display` here
+         would override the browser's native [hidden]{display:none}, since
+         an author rule always beats the UA stylesheet regardless of
+         matching specificity, making this render as an empty pill whenever
+         JS leaves it hidden (e.g. the program isn't configured). */
+      .founding-seller-badge:not([hidden]) {
+        display: inline-block;
+      }
+      .founding-seller-badge {
+        background: rgba(255,255,255,0.14);
+        border: 1px solid rgba(255,255,255,0.3);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        padding: 6px 16px;
+        border-radius: 20px;
+        margin-bottom: 20px;
+      }
 
       .sell-section {
         max-width: 1000px;
@@ -152,6 +171,7 @@
 
     <!-- Hero -->
     <div class="sell-hero">
+      <span id="founding-seller-badge" class="founding-seller-badge" hidden></span>
       <h1>Start Selling on Sell4Life</h1>
       <p>Join independent sellers reaching buyers across the UK. Set up your store in minutes.</p>
       <button class="sell-cta-btn" data-vendor-start>Apply to Sell →</button>
@@ -184,28 +204,28 @@
       <h2>Why sell with us</h2>
       <div class="benefits-grid">
         <div class="benefit-card">
-          <div class="benefit-icon">&#128176;</div>
+          <div class="benefit-icon"><svg class="s4l-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0b6b6a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M9.5 15.5a2.5 2.5 0 003.5.6c1.3-.9 1-2.4-.5-2.9l-1-.3c-1.5-.5-1.8-2-.5-2.9a2.5 2.5 0 013.5.6"/><path d="M12 7.5v1M12 15.5v1"/></svg></div>
           <div>
             <h3>No monthly fees</h3>
             <p>You only pay when you sell. No subscription, no upfront cost.</p>
           </div>
         </div>
         <div class="benefit-card">
-          <div class="benefit-icon">&#9889;</div>
+          <div class="benefit-icon"><svg class="s4l-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0b6b6a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0;"><path d="M13 3L4 14h6l-1 7 9-11h-6l1-7z"/></svg></div>
           <div>
             <h3>Fast setup</h3>
             <p>Your store is live as soon as your application is approved.</p>
           </div>
         </div>
         <div class="benefit-card">
-          <div class="benefit-icon">&#128274;</div>
+          <div class="benefit-icon"><svg class="s4l-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0b6b6a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0;"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div>
           <div>
             <h3>Secure payments</h3>
             <p>Stripe handles all transactions. Funds are held safely until orders are fulfilled.</p>
           </div>
         </div>
         <div class="benefit-card">
-          <div class="benefit-icon">&#128200;</div>
+          <div class="benefit-icon"><svg class="s4l-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0b6b6a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0;"><path d="M4 19h16"/><path d="M6 16l4-5 3.5 2.5L18 7"/><path d="M14 7h4v4"/></svg></div>
           <div>
             <h3>Your own storefront</h3>
             <p>Get a public store page buyers can browse and share.</p>
@@ -222,8 +242,11 @@
     </div>
 
     <script src="/assets/js/config-global.js"></script>
+    <script src="/assets/js/icons.js"></script>
+    <script src="/assets/js/client-info.js"></script>
     <script>
       window.__pageScripts = ['/assets/js/vendor-button.js'];
     </script>
+    <script src="/assets/js/founding-seller-badge.js"></script>
   </body>
 </html>

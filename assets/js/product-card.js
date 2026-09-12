@@ -13,11 +13,16 @@ function s4lStarsHTML(rating, size) {
 
 window.s4lProductCardHTML = function (p, opts = {}) {
   const id = p._id || p.id;
-  const price = Number(p.price || 0).toFixed(2);
+  // Callers should `await window.S4L_CURRENCY_READY` before rendering
+  // cards in a loop — this reads whatever currency.js has already
+  // resolved by then, falling back to plain GBP if currency.js never
+  // loaded on a given page.
+  const fmtPrice = window.s4lFormatPrice || ((n) => `£${Number(n || 0).toFixed(2)}`);
+  const price = fmtPrice(p.price || 0);
 
   const compareRaw = p.comparePrice ?? p.compare_price ?? null;
   const compareEl = compareRaw && Number(compareRaw) > Number(p.price)
-    ? `<span class="sp-compare">£${Number(compareRaw).toFixed(2)}</span>` : '';
+    ? `<span class="sp-compare">${fmtPrice(compareRaw)}</span>` : '';
 
   let img = '/assets/images/products/sell4life-placeholder.png';
   if (Array.isArray(p.images) && p.images[0]) {
@@ -73,7 +78,7 @@ window.s4lProductCardHTML = function (p, opts = {}) {
         <div class="sp-img-wrap">
           <img src="${img}" alt="${p.name}" loading="lazy"
             onerror="this.src='/assets/images/products/sell4life-placeholder.png'" />
-          ${p.comingSoon ? '<div class="sp-coming-soon-badge">🕐 Coming Soon</div>' : ''}
+          ${p.comingSoon ? '<div class="sp-coming-soon-badge"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg> Coming Soon</div>' : ''}
         </div>
         <div class="sp-info">
           <p class="sp-name">${p.name}</p>
@@ -83,10 +88,13 @@ window.s4lProductCardHTML = function (p, opts = {}) {
       <div class="sp-card-footer">
         <div class="sp-price-block">
           <div class="sp-price-row">
-            <span class="sp-price">£${price}</span>
+            <span class="sp-price">${price}</span>
             ${compareEl}
           </div>
-          <span class="sp-shipping">${window.s4lShippingText(p.shippingCost)}</span>
+          <div class="sp-shipping-row">
+            ${p.acceptOffers ? '<span class="sp-offer-badge">Make an Offer</span>' : ''}
+            <span class="sp-shipping">${window.s4lShippingText(p.shipIncluded ? 0 : p.shippingCost, p.collectionOnly)}</span>
+          </div>
         </div>
         ${basketBtn}
       </div>

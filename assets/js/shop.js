@@ -344,6 +344,8 @@ async function loadProducts() {
   // Ensure categoryList is loaded before rendering browse rows
   if (pillsReady) await pillsReady;
 
+  if (window.S4L_CURRENCY_READY) await window.S4L_CURRENCY_READY;
+
   applyFilters();
 }
 

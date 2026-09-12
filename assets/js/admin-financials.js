@@ -33,6 +33,7 @@ async function loadFinancials(period = 'all') {
     const res = await authFetch(url);
 
     if (res.status === 401 || res.status === 403) {
+      localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
       window.location.href = '/account/admin/signin.html';
       return;
     }
@@ -94,7 +95,7 @@ function renderCards(s) {
     <div class="fin-card">
       <div class="fin-card-label">Stripe Costs</div>
       <div class="fin-card-value negative">${fmt(s.totalStripe)}</div>
-      <div class="fin-card-sub">paid to Stripe</div>
+      <div class="fin-card-sub">paid to Stripe${Number(s.totalStripeOnRefundedOrders) > 0 ? ` · ${fmt(s.totalStripeOnRefundedOrders)} on refunded/cancelled orders` : ''}</div>
     </div>
     <div class="fin-card">
       <div class="fin-card-label">Net Profit</div>

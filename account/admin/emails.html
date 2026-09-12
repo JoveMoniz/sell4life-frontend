@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Marketing Emails | Admin</title>
+    <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png" />
+    <link rel="stylesheet" href="/assets/css/admin.css?v=20260813h" />
+    <style>
+      #logoutBtn { padding: 5px 10px; font-size: 12px; font-weight: 500; }
+
+      .fee-body {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 0 20px 60px;
+      }
+
+      .fee-section {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 22px 24px;
+        margin-top: 22px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.05);
+      }
+      .fee-section-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #374151;
+        margin: 0 0 16px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      .fee-section-subtitle {
+        font-size: 12px;
+        font-weight: 400;
+        color: #9ca3af;
+        margin-left: 8px;
+      }
+
+      .fee-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+      .fee-field label {
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: #6b7280;
+        margin-bottom: 5px;
+      }
+      .fee-field .fee-field-hint {
+        font-size: 10px;
+        font-weight: 400;
+        text-transform: none;
+        letter-spacing: 0;
+        color: #9ca3af;
+      }
+      .fee-input-wrap {
+        display: flex;
+        align-items: center;
+        border: 1px solid #d1d5db;
+        border-radius: 7px;
+        overflow: hidden;
+        background: #fff;
+        transition: border-color .15s;
+      }
+      .fee-input-wrap:focus-within {
+        border-color: #0b6b6a;
+        box-shadow: 0 0 0 2px rgba(11,107,106,.1);
+      }
+      .fee-input-wrap input {
+        flex: 1;
+        border: none;
+        outline: none;
+        padding: 8px 10px;
+        font-size: 14px;
+        background: transparent;
+        min-width: 0;
+      }
+      .fee-input-unit {
+        padding: 0 10px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #6b7280;
+        background: #f9fafb;
+        border-left: 1px solid #e5e7eb;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+      }
+
+      .me-toggle-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+      .me-toggle-row label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #374151;
+      }
+
+      .fee-save-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .btn-save {
+        padding: 8px 20px;
+        background: #0b6b6a;
+        color: #fff;
+        border: none;
+        border-radius: 7px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .15s;
+      }
+      .btn-save:hover { background: #0a5857; }
+      .btn-save:disabled { background: #9ca3af; cursor: not-allowed; }
+      .fee-save-status { font-size: 12px; font-weight: 600; }
+      .fee-save-status.ok  { color: #15803d; }
+      .fee-save-status.err { color: #b91c1c; }
+
+      /* ── Template editor ── */
+      .me-tpl-fields {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-bottom: 16px;
+      }
+      .me-tpl-fields label {
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: #6b7280;
+      }
+      .me-tpl-fields input,
+      .me-tpl-fields textarea {
+        display: block;
+        width: 100%;
+        margin-top: 5px;
+        padding: 8px 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 7px;
+        font-size: 13px;
+        font-family: inherit;
+        color: #111827;
+        text-transform: none;
+        letter-spacing: normal;
+        font-weight: 400;
+        box-sizing: border-box;
+        resize: vertical;
+      }
+      .me-tpl-fields input:focus,
+      .me-tpl-fields textarea:focus {
+        outline: none;
+        border-color: #0b6b6a;
+        box-shadow: 0 0 0 2px rgba(11,107,106,.1);
+      }
+      .me-tpl-cta-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .me-tpl-preview {
+        margin-top: 16px;
+        padding: 20px;
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+      }
+
+      /* ── Stats cards ── */
+      .me-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 14px;
+      }
+      .me-stat-card {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 14px 16px;
+        text-align: center;
+      }
+      .me-stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: #0b6b6a;
+      }
+      .me-stat-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        color: #6b7280;
+        margin-top: 4px;
+      }
+
+      /* ── Backfill button ── */
+      .btn-backfill {
+        padding: 9px 20px;
+        background: #f28c28;
+        color: #fff;
+        border: none;
+        border-radius: 7px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .btn-backfill:hover { background: #d97820; }
+      .btn-backfill:disabled { background: #9ca3af; cursor: not-allowed; }
+      .me-backfill-hint { font-size: 12px; color: #9ca3af; margin-top: 8px; }
+
+      /* ── Log table ── */
+      .fee-table-wrap { overflow-x: auto; }
+      .fee-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        min-width: 500px;
+      }
+      .fee-table th {
+        text-align: left;
+        padding: 8px 10px;
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #6b7280;
+        white-space: nowrap;
+      }
+      .fee-table td {
+        padding: 9px 10px;
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: middle;
+      }
+      .fee-table tr:last-child td { border-bottom: none; }
+      .fee-table tr:hover td { background: #f9fafb; }
+      .fee-loading { color: #9ca3af; text-align: center; padding: 30px; font-size: 14px; }
+
+      .me-type-badge {
+        display: inline-block;
+        padding: 1px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .me-type-badge.welcome       { background:#e0f2fe; color:#075985; }
+      .me-type-badge.seller_invite { background:#fef9c3; color:#854d0e; }
+
+      .fee-info {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 12px;
+        color: #166534;
+        margin-bottom: 18px;
+      }
+    </style>
+  </head>
+
+  <body class="admin">
+
+    <div class="admin-sticky">
+      <div class="admin-top">
+        <header class="admin-header">
+          <a href="/index.html" class="admin-logo">
+            <span class="logo-dollar">$</span>
+            <span class="logo-text">ell</span>
+            <span class="logo-four">4</span>
+            <span class="logo-text">Life</span>
+          </a>
+        </header>
+        <div class="admin-title">
+          <a href="/account/admin/index.html" class="admin-back">← dashboard</a>
+          <h1>Marketing Emails</h1>
+        </div>
+        <button type="button" id="logoutBtn">Log out</button>
+      </div>
+    </div>
+
+    <div class="fee-body">
+
+      <div class="fee-info">
+        Welcome email sends immediately on signup, unconditionally. The seller invite ("got stuff to sell?") sends
+        automatically after the delay below, only to users matching the country filter who aren't already a vendor.
+      </div>
+
+      <!-- ══ STATS ══ -->
+      <div class="fee-section">
+        <div class="fee-section-title">Overview</div>
+        <div class="me-stats-grid">
+          <div class="me-stat-card"><div class="me-stat-value" id="stat-total">—</div><div class="me-stat-label">Total Users</div></div>
+          <div class="me-stat-card"><div class="me-stat-value" id="stat-eligible">—</div><div class="me-stat-label">In Country Filter</div></div>
+          <div class="me-stat-card"><div class="me-stat-value" id="stat-invited">—</div><div class="me-stat-label">Invite Handled</div></div>
+          <div class="me-stat-card"><div class="me-stat-value" id="stat-pending">—</div><div class="me-stat-label">Pending Invite</div></div>
+          <div class="me-stat-card"><div class="me-stat-value" id="stat-welcomes">—</div><div class="me-stat-label">Welcome Emails Sent</div></div>
+          <div class="me-stat-card"><div class="me-stat-value" id="stat-invites">—</div><div class="me-stat-label">Invite Emails Sent</div></div>
+        </div>
+      </div>
+
+      <!-- ══ CONFIG ══ -->
+      <div class="fee-section">
+        <div class="fee-section-title">
+          Seller Invite Settings
+          <span class="fee-section-subtitle">Changes only affect future sends — already-sent emails aren't undone</span>
+        </div>
+        <div class="me-toggle-row">
+          <input type="checkbox" id="inp-invite-enabled" />
+          <label for="inp-invite-enabled">Seller invite worker enabled</label>
+        </div>
+        <div class="fee-grid">
+          <div class="fee-field">
+            <label>Delay After Signup</label>
+            <div class="fee-input-wrap">
+              <input type="number" id="inp-invite-delay" min="0" step="1" placeholder="2">
+              <span class="fee-input-unit">days</span>
+            </div>
+          </div>
+          <div class="fee-field">
+            <label>Country Filter <span class="fee-field-hint">(ISO code, blank = all)</span></label>
+            <div class="fee-input-wrap">
+              <input type="text" id="inp-invite-country" maxlength="2" placeholder="GB" style="text-transform:uppercase">
+            </div>
+          </div>
+        </div>
+        <div class="fee-save-row">
+          <button type="button" class="btn-save" id="btn-save-config">Save Settings</button>
+          <span class="fee-save-status" id="status-config"></span>
+        </div>
+      </div>
+
+      <!-- ══ TEMPLATES ══ -->
+      <div class="fee-section" id="tpl-section-welcome">
+        <div class="fee-section-title">
+          Welcome Email
+          <span class="fee-section-subtitle">Sent immediately on signup. Use {{name}} anywhere to insert the recipient's name.</span>
+        </div>
+        <div class="me-tpl-fields" data-key="welcome">
+          <label>Subject<input type="text" class="me-tpl-subject" /></label>
+          <label>Heading<input type="text" class="me-tpl-heading" /></label>
+          <label>Body <span class="fee-field-hint">(blank line = new paragraph)</span><textarea class="me-tpl-body" rows="4"></textarea></label>
+          <div class="me-tpl-cta-row">
+            <label>Button text<input type="text" class="me-tpl-cta-text" /></label>
+            <label>Button link <span class="fee-field-hint">(relative, e.g. /shop/)</span><input type="text" class="me-tpl-cta-url" /></label>
+          </div>
+        </div>
+        <div class="fee-save-row">
+          <button type="button" class="btn-save btn-tpl-save" data-key="welcome">Save</button>
+          <button type="button" class="btn-save btn-tpl-preview" data-key="welcome" style="background:#6b7280">Preview</button>
+          <span class="fee-save-status" id="status-tpl-welcome"></span>
+        </div>
+        <div class="me-tpl-preview" id="preview-welcome" hidden></div>
+      </div>
+
+      <div class="fee-section" id="tpl-section-seller_invite">
+        <div class="fee-section-title">
+          Seller Invite Email
+          <span class="fee-section-subtitle">Sent after the delay below. Use {{name}} anywhere to insert the recipient's name.</span>
+        </div>
+        <div class="me-tpl-fields" data-key="seller_invite">
+          <label>Subject<input type="text" class="me-tpl-subject" /></label>
+          <label>Heading<input type="text" class="me-tpl-heading" /></label>
+          <label>Body <span class="fee-field-hint">(blank line = new paragraph)</span><textarea class="me-tpl-body" rows="4"></textarea></label>
+          <div class="me-tpl-cta-row">
+            <label>Button text<input type="text" class="me-tpl-cta-text" /></label>
+            <label>Button link <span class="fee-field-hint">(relative, e.g. /sell/)</span><input type="text" class="me-tpl-cta-url" /></label>
+          </div>
+        </div>
+        <div class="fee-save-row">
+          <button type="button" class="btn-save btn-tpl-save" data-key="seller_invite">Save</button>
+          <button type="button" class="btn-save btn-tpl-preview" data-key="seller_invite" style="background:#6b7280">Preview</button>
+          <span class="fee-save-status" id="status-tpl-seller_invite"></span>
+        </div>
+        <div class="me-tpl-preview" id="preview-seller_invite" hidden></div>
+      </div>
+
+      <!-- ══ BACKFILL ══ -->
+      <div class="fee-section">
+        <div class="fee-section-title">
+          Manual Backfill
+          <span class="fee-section-subtitle">For users who registered before this system existed</span>
+        </div>
+        <button type="button" class="btn-backfill" id="btn-backfill">Send Welcome + Invite to Pending Users Now</button>
+        <span class="fee-save-status" id="status-backfill" style="margin-left:12px"></span>
+        <p class="me-backfill-hint">Sends real emails immediately (skips the delay above) to every current user matching the country filter who isn't already a vendor and hasn't been sent the invite yet. Safe to run more than once — it only sends to those still pending.</p>
+
+        <button type="button" class="btn-backfill" id="btn-backfill-log" style="background:#6b7280;margin-top:14px">Backfill Log for Already-Sent Emails</button>
+        <span class="fee-save-status" id="status-backfill-log" style="margin-left:12px"></span>
+        <p class="me-backfill-hint">One-off — no emails sent. Adds log entries (dated to when they actually went out) for anyone emailed before this log existed, so the table below shows the complete history. Safe to run more than once.</p>
+      </div>
+
+      <!-- ══ SEND TO SPECIFIC RECIPIENTS ══ -->
+      <div class="fee-section">
+        <div class="fee-section-title">
+          Send to Specific Recipients
+          <span class="fee-section-subtitle">Bypasses the country/vendor/delay checks above — a deliberate manual send using the current saved template content</span>
+        </div>
+        <div class="fee-grid">
+          <div class="fee-field">
+            <label>Template</label>
+            <div class="fee-input-wrap">
+              <select id="sel-send-template" style="width:100%;border:none;padding:8px 10px;font-size:14px;background:transparent">
+                <option value="welcome">Welcome</option>
+                <option value="seller_invite">Seller Invite</option>
+              </select>
+            </div>
+          </div>
+          <div class="fee-field">
+            <label>Send To</label>
+            <div class="fee-input-wrap">
+              <select id="sel-send-mode" style="width:100%;border:none;padding:8px 10px;font-size:14px;background:transparent">
+                <option value="individual">One person (by email)</option>
+                <option value="tier">All vendors in a tier</option>
+              </select>
+            </div>
+          </div>
+          <div class="fee-field" id="field-send-email">
+            <label>Recipient Email</label>
+            <div style="position:relative">
+              <div class="fee-input-wrap">
+                <input type="text" id="inp-send-search" placeholder="Search name or email to find a user…" autocomplete="off">
+              </div>
+              <div id="send-search-results" hidden style="position:absolute;top:100%;left:0;right:0;z-index:20;background:#fff;border:1px solid #e5e7eb;border-radius:0 0 8px 8px;box-shadow:0 4px 12px rgba(0,0,0,0.08);max-height:240px;overflow-y:auto;overflow-x:hidden"></div>
+            </div>
+            <div class="fee-input-wrap" style="margin-top:6px">
+              <input type="email" id="inp-send-email" placeholder="name@example.com">
+            </div>
+          </div>
+          <div class="fee-field" id="field-send-tier" hidden>
+            <label>Vendor Tier</label>
+            <div class="fee-input-wrap">
+              <select id="sel-send-tier" style="width:100%;border:none;padding:8px 10px;font-size:14px;background:transparent">
+                <option value="casual">Casual</option>
+                <option value="refurbished">Refurbished</option>
+                <option value="professional">Professional</option>
+                <option value="enterprise">Enterprise</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="fee-save-row">
+          <button type="button" class="btn-backfill" id="btn-send-custom">Send</button>
+          <span class="fee-save-status" id="status-send-custom"></span>
+        </div>
+      </div>
+
+      <!-- ══ LOG ══ -->
+      <div class="fee-section">
+        <div class="fee-section-title">Recent Sends</div>
+        <div class="fee-table-wrap">
+          <table class="fee-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>To</th>
+                <th>Name</th>
+                <th>Sent</th>
+              </tr>
+            </thead>
+            <tbody id="log-table">
+              <tr><td colspan="4" class="fee-loading">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <script src="/assets/js/config-global.js"></script>
+    <script src="/assets/js/icons.js"></script>
+    <script src="/assets/js/client-info.js"></script>
+    <script src="/assets/js/require-admin.js"></script>
+    <script type="module" src="/assets/js/admin-emails.js?v=20260831b"></script>
+    <script type="module" src="/assets/js/admin-logout.js?v=20260621"></script>
+  </body>
+</html>

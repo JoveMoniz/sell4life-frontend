@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Store | Sell4Life</title>
     <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png" />
-    <link rel="stylesheet" href="/assets/css/layout.css?v=20260624" />
+    <link rel="stylesheet" href="/assets/css/layout.css?v=20260831a" />
     <link rel="stylesheet" href="/assets/css/quick-add.css?v=20260622b" />
     <link rel="stylesheet" href="/assets/css/reviews.css?v=20260622b" />
-    <link rel="stylesheet" href="/assets/css/product-card.css?v=20260622b" />
+    <link rel="stylesheet" href="/assets/css/product-card.css?v=20260830a" />
     <style>
       .store-profile-hero {
-        background: #0b6b6a;
+        background: linear-gradient(160deg, #073f3e, #0b6b6a);
         padding: 36px 20px 28px;
         color: #fff;
         display: flex;
@@ -61,7 +61,7 @@
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
         gap: 16px;
       }
-      /* Product card markup/styling is shared with the Shop page â€”
+      /* Product card markup/styling is shared with the Shop page —
          see product-card.css, quick-add.css, reviews.css */
 
       .store-empty {
@@ -93,7 +93,7 @@
       <div class="store-profile-hero">
         <div class="store-profile-logo" id="store-logo"></div>
         <div class="store-profile-info">
-          <div class="store-profile-name" id="store-name">Loadingâ€¦</div>
+          <div class="store-profile-name" id="store-name">Loading…</div>
           <div class="store-profile-slug" id="store-slug"></div>
           <div class="store-profile-desc" id="store-desc"></div>
           <div class="store-profile-meta">
@@ -107,7 +107,7 @@
     <div id="store-error" style="display:none">Store not found.</div>
 
     <div class="store-profile-body">
-      <a href="/stores/" class="store-back-link">â† Back to all stores</a>
+      <a href="/stores/" class="store-back-link">← Back to all stores</a>
       <div id="store-products-section" style="display:none">
         <div class="store-profile-heading" id="products-heading">Products</div>
         <div class="store-products-grid" id="store-products-grid"></div>
@@ -115,9 +115,12 @@
     </div>
 
     <script src="/assets/js/config-global.js"></script>
+    <script src="/assets/js/icons.js"></script>
+    <script src="/assets/js/client-info.js"></script>
+    <script src="/assets/js/currency.js"></script>
     <script src="/assets/js/shipping-label.js?v=20260622c"></script>
     <script src="/assets/js/product-card.js?v=20260622c"></script>
-    <script src="/assets/js/store.js?v=20260622c"></script>
+    <script src="/assets/js/store.js?v=20260826a"></script>
   </body>
 </html>
 

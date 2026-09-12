@@ -5,3 +5,10 @@ ErrorDocument 404 /404.html
   Header unset ETag
   FileETag None
 </FilesMatch>
+
+# Correct MIME types for ffmpeg.wasm's self-hosted files — the server's
+# default mapping was serving .wasm as text/plain and .js as the outdated
+# application/x-javascript, which silently stalls WebAssembly instantiation
+# and ES module loading in modern browsers instead of erroring outright.
+AddType application/wasm .wasm
+AddType text/javascript .js .mjs

@@ -5,6 +5,13 @@
 
 const toast = (msg) => window.showToast && window.showToast(msg);
 
+// Falls back to plain GBP on any page that hasn't loaded currency.js —
+// cart.js runs globally (mini-cart in the header) so it can't assume
+// currency.js is present.
+function fmt(n) {
+  return window.s4lFormatPrice ? window.s4lFormatPrice(n) : `£${Number(n || 0).toFixed(2)}`;
+}
+
 (async function () {
   // ---------------------------------------------------------
   // 1. LocalStorage SAFE read & write
@@ -121,7 +128,7 @@ const toast = (msg) => window.showToast && window.showToast(msg);
 
     if (!cart.length) {
       miniCartList.innerHTML = `<li><div class='mini-cart-empty'>No items in basket.</div></li>`;
-      miniCartTotal.innerHTML = `£0.00`;
+      miniCartTotal.innerHTML = fmt(0);
       return;
     }
 
@@ -150,9 +157,9 @@ const toast = (msg) => window.showToast && window.showToast(msg);
                     <div class="mini-cart-info">
                         <div class="mini-cart-name">${item.name}${variantLabel ? `<span class="mini-cart-variant"> — ${variantLabel}</span>` : ''}</div>
                         ${addOnLabel ? `<div class="mini-cart-variant">+ ${addOnLabel}</div>` : ''}
-                        <div class="mini-cart-meta">£${price.toFixed(2)} × ${qty}</div>
+                        <div class="mini-cart-meta">${fmt(price)} × ${qty}</div>
                     </div>
-                    <div class="mini-cart-sub">£${sub.toFixed(2)}</div>
+                    <div class="mini-cart-sub">${fmt(sub)}</div>
                 </div>
             `;
       miniCartList.appendChild(li);
@@ -165,7 +172,7 @@ const toast = (msg) => window.showToast && window.showToast(msg);
                 </div>
                 <div class="mini-cart-total-right">
                     <span class="mini-cart-total-label">Total:</span>
-                    <span class="mini-cart-total-value">£${total.toFixed(2)}</span>
+                    <span class="mini-cart-total-value">${fmt(total)}</span>
                 </div>
             </div>
         `;
@@ -179,7 +186,7 @@ const toast = (msg) => window.showToast && window.showToast(msg);
 
     cartRows.innerHTML = '';
     if (!cart.length) {
-      totalSpan.textContent = '£0.00';
+      totalSpan.textContent = fmt(0);
       cartRows.innerHTML = `
         <div class="cart-empty">
           <p>Your basket is empty.</p>
@@ -231,7 +238,7 @@ const toast = (msg) => window.showToast && window.showToast(msg);
         ? Object.entries(item.variant.attributes).map(([k, v]) => `${k}: ${v}`).join(' / ')
         : '';
       const cartAddOnLabel = item.addOns?.length
-        ? item.addOns.map((ao) => `${ao.name} (+£${Number(ao.price).toFixed(2)})`).join(', ')
+        ? item.addOns.map((ao) => `${ao.name} (+${fmt(ao.price)})`).join(', ')
         : '';
 
       row.innerHTML = `
@@ -256,19 +263,19 @@ const toast = (msg) => window.showToast && window.showToast(msg);
       <button class="remove-item" data-index="${i}">×</button>
   </div>
 
-  <div class="col-price">£${price.toFixed(2)}</div>
-  <div class="col-subtotal">£${sub.toFixed(2)}</div>
+  <div class="col-price">${fmt(price)}</div>
+  <div class="col-subtotal">${fmt(sub)}</div>
 
   <div class="m-price-line">
-      £${price.toFixed(2)} × ${qty} =
-      <span class="m-subtotal">£${sub.toFixed(2)}</span>
+      ${fmt(price)} × ${qty} =
+      <span class="m-subtotal">${fmt(sub)}</span>
   </div>
 `;
 
       cartRows.appendChild(row);
     });
 
-    totalSpan.textContent = `£${total.toFixed(2)}`;
+    totalSpan.textContent = fmt(total);
 
     // Mark names that actually overflow — only those get the scroll animation
     requestAnimationFrame(() => {
@@ -297,6 +304,13 @@ const toast = (msg) => window.showToast && window.showToast(msg);
 
   await refreshAll();
   document.addEventListener('cartUpdated', refreshAll);
+
+  // On pages that load currency.js, its GeoIP fetch may still be in flight
+  // when the cart first renders — re-render once it resolves so prices
+  // don't stay stuck in GBP for a visitor who should see EUR/USD.
+  if (window.S4L_CURRENCY_READY) {
+    window.S4L_CURRENCY_READY.then(() => { renderMiniCart(); renderCartPage(); });
+  }
 
   // =====================================================================
   // 9. TAP SYSTEM FOR BUTTONS
@@ -463,6 +477,9 @@ const toast = (msg) => window.showToast && window.showToast(msg);
       saveCart();
       refreshAll();
       toast('Added to cart');
+      if (window.s4lTrack) {
+        window.s4lTrack('add_to_cart', { productId, name: productName, price: Number(productPrice) || 0 });
+      }
     }
   });
 
@@ -627,5 +644,7 @@ const toast = (msg) => window.showToast && window.showToast(msg);
 // ======================================================================
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('#btn-buy');
-  if (btn) window.location.href = '/cart/checkout.html';
+  if (!btn) return;
+  window.setButtonLoading?.(btn, true, 'Redirecting…');
+  window.location.href = '/cart/checkout.html';
 });

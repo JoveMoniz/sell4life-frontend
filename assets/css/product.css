@@ -107,6 +107,19 @@ body {
   letter-spacing: 0.2px;
 }
 
+.pd-condition-badge {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  line-height: 1.5;
+  background: #eef2ff;
+  color: #4338ca;
+  border: 1px solid #c7d2fe;
+}
+
 /* ── Divider ─────────────────────────────────────────────── */
 
 .pd-divider {
@@ -135,6 +148,13 @@ body {
   font-size: 1rem;
   color: #bbb;
   text-decoration: line-through;
+}
+
+.pd-obo {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #0b6b6a;
+  font-style: italic;
 }
 
 .pd-stock-badge {
@@ -511,50 +531,8 @@ body {
   gap: 20px;
 }
 
-.pd-rel-card {
-  text-decoration: none;
-  background: #fff;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid #e0eeee;
-  display: flex;
-  flex-direction: column;
-  transition: box-shadow 0.2s, transform 0.2s;
-}
-
-.pd-rel-card:hover {
-  box-shadow: 0 6px 20px rgba(11, 107, 106, 0.13);
-  transform: translateY(-3px);
-}
-
-.pd-rel-img {
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-  background: #f3f3f3;
-  display: block;
-}
-
-.pd-rel-info {
-  padding: 12px 14px 14px;
-}
-
-.pd-rel-name {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #222;
-  margin: 0 0 5px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.pd-rel-price {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #0b6b6a;
-  margin: 0;
-}
+/* Related-product cards use the shared .sp-card renderer (product-card.css)
+   — same card as Shop/Store, so no page-specific card styles live here. */
 
 /* =========================================================
    RESPONSIVE
@@ -622,10 +600,6 @@ body {
   .pd-related-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
-  }
-
-  .pd-rel-name {
-    font-size: 0.82rem;
   }
 
   /* iOS zoom prevention */
@@ -707,6 +681,29 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 8px;
+}
+
+/* Flashed briefly on Add to Basket / Buy Now when this attribute still
+   needs a selection — makes it obvious which pill row to click next. */
+@keyframes pd-variant-shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+
+.pd-variant-group.pd-variant-missing {
+  animation: pd-variant-shake 0.4s;
+}
+
+.pd-variant-group.pd-variant-missing .pd-variant-label {
+  color: #dc2626;
+}
+
+.pd-variant-group.pd-variant-missing .pd-variant-pills {
+  outline: 2px solid #dc2626;
+  outline-offset: 4px;
+  border-radius: 8px;
 }
 
 .pd-variant-pills {

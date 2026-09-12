@@ -93,6 +93,55 @@ $('btn-save-tiers').addEventListener('click', async () => {
   }
 });
 
+/* ── Founding Seller program ── */
+const TIER_LIST = ['casual', 'refurbished', 'professional', 'enterprise'];
+
+async function loadFoundingConfig() {
+  const res = await authFetch(`${API}/admin/config/founding-seller`, { credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to load founding seller config');
+  const { foundingSeller } = await res.json();
+
+  $('inp-founding-cap').value = foundingSeller?.cap ?? '';
+  $('inp-founding-rate').value = foundingSeller?.rate != null ? pct(foundingSeller.rate) : '';
+  for (const t of TIER_LIST) {
+    $(`inp-founding-${t}`).value = foundingSeller?.freeSalesByTier?.[t] ?? '';
+  }
+  const cap = foundingSeller?.cap ?? 0;
+  const claimed = foundingSeller?.claimed ?? 0;
+  $('founding-counter').textContent = `${claimed}/${cap} spots claimed`;
+}
+
+$('btn-save-founding').addEventListener('click', async () => {
+  const btn = $('btn-save-founding');
+  btn.disabled = true;
+  try {
+    const freeSalesByTier = {};
+    for (const t of TIER_LIST) {
+      const raw = $(`inp-founding-${t}`).value.trim();
+      if (raw !== '') freeSalesByTier[t] = Number(raw);
+    }
+    const body = {
+      cap: $('inp-founding-cap').value.trim() === '' ? undefined : Number($('inp-founding-cap').value),
+      rate: $('inp-founding-rate').value.trim() === '' ? undefined : dec($('inp-founding-rate').value),
+      freeSalesByTier,
+    };
+    const res = await authFetch(`${API}/admin/config/founding-seller`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Save failed');
+    setStatus('status-founding', 'Saved', 'ok');
+    await loadFoundingConfig();
+  } catch (e) {
+    setStatus('status-founding', e.message, 'err');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 /* ── Vendor table ── */
 let allVendors = [];
 
@@ -107,7 +156,7 @@ async function loadVendors() {
 function renderVendors(vendors) {
   const tbody = $('vendor-rate-table');
   if (!vendors.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="fee-loading">No vendors found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="fee-loading">No vendors found.</td></tr>';
     return;
   }
 
@@ -115,13 +164,25 @@ function renderVendors(vendors) {
     const source = v.commissionOverride != null ? 'override' : (v.type ? 'tier' : 'default');
     const sourceLabel = v.commissionOverride != null ? 'individual override' : `${v.type || 'casual'} tier rate`;
     const overrideVal = v.commissionOverride != null ? pct(v.commissionOverride) : '';
+    const fs = v.foundingSeller;
+
+    // While a Founding Seller's free window is still active, their real
+    // current rate is their own snapshotted founding rate (not necessarily
+    // 0% — a later "wave" could run at a smaller discount) — show that
+    // instead of the normal tier rate, with the normal rate kept visible as
+    // a small aside so it's not confusing.
+    const rateCell = fs?.active
+      ? `${fs.rate === 0 ? 'Free (0%)' : fmt(fs.rate)} <span class="rate-source" style="color:#854d0e">founding rate, normally ${fmt(v.normalEffectiveRate)}</span>`
+      : `${fmt(v.effectiveRate)} <span class="rate-source ${source}">${sourceLabel}</span>`;
 
     return `<tr data-id="${v._id}">
       <td>${v.storeName || v.storeSlug || '—'}</td>
       <td><span class="tier-badge ${v.type || 'casual'}">${v.type || 'casual'}</span></td>
+      <td>${rateCell}</td>
       <td>
-        ${fmt(v.effectiveRate)}
-        <span class="rate-source ${source}">${sourceLabel}</span>
+        ${fs
+          ? `<span class="founding-badge">${fs.active ? 'Founding' : 'Founding (used up)'}</span><span class="founding-used">used ${fs.freeSalesUsed}/${fs.freeSalesLimit}</span>`
+          : '<span class="founding-none">—</span>'}
       </td>
       <td>
         <div style="display:flex;align-items:center;gap:6px;">
@@ -206,6 +267,11 @@ $('vendor-search').addEventListener('input', e => {
     await loadConfig();
   } catch {
     setStatus('status-defaults', 'Failed to load config', 'err');
+  }
+  try {
+    await loadFoundingConfig();
+  } catch {
+    setStatus('status-founding', 'Failed to load config', 'err');
   }
   await loadVendors();
 })();

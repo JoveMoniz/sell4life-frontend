@@ -21,6 +21,7 @@
       document.documentElement.style.visibility = '';
     })
     .catch(() => {
+      localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
       window.location.replace('/account/admin/signin.html');
     });
 })();

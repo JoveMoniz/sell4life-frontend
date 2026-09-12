@@ -12,8 +12,8 @@
       <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png">
 
 
-    <link rel="stylesheet" href="/assets/css/auth.css?v=20260206-dev">
-    
+    <link rel="stylesheet" href="/assets/css/auth.css?v=20260715c">
+
 
   <style id="s4l-fouc">html{visibility:hidden}</style>
   </head>
@@ -34,7 +34,10 @@
         <input type="email" id="email" required>
 
         <label>Password</label>
-        <input type="password" id="password" minlength="6" required>
+        <div class="pw-field-wrap">
+          <input type="password" id="password" minlength="6" required>
+          <button type="button" class="pw-toggle-btn" aria-label="Show password"></button>
+        </div>
 
         <button type="submit">Create Account</button>
         <p id="msg"></p>
@@ -46,10 +49,13 @@
 
 
 <script src="/assets/js/config-global.js"></script>
+<script src="/assets/js/icons.js"></script>
+<script src="/assets/js/client-info.js"></script>
 <script>
   window.__disableLayout = true;
 </script>
-<script type="module" src="/assets/js/register.js?v=20260621"></script>
+<script src="/assets/js/password-toggle.js"></script>
+<script type="module" src="/assets/js/register.js?v=20260906a"></script>
 
 
 </body>

@@ -9,6 +9,7 @@
   </div>
 
   <nav class="vendor-nav">
+    <a href="/" class="vendor-nav-home"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M4 11l8-6 8 6"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/></svg> Back to Site</a>
     <a href="/account/vendor/dashboard-casual.html">Dashboard</a>
     <a href="/account/vendor/products.html">My Listings</a>
     <a href="/account/vendor/add-product-casual.html">Add Product</a>
@@ -19,22 +20,3 @@
     <a href="/account/signin.html" class="vendor-logout">Logout</a>
   </nav>
 </aside>
-
-<script>
-(async function () {
-  const tok = localStorage.getItem('s4l_token');
-  if (!tok) return;
-  try {
-    const r = await fetch((window.API_BASE || '') + '/messages/unread-count?view=vendor', {
-      headers: { Authorization: 'Bearer ' + tok },
-    });
-    if (!r.ok) return;
-    const { unread } = await r.json();
-    const badge = document.getElementById('sidebar-msg-badge');
-    if (badge && unread > 0) {
-      badge.textContent = unread > 99 ? '99+' : unread;
-      badge.className = 'sidebar-msg-badge';
-    }
-  } catch {}
-})();
-</script>

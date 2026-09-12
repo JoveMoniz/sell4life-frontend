@@ -61,11 +61,11 @@ window.__quickAddLoaded = true;
     const confirm = modal.querySelector('.qa-confirm');
     if (!_attrNames.length) return;
 
-    const allSelected = _attrNames.every(n => _selectedAttrs[n] !== undefined);
-    if (!allSelected) {
+    const missing = _attrNames.filter(n => _selectedAttrs[n] === undefined);
+    if (missing.length) {
       _variant = null;
       confirm.disabled    = true;
-      confirm.textContent = 'Select an option';
+      confirm.textContent = (_attrNames[0] === '_variant') ? 'Select an option' : `Select a ${missing[0]}`;
       return;
     }
 
@@ -186,7 +186,8 @@ window.__quickAddLoaded = true;
 
   function setPrice(n) {
     const el = modal?.querySelector('.qa-price');
-    if (el && el.style.display !== 'none') el.textContent = `£${n.toFixed(2)}`;
+    const fmtPrice = window.s4lFormatPrice || ((v) => `£${Number(v || 0).toFixed(2)}`);
+    if (el && el.style.display !== 'none') el.textContent = fmtPrice(n);
   }
 
   function close() {
@@ -229,12 +230,13 @@ window.__quickAddLoaded = true;
         subcategory: _product.subcategory,
         quantity: 1,
         stock: stock !== undefined && stock !== null ? Number(stock) : 999,
-        ...(v ? { variant: { attributes: v.attributes } } : {}),
+        ...(v ? { variant: { attributes: v.attributes, sku: v.sku || '' } } : {}),
       });
     }
 
     localStorage.setItem('cart', JSON.stringify(cart));
     document.dispatchEvent(new Event('cartUpdated'));
+    if (window.s4lTrack) window.s4lTrack('add_to_cart', { productId: pid, name: _product.name, price });
 
     if (_sourceBtn) {
       const total = cart.reduce((s, i) =>
@@ -294,6 +296,7 @@ window.__quickAddLoaded = true;
 
     localStorage.setItem('cart', JSON.stringify(cart));
     document.dispatchEvent(new Event('cartUpdated'));
+    if (window.s4lTrack) window.s4lTrack('add_to_cart', { productId: pid, name: product.name, price });
     if (_sourceBtn) {
       const total = cart.reduce((s, i) =>
         (i.productId || i.id) === pid ? s + (i.quantity || 1) : s, 0);

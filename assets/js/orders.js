@@ -29,6 +29,7 @@ async function initOrders() {
 
     if (res.status === 401) {
       localStorage.removeItem('s4l_token');
+      localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
       window.location.href = '/account/signin.html';
       return;
     }
@@ -82,7 +83,7 @@ function renderOrderCard(o) {
       <div class="order-meta">
        <div>
   ${itemCount} item${itemCount === 1 ? '' : 's'}
-  • Fulfillment: ${o.status}
+  • Fulfillment: ${window.s4lStatusBadge ? window.s4lStatusBadge(o.status) : o.status}
   • Payment:
   <span class="payment-status ${paymentClass}">
     ${paymentLabel}

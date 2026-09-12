@@ -25,26 +25,12 @@ if (!container || !orderId) {
 /* ======================================================
    BADGE CONFIGS
 ====================================================== */
-const RETURN_BADGE = {
-  requested:          { label: 'Return Requested',   color: '#b45309', bg: '#fef3c7' },
-  approved:           { label: 'Return Approved',    color: '#1d4ed8', bg: '#dbeafe' },
-  rejected:           { label: 'Return Rejected',    color: '#b91c1c', bg: '#fee2e2' },
-  partially_returned: { label: 'Partially Returned', color: '#c2410c', bg: '#ffedd5' },
-  returned:           { label: 'Returned',           color: '#15803d', bg: '#dcfce7' },
-};
-
-const REFUND_BADGE = {
-  scheduled:          { label: 'Refund Scheduled',   color: '#1d4ed8', bg: '#dbeafe' },
-  processing:         { label: 'Refund Processing',  color: '#6d28d9', bg: '#ede9fe' },
-  processed:          { label: 'Refunded ✓',         color: '#15803d', bg: '#dcfce7' },
-  partially_refunded: { label: 'Partially Refunded', color: '#c2410c', bg: '#ffedd5' },
-  failed:             { label: 'Refund Failed',      color: '#b91c1c', bg: '#fee2e2' },
-};
-
-function badge(map, status) {
-  const b = map[status];
-  if (!b) return '';
-  return `<span style="background:${b.bg};color:${b.color};padding:2px 8px;border-radius:12px;font-size:0.75rem;font-weight:600">${b.label}</span>`;
+// Badge rendering lives in the shared order-status.js so buyer/vendor/admin
+// all show the exact same colors for the same status.
+function badge(kind, status) {
+  if (kind === 'return') return window.s4lReturnBadge ? window.s4lReturnBadge(status) : '';
+  if (kind === 'refund') return window.s4lRefundBadge ? window.s4lRefundBadge(status) : '';
+  return '';
 }
 
 /* ======================================================
@@ -83,8 +69,11 @@ function getPaymentLabel(paymentStatus) {
 ====================================================== */
 function getDisplayStatus(order) {
   const payment = (order.paymentStatus || '').toLowerCase();
-  if (payment === 'refunded') return `${order.status} • Refunded`;
-  return order.status;
+  const statusBadge = window.s4lStatusBadge ? window.s4lStatusBadge(order.status) : order.status;
+  if (payment === 'refunded') {
+    return `${statusBadge} ${window.s4lRefundBadge ? window.s4lRefundBadge('processed') : '• Refunded'}`;
+  }
+  return statusBadge;
 }
 
 /* ======================================================
@@ -130,8 +119,8 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
   };
   const badges = [
     badge(STATUS_BADGE, item.status || 'Pending'),
-    badge(RETURN_BADGE, item.returnStatus),
-    badge(REFUND_BADGE, item.refundStatus),
+    badge('return', item.returnStatus),
+    badge('refund', item.refundStatus),
   ].filter(Boolean).join(' ');
 
   const qtyDetail = [
@@ -139,6 +128,16 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
     retQty > 0 ? `${retQty} returned`  : '',
     refQty > 0 ? `${refQty} refunded`  : '',
   ].filter(Boolean).join(' · ');
+
+  // Preview amount shown in the cancel confirm dialogs below — mirrors the
+  // backend's calculateItemRefundAmount() for a cancel (no postage deduction;
+  // that only applies to change-of-mind returns). Purely informational: the
+  // actual Stripe refund is capped server-side against the real remaining
+  // charge balance regardless of what's shown here.
+  const cancelQty = Math.max(0, Number(item.quantity || 0) - Number(item.refundedQuantity || 0));
+  const cancelRefundPreview = Math.max(0,
+    (Number(item.price || 0) * cancelQty) + Number(item.shippingCost || 0) - Number(item.discountAmount || 0)
+  ).toFixed(2);
 
   const actionsHTML = itemActions.map(a => {
     // ── Fulfillment ──────────────────────────────────────
@@ -170,7 +169,7 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
     if (a.type === 'Vendor Cancel') {
       return `
         <button class="vendor-item-btn vendor-cancel-btn"
-          data-type="Vendor Cancel" data-order-id="${id}" data-item-id="${a.itemId}"
+          data-type="Vendor Cancel" data-order-id="${id}" data-item-id="${a.itemId}" data-refund-preview="${cancelRefundPreview}"
           style="margin-top:6px;padding:5px 12px;background:#fff;color:#b91c1c;border:1px solid #b91c1c;border-radius:4px;cursor:pointer;font-size:0.82rem">
           Cancel Item
         </button>`;
@@ -179,7 +178,7 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
     if (a.type === 'Cancel Approved') {
       return `
         <button class="vendor-item-btn"
-          data-type="Cancel Approved" data-order-id="${id}" data-item-id="${a.itemId}"
+          data-type="Cancel Approved" data-order-id="${id}" data-item-id="${a.itemId}" data-refund-preview="${cancelRefundPreview}"
           style="margin-top:6px;padding:5px 12px;background:#b91c1c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.82rem">
           Approve Cancellation
         </button>`;
@@ -225,13 +224,16 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
   // ── Goodwill refund (no return required) ────────────────────
   const maxGoodwill = Math.max(0,
     price * qty
-    + Number(item.shippingAmount || 0)
+    + Number(item.shippingCost || 0)
     - Number(item.discountAmount || 0)
     - Number(item.refundedAmount || 0)
   );
-  const goodwillEligible = ['paid', 'partially_refunded'].includes(paymentStatus)
-    && item.refundStatus === 'none'
-    && item.status !== 'Cancelled'
+  // Gate on whether money is actually left to refund (maxGoodwill), not on
+  // whether a refund has happened before or the item was cancelled — a
+  // cancelled item or a return with shipping withheld can still have real
+  // unrefunded value (e.g. the withheld/underpaid shipping) sitting on it.
+  const goodwillEligible = ['paid', 'partially_refunded', 'refunded'].includes(paymentStatus)
+    && item.refundStatus !== 'scheduled'
     && maxGoodwill > 0;
 
   const goodwillHTML = goodwillEligible ? `
@@ -265,6 +267,12 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
       </div>
     </div>` : '';
 
+  const retryRefundHTML = item.refundStatus === 'failed' ? `
+    <button class="btn-retry-refund" data-order-id="${id}" data-item-id="${item._id}"
+      style="padding:5px 12px;background:#fff;color:#b91c1c;border:1px solid #b91c1c;border-radius:4px;cursor:pointer;font-size:0.82rem">
+      ↻ Retry Refund
+    </button>` : '';
+
   const goodwillScheduledHTML = (item.goodwillRefund && item.refundStatus === 'scheduled') ? `
     <div style="margin-top:8px;padding:8px;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;font-size:0.8rem;color:#92400e">
       Goodwill refund of £${Number(item.goodwillRefundAmount || 0).toFixed(2)} scheduled —
@@ -281,46 +289,77 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
     : '/assets/images/products/sell4life-placeholder.png';
 
   const historyHTML = Array.isArray(item.returnHistory) && item.returnHistory.length
-    ? `<details style="margin-top:8px">
-        <summary style="font-size:0.75rem;color:#6b7280;cursor:pointer">History (${item.returnHistory.length})</summary>
-        <ul style="margin:4px 0 0 0;padding-left:16px;font-size:0.75rem;color:#374151">
+    ? `<div style="margin-top:12px">
+        <button type="button" class="s4l-collapse-toggle" style="font-size:0.75rem;color:#6b7280">
+          History (${item.returnHistory.length}) <span class="s4l-collapse-caret">▾</span>
+        </button>
+        <ul class="s4l-collapse-body" style="padding-left:16px;font-size:0.75rem;color:#374151">
           ${item.returnHistory.slice().sort((a, b) => new Date(a.at) - new Date(b.at)).map(h =>
             `<li>${new Date(h.at).toLocaleString()} — ${h.note || h.type}${h.quantity > 0 ? ` ×${h.quantity}` : ''}</li>`
           ).join('')}
         </ul>
-      </details>`
+      </div>`
     : '';
 
-  const trackable = item.status === 'Processing';
+  // Shipped items stay selectable too, so tracking can be added/updated
+  // after the fact — the fulfillment status just won't be re-sent for them
+  // since Processing -> Shipped is the only valid forward transition.
+  const trackable = ['Processing', 'Shipped'].includes(item.status);
 
   return `
     <div class="order-item order-item--selectable">
       ${trackable
-        ? `<input type="checkbox" class="item-select-cb" data-item-id="${item._id}" />`
+        ? `<input type="checkbox" class="item-select-cb" data-item-id="${item._id}" data-status="${item.status}" />`
         : `<span></span>`
       }
       <img src="${img}" width="60" height="60"
         onerror="this.src='/assets/images/products/sell4life-placeholder.png'" />
       <div style="flex:1">
         <div>${item.name || 'Unnamed product'}</div>
+        ${window.s4lVariantLabel && window.s4lVariantLabel(item.attributes)
+          ? `<div style="font-size:0.8rem;color:#0b6b6a;font-weight:600;margin-top:2px">${window.s4lVariantLabel(item.attributes)}</div>`
+          : ''}
         <div style="font-size:0.85rem;color:#6b7280">Qty: ${qty} × £${price.toFixed(2)}</div>
         ${item.supplierUrl ? `
           <a href="${item.supplierUrl}" target="_blank" rel="noopener"
             style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;padding:3px 10px;background:#f0f9f8;border:1px solid #0b6b6a;color:#0b6b6a;border-radius:4px;font-size:0.75rem;font-weight:600;text-decoration:none">
-            🔗 ${item.supplier ? `Open ${item.supplier}` : 'Open supplier listing'}
+            <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M9 15l6-6"/><path d="M13 5l1.5-1.5a3.5 3.5 0 015 5L18 10"/><path d="M11 19l-1.5 1.5a3.5 3.5 0 01-5-5L6 14"/></svg> ${item.supplier ? `Open ${item.supplier}` : 'Open supplier listing'}
           </a>` : ''}
-        ${badges    ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${badges}</div>` : ''}
-        ${qtyDetail ? `<div style="font-size:0.75rem;color:#9ca3af;margin-top:2px">${qtyDetail}</div>` : ''}
+        ${item.cjOrderId && item.status === 'Pending' && (!item.cjOrderStatus || item.cjOrderStatus === 'CREATED') ? `
+          <div style="margin-top:4px;padding:3px 10px;background:#fffbeb;border:1px solid #f59e0b;color:#92400e;border-radius:4px;font-size:0.75rem;font-weight:600;display:inline-block">
+            <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 3l9 16H3L12 3z"/><path d="M12 10v4M12 17h.01"/></svg> CJ order created (${item.cjOrderNumber || item.cjOrderId}) —
+            <a href="https://cjdropshipping.com/mine/dropshipping/orderList?orderType=3&childType=1" target="_blank" rel="noopener"
+              style="color:#92400e;text-decoration:underline">go pay for it in your CJ dashboard</a>
+            (sorted newest first — it'll be at the top)
+          </div>` : ''}
+        ${item.cjOrderId && item.status === 'Pending' && item.cjOrderStatus && item.cjOrderStatus !== 'CREATED' && item.cjOrderStatus !== 'failed' ? `
+          <div style="margin-top:4px;padding:3px 10px;background:#f0f9f8;border:1px solid #0b6b6a;color:#0b6b6a;border-radius:4px;font-size:0.75rem;font-weight:600;display:inline-block">
+            <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg> Paid on CJ (${item.cjOrderNumber || item.cjOrderId}) — waiting for the supplier to dispatch it
+          </div>` : ''}
+        ${item.cjOrderStatus === 'failed' && item.status === 'Pending' ? `
+          <div style="margin-top:4px;padding:3px 10px;background:#fef2f2;border:1px solid #fca5a5;color:#b91c1c;border-radius:4px;font-size:0.75rem;font-weight:600;display:inline-block">
+            <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 3l9 16H3L12 3z"/><path d="M12 10v4M12 17h.01"/></svg> CJ auto-order failed — place this order manually (${item.cjOrderError || 'unknown error'})
+          </div>` : ''}
+        ${badges    ? `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:4px">${badges}</div>` : ''}
+        ${qtyDetail ? `<div style="font-size:0.75rem;color:#9ca3af;margin-top:6px">${qtyDetail}</div>` : ''}
         ${item.trackingNumber
-          ? `<div style="font-size:0.78rem;color:#374151;margin-top:4px">
-               <span style="color:#15803d">✓</span>
+          ? `<div style="font-size:0.78rem;color:#374151;margin-top:10px">
+               <span style="color:#15803d"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg></span>
                <strong>${item.trackingNumber}</strong>${item.carrier ? ` via ${item.carrier}` : ''}
              </div>`
           : ''}
-        ${actionsHTML}
-        ${goodwillHTML}
-        ${goodwillScheduledHTML}
         ${historyHTML}
+        <div class="order-actions-wrapper" style="margin-top:14px">
+          <button class="order-actions-toggle" data-item-id="${item._id}" style="font-size:0.8rem;padding:4px 12px">Actions <span class="oat-caret">▾</span></button>
+          <div class="order-actions-menu" id="item-actions-menu-${item._id}">
+            ${(actionsHTML || goodwillHTML || goodwillScheduledHTML || retryRefundHTML) ? `
+              ${actionsHTML}
+              ${retryRefundHTML}
+              ${goodwillHTML}
+              ${goodwillScheduledHTML}
+            ` : '<p style="margin:0;font-size:0.78rem;color:#9ca3af">No actions available</p>'}
+          </div>
+        </div>
       </div>
       <div class="order-price">£${(qty * price).toFixed(2)}</div>
     </div>`;
@@ -337,6 +376,7 @@ async function loadOrder() {
     ]);
 
     if (orderRes.status === 401 || orderRes.status === 403) {
+      localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
       window.location.href = '/account/signin.html';
       return;
     }
@@ -405,9 +445,38 @@ async function loadOrder() {
     const vendorStatus = order.status || vendorOrder?.status || 'Unknown';
     const hasTrackable = vendorItems.some(i => i.status === 'Processing');
 
+    const placedAt = order.createdAt
+      ? new Date(order.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : '';
+
+    const statusHistoryHTML = Array.isArray(order.statusHistory) && order.statusHistory.length
+      ? `<div style="margin-top:8px">
+          <button type="button" class="s4l-collapse-toggle" style="font-size:0.75rem;color:#6b7280">
+            Status history (${order.statusHistory.length}) <span class="s4l-collapse-caret">▾</span>
+          </button>
+          <ul class="s4l-collapse-body" style="padding-left:16px;font-size:0.75rem;color:#374151">
+            ${order.statusHistory.slice().sort((a, b) => new Date(a.date) - new Date(b.date)).map(h =>
+              `<li>${new Date(h.date).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} — ${h.status}${h.note ? ` (${h.note})` : ''}</li>`
+            ).join('')}
+          </ul>
+        </div>`
+      : '';
+
+    const addr = order.shippingAddress;
+    const shippingAddressHTML = addr ? `
+      <div class="shipping-address-block" style="margin-bottom:14px;padding:10px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;font-size:0.85rem;line-height:1.5">
+        <div style="font-weight:700;margin-bottom:2px">${addr.name || ''}</div>
+        ${addr.address1 ? `<div>${addr.address1}</div>` : ''}
+        ${addr.address2 ? `<div>${addr.address2}</div>` : ''}
+        <div>${[addr.city, addr.county, addr.postcode].filter(Boolean).join(', ')}</div>
+        ${addr.country ? `<div>${addr.country}</div>` : ''}
+        ${addr.phone ? `<div style="margin-top:4px;color:#6b7280"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 4h3.5l1.5 4-2 1.5c1 2.2 2.8 4 5 5l1.5-2 4 1.5V17a1.5 1.5 0 01-1.6 1.5A15 15 0 015 5.6 1.5 1.5 0 015 4z"/></svg> ${addr.phone}</div>` : ''}
+      </div>` : '<p style="font-size:0.85rem;color:#9ca3af">No shipping address on file</p>';
+
     container.innerHTML = `
       <div class="order-details-card">
         <h2>Order ${displayId}</h2>
+        ${placedAt ? `<div class="order-placed-date">Placed ${placedAt}</div>` : ''}
 
         <div class="order-status">
           <div>Status: <strong>${getDisplayStatus({ ...order, status: vendorStatus, refundScheduledAt: vendorRefundScheduledAt, paymentStatus })}</strong></div>
@@ -417,6 +486,7 @@ async function loadOrder() {
               <div>Refund scheduled: ${new Date(order.refundScheduledAt).toLocaleString()}</div>
               <div id="refund-timer" data-time="${order.refundScheduledAt}"></div>
             </div>` : ''}
+          ${statusHistoryHTML}
         </div>
 
         <div class="order-items">
@@ -441,6 +511,7 @@ async function loadOrder() {
               Select all
             </label>` : ''}
           </div>
+          ${shippingAddressHTML}
           ${hasTrackable ? `<p class="tracking-hint">Tick the items above that share this shipment, then enter the tracking details.</p>` : ''}
           <div class="tracking-fields">
             <div>
@@ -581,6 +652,30 @@ async function updateOrderStatus(oid, type) {
    CLICK HANDLER (DELEGATED)
 ====================================================== */
 document.addEventListener('click', async (e) => {
+  // Actions dropdown: open/close (layer 1 of the 2-layer guard — an action
+  // can't even be reached without deliberately opening its menu first; the
+  // confirm dialog on each action is layer 2). Same pattern as the buyer-
+  // facing order-details page (orders-details.js/.order-actions-*).
+  const actionsToggle = e.target.closest('.order-actions-toggle');
+  if (actionsToggle) {
+    const menu = actionsToggle.parentElement.querySelector('.order-actions-menu');
+    document.querySelectorAll('.order-actions-menu.open').forEach(m => { if (m !== menu) m.classList.remove('open'); });
+    menu?.classList.toggle('open');
+    return;
+  }
+  if (!e.target.closest('.order-actions-wrapper')) {
+    document.querySelectorAll('.order-actions-menu.open').forEach(m => m.classList.remove('open'));
+  }
+
+  // History / Status history collapsibles — was a native <details>, which
+  // can't be CSS-animated; toggled the same way as the actions menu now.
+  const collapseToggle = e.target.closest('.s4l-collapse-toggle');
+  if (collapseToggle) {
+    collapseToggle.classList.toggle('open');
+    collapseToggle.nextElementSibling?.classList.toggle('open');
+    return;
+  }
+
   // Select-all checkbox
   if (e.target.id === 'select-all-items') {
     document.querySelectorAll('.item-select-cb').forEach(cb => { cb.checked = e.target.checked; });
@@ -625,6 +720,11 @@ document.addEventListener('click', async (e) => {
         });
         if (!tr.ok) throw new Error('Failed to save tracking');
 
+        // Already-Shipped items just needed the tracking number updated —
+        // Processing -> Shipped is the only valid forward transition, so
+        // re-sending "Shipped" for one that's already there would be rejected.
+        if (cb.dataset.status === 'Shipped') return;
+
         // 2. Mark as Shipped (tracking = shipped, same action for dropshipping)
         const sh = await authFetch(`${API_BASE}/vendor/orders/${orderId}/items/${itemId}/fulfillment`, {
           method:  'PATCH',
@@ -634,7 +734,7 @@ document.addEventListener('click', async (e) => {
         if (!sh.ok) throw new Error('Failed to mark as shipped');
       }));
       if (msg) { msg.style.color = '#15803d'; msg.textContent = `Shipped ${checked.length} item${checked.length > 1 ? 's' : ''}. Buyer notified.`; }
-      saveBtn.textContent = 'Saved ✓';
+      saveBtn.innerHTML = 'Saved <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg>';
       setTimeout(() => location.reload(), 1500);
     } catch (err) {
       if (msg) { msg.style.color = '#dc2626'; msg.textContent = 'Save failed — please try again.'; }
@@ -653,7 +753,14 @@ document.addEventListener('click', async (e) => {
     const qty    = Number(itemBtn.dataset.qty || 1);
 
     if (type === 'Vendor Cancel') {
-      const confirmed = await showConfirm('Cancel this item?\n\nA partial refund will be issued immediately to the customer and cannot be undone.\n\nOnly proceed if you are certain you cannot fulfil this item.');
+      const amt = itemBtn.dataset.refundPreview;
+      const confirmed = await showConfirm(`Cancel this item?\n\nThis will refund £${amt} to the customer immediately and cannot be undone.\n\nOnly proceed if you are certain you cannot fulfil this item.`);
+      if (!confirmed) return;
+    }
+
+    if (type === 'Cancel Approved') {
+      const amt = itemBtn.dataset.refundPreview;
+      const confirmed = await showConfirm(`Approve this cancellation?\n\nThis will refund £${amt} to the customer immediately and cannot be undone.`);
       if (!confirmed) return;
     }
 
@@ -674,6 +781,27 @@ document.addEventListener('click', async (e) => {
       showToast(err.message || 'Action failed', 'error');
       itemBtn.disabled = false;
       itemBtn.textContent = getVendorLabel(type);
+    }
+    return;
+  }
+
+  // Retry a failed refund
+  const retryRefundBtn = e.target.closest('.btn-retry-refund');
+  if (retryRefundBtn) {
+    const oid    = retryRefundBtn.dataset.orderId;
+    const itemId = retryRefundBtn.dataset.itemId;
+    retryRefundBtn.disabled = true;
+    retryRefundBtn.textContent = 'Retrying...';
+    try {
+      const res = await authFetch(`${API_BASE}/vendor/orders/${oid}/items/${itemId}/retry-refund`, { method: 'PATCH' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Retry failed');
+      showToast('Refund retried successfully');
+      location.reload();
+    } catch (err) {
+      showToast(err.message || 'Retry failed', 'error');
+      retryRefundBtn.disabled = false;
+      retryRefundBtn.textContent = '↻ Retry Refund';
     }
     return;
   }

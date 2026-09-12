@@ -104,12 +104,19 @@
 
 .checkout-details {
   flex: 1;
+  /* Flex items default to min-width: auto, meaning they refuse to shrink
+     below their content's natural width — with a long, non-wrapping
+     title in here, that natural width can exceed the phone's whole
+     screen, forcing the entire checkout card wider than the viewport
+     (clipped on the right by the site-wide overflow-x: hidden). */
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }
 
 .checkout-title-wrap {
-  max-width: 220px;
+  --checkout-title-width: 220px;
+  max-width: var(--checkout-title-width);
   overflow: hidden;
 }
 
@@ -129,8 +136,8 @@
 @keyframes title-scroll {
   0%   { transform: translateX(0);                              opacity: 1; }
   8%   { transform: translateX(0);                              opacity: 1; }
-  72%  { transform: translateX(min(0px, calc(-100% + 220px)));  opacity: 1; }
-  81%  { transform: translateX(min(0px, calc(-100% + 220px)));  opacity: 0; }
+  72%  { transform: translateX(min(0px, calc(-100% + var(--checkout-title-width))));  opacity: 1; }
+  81%  { transform: translateX(min(0px, calc(-100% + var(--checkout-title-width))));  opacity: 0; }
   82%  { transform: translateX(0);                              opacity: 0; }
   92%  { transform: translateX(0);                              opacity: 1; }
   100% { transform: translateX(0);                              opacity: 1; }
@@ -213,6 +220,59 @@
   background: #d37520;
 }
 
+/* Sticky Pay Now bar — position:fixed (not CSS `sticky`, which has proven
+   unreliable for viewport-anchored controls on this site before) so the
+   button is always reachable once the real one scrolls out of view,
+   regardless of how tall the form on the left grows. Hidden by default;
+   checkout.js slides it in via the .is-visible class. */
+.checkout-sticky-cta {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 500;
+  transform: translateY(110%);
+  transition: transform 0.22s ease;
+  pointer-events: none;
+  padding: 10px max(12px, env(safe-area-inset-left)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-right));
+  background: linear-gradient(to top, rgba(255,255,255,0.98) 60%, rgba(255,255,255,0));
+}
+
+.checkout-sticky-cta.is-visible {
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.checkout-sticky-cta-inner {
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.checkout-sticky-cta-total {
+  font-size: 0.85rem;
+  color: #4b5563;
+  white-space: nowrap;
+}
+
+.checkout-sticky-cta-total strong {
+  display: block;
+  font-size: 1.05rem;
+  color: #f18c28;
+}
+
+.checkout-sticky-cta .checkout-btn {
+  margin-top: 0;
+  flex: 1;
+}
+
 .checkout-exit {
   margin-top: 45px;
   display: flex;
@@ -268,5 +328,14 @@
 
   .checkout-exit {
     margin-top: 24px;
+  }
+
+  /* 220px (fine on tablet/desktop) doesn't leave enough room next to the
+     60px thumbnail + price column on an actual phone screen — that's
+     what was pushing the whole card past the right edge. The marquee
+     keyframe reads this same variable, so the scroll animation stays in
+     sync automatically. */
+  .checkout-title-wrap {
+    --checkout-title-width: 130px;
   }
 }

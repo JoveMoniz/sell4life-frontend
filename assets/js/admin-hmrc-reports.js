@@ -42,7 +42,11 @@ async function loadReport(year) {
 
   try {
     const res = await authFetch(`${API}/admin/vendors/hmrc-report?year=${year}`);
-    if (res.status === 401) { window.location.href = '/account/admin/signin.html'; return; }
+    if (res.status === 401) {
+      localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
+      window.location.href = '/account/admin/signin.html';
+      return;
+    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       tbody.innerHTML = `<tr><td colspan="8" class="hmrc-empty" style="color:#b91c1c">${esc(err.error || 'Failed to load')}</td></tr>`;

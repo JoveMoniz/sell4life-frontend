@@ -102,6 +102,8 @@
     return;
   }
 
+  if (window.S4L_CURRENCY_READY) await window.S4L_CURRENCY_READY;
+
   // ======================================================
   // MATCH CATEGORY
   // ======================================================

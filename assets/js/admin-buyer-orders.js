@@ -40,6 +40,7 @@ async function loadBuyerOrders(userId) {
   try {
     const res = await authFetch(`${API}/admin/users/${userId}/orders`);
     if (res.status === 401 || res.status === 403) {
+      localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
       window.location.href = '/account/admin/signin.html';
       return;
     }
@@ -190,7 +191,6 @@ function renderOrders(orders) {
 
       const itemRows = (o.items || [])
         .map((item) => {
-          const itemStatusCls = (item.status || '').toLowerCase();
           const refundNote =
             item.status === 'Cancelled' ? ' <span class="bo-refund-tag">cancelled</span>' : '';
           return `<tr>
@@ -199,7 +199,7 @@ function renderOrders(orders) {
         <td class="bo-num">${fmt(item.price)}</td>
         <td class="bo-num">${item.quantity}</td>
         <td class="bo-num">${fmt(item.price * item.quantity)}</td>
-        <td><span class="bo-badge ${itemStatusCls}">${item.status}</span></td>
+        <td>${window.s4lStatusBadge ? window.s4lStatusBadge(item.status) : item.status}</td>
       </tr>`;
         })
         .join('');

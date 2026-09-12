@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <title>Screen Recorder | Sell4Life</title>
+    <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png" />
+    <link rel="stylesheet" href="/assets/css/layout.css?v=20260831a" />
+    <link rel="stylesheet" href="/assets/css/vendor.css?v=20260831c" />
+    <style id="s4l-fouc">html{visibility:hidden}</style>
+  </head>
+  <body class="s4l-loading">
+    <div class="vendor-layout">
+      <div id="vendor-sidebar"></div>
+
+      <main class="vendor-main">
+        <div class="vendor-container">
+          <a href="/account/vendor/dashboard.html" class="vendor-back-link"> ← Back to Dashboard</a>
+          <h1 class="vendor-title">Screen Recorder</h1>
+
+          <section class="vp-section">
+            <h2 class="vp-section-title">Record a Product Video</h2>
+            <p style="color:#6b7280;font-size:0.9rem;margin-bottom:16px">Record your screen or webcam, right from your browser — no software to install. Great for quick product demos to post on Facebook, Instagram, or TikTok.</p>
+            <p style="color:#92400e;font-size:0.85rem;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;margin-bottom:16px"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 21s-6-5.5-6-10a6 6 0 1112 0c0 4.5-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></svg> Keep this tab open and visible while recording — switching to another tab or window can end the recording early.</p>
+
+            <!-- Not supported -->
+            <div id="rec-unsupported" style="display:none;padding:20px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#991b1b;font-size:0.9rem">
+              Recording isn't supported in this browser. Try the latest version of Chrome, Edge, or Firefox.
+            </div>
+
+            <!-- Tier upsell -->
+            <div id="recorder-upsell" style="display:none;padding:20px;background:#f0fafa;border:1px solid #d7ecec;border-radius:10px;color:#0b6b6a;font-size:0.9rem">
+              Screen Recorder is available on Refurbished tier and above.
+            </div>
+
+            <div id="recorder-tool" style="display:none">
+              <!-- Mode select -->
+              <div id="rec-mode-select" class="rec-mode-select">
+                <div class="rec-mode-row">
+                  <button type="button" id="rec-mode-screen" class="vp-btn vp-btn-primary"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M9 20h6M12 16v4"/></svg> Record Screen</button>
+                  <button type="button" id="rec-mode-webcam" class="vp-btn vp-btn-primary"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7l1.5-3h5L16 7"/><circle cx="12" cy="13.5" r="3.3"/></svg> Record Webcam</button>
+                </div>
+                <label class="rec-mic-toggle">
+                  <input type="checkbox" id="rec-mic-enabled" checked />
+                  Include microphone
+                </label>
+                <p id="rec-permission-msg" class="rec-inline-msg" style="display:none"></p>
+              </div>
+
+              <!-- Live recording -->
+              <div id="rec-live" class="rec-live-preview" style="display:none">
+                <video id="rec-live-video" autoplay muted playsinline></video>
+                <div class="rec-live-bar">
+                  <span class="rec-dot"></span>
+                  <span id="rec-timer" class="rec-timer">00:00</span>
+                  <div class="rec-live-actions">
+                    <button type="button" id="rec-pause-btn" class="vp-btn vp-btn-ghost" style="display:none">⏸ Pause</button>
+                    <button type="button" id="rec-stop-btn" class="vp-btn vp-btn-primary">⏹ Stop</button>
+                  </div>
+                </div>
+                <button type="button" id="rec-activate-overlay" class="rec-activate-overlay" style="display:none">
+                  Click to activate recording controls
+                </button>
+              </div>
+
+              <!-- Processing (combining separately-recorded video + audio) -->
+              <div id="rec-processing" class="rec-processing" style="display:none">
+                <div class="rec-processing-spinner"></div>
+                <span>Combining video and audio…</span>
+              </div>
+
+              <!-- Review -->
+              <div id="rec-review" class="rec-review" style="display:none">
+                <video id="rec-review-video" controls playsinline></video>
+                <div class="rec-review-actions">
+                  <button type="button" id="rec-download-btn" class="vp-btn vp-btn-primary"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg> Download</button>
+                  <button type="button" id="rec-edit-btn" class="vp-btn vp-btn-ghost"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8 7.5L20 19M8 16.5L20 5"/></svg> Edit</button>
+                  <button type="button" id="rec-rerecord-btn" class="vp-btn vp-btn-ghost">↻ Re-record</button>
+                  <button type="button" id="rec-discard-btn" class="vp-btn vp-btn-ghost"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M6 6l12 12M18 6L6 18"/></svg> Discard</button>
+                </div>
+              </div>
+
+              <!-- Edit panel -->
+              <div id="rec-edit" class="rec-edit" style="display:none">
+                <video id="rec-edit-video" controls playsinline></video>
+
+                <div class="rec-edit-tools">
+                  <button type="button" class="vp-btn rec-edit-tool-btn is-active" data-tool="trim"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8 7.5L20 19M8 16.5L20 5"/></svg> Trim</button>
+                  <button type="button" class="vp-btn rec-edit-tool-btn" data-tool="remove"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M4 7h16"/><path d="M6 7l1 13a2 2 0 002 2h6a2 2 0 002-2l1-13"/><path d="M9 7V4h6v3"/></svg> Remove Part</button>
+                  <button type="button" class="vp-btn rec-edit-tool-btn" data-tool="volume"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9a4 4 0 010 6"/></svg> Volume</button>
+                  <button type="button" class="vp-btn rec-edit-tool-btn" data-tool="text"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M4 20l1-4.5L15.5 5 19 8.5 8.5 19 4 20z"/><path d="M13 7l3.5 3.5"/></svg> Add Text</button>
+                </div>
+
+                <!-- Trim -->
+                <div id="rec-edit-panel-trim" class="rec-edit-panel">
+                  <p class="rec-inline-msg">Drag the two handles to set where your video starts and ends.</p>
+                  <div class="rec-filmstrip-labels">
+                    <span>Start: <span id="rec-trim-start-label">0:00</span></span>
+                    <span>End: <span id="rec-trim-end-label">0:00</span></span>
+                  </div>
+                  <div id="rec-trim-filmstrip" class="rec-filmstrip">
+                    <div class="rec-filmstrip-content">
+                      <div class="rec-filmstrip-track"></div>
+                      <div class="rec-filmstrip-dim rec-filmstrip-dim-left"></div>
+                      <div class="rec-filmstrip-dim rec-filmstrip-dim-right"></div>
+                      <div class="rec-filmstrip-handle" data-handle="start"></div>
+                      <div class="rec-filmstrip-handle" data-handle="end"></div>
+                    </div>
+                  </div>
+                  <button type="button" id="rec-trim-apply" class="vp-btn vp-btn-primary">Apply Trim</button>
+                </div>
+
+                <!-- Remove part -->
+                <div id="rec-edit-panel-remove" class="rec-edit-panel" style="display:none">
+                  <p class="rec-inline-msg">Drag the two handles over the part you want to remove.</p>
+                  <div class="rec-filmstrip-labels">
+                    <span>Cut from: <span id="rec-mark-start-label">0:00</span></span>
+                    <span>to: <span id="rec-mark-end-label">0:00</span></span>
+                  </div>
+                  <div id="rec-remove-filmstrip" class="rec-filmstrip">
+                    <div class="rec-filmstrip-content">
+                      <div class="rec-filmstrip-track"></div>
+                      <div class="rec-filmstrip-cut"></div>
+                      <div class="rec-filmstrip-handle" data-handle="start"></div>
+                      <div class="rec-filmstrip-handle" data-handle="end"></div>
+                    </div>
+                  </div>
+                  <button type="button" id="rec-remove-apply" class="vp-btn vp-btn-primary">Remove This Part</button>
+                </div>
+
+                <!-- Volume -->
+                <div id="rec-edit-panel-volume" class="rec-edit-panel" style="display:none">
+                  <label>Audio volume: <span id="rec-volume-label">100%</span></label>
+                  <input type="range" id="rec-volume-slider" class="rec-slider" min="50" max="300" value="100" step="10" />
+                  <button type="button" id="rec-volume-apply" class="vp-btn vp-btn-primary">Apply Volume</button>
+                </div>
+
+                <!-- Text overlay -->
+                <div id="rec-edit-panel-text" class="rec-edit-panel" style="display:none">
+                  <label for="rec-text-input">Text</label>
+                  <input type="text" id="rec-text-input" maxlength="80" placeholder="e.g. 20% Off This Week!" />
+                  <label>Font style</label>
+                  <div class="rec-text-position-row">
+                    <button type="button" class="vp-btn rec-text-font-btn is-active" data-font="clean">Clean</button>
+                    <button type="button" class="vp-btn rec-text-font-btn" data-font="bold">Bold</button>
+                    <button type="button" class="vp-btn rec-text-font-btn" data-font="playful">Playful</button>
+                  </div>
+                  <label>Position</label>
+                  <div class="rec-text-position-row">
+                    <button type="button" class="vp-btn rec-text-pos-btn is-active" data-pos="top">Top</button>
+                    <button type="button" class="vp-btn rec-text-pos-btn" data-pos="middle">Middle</button>
+                    <button type="button" class="vp-btn rec-text-pos-btn" data-pos="bottom">Bottom</button>
+                  </div>
+                  <label>Entrance / exit effect</label>
+                  <div class="rec-text-position-row">
+                    <button type="button" class="vp-btn rec-text-fx-btn is-active" data-fx="none">None</button>
+                    <button type="button" class="vp-btn rec-text-fx-btn" data-fx="fade">Fade</button>
+                    <button type="button" class="vp-btn rec-text-fx-btn" data-fx="slide">Slide</button>
+                  </div>
+                  <label>When it's on screen</label>
+                  <div class="rec-filmstrip-labels">
+                    <span>Show from: <span id="rec-text-start-label">0:00</span></span>
+                    <span>to: <span id="rec-text-end-label">0:00</span></span>
+                  </div>
+                  <div id="rec-text-filmstrip" class="rec-filmstrip">
+                    <div class="rec-filmstrip-content">
+                      <div class="rec-filmstrip-track"></div>
+                      <div class="rec-filmstrip-dim rec-filmstrip-dim-left"></div>
+                      <div class="rec-filmstrip-dim rec-filmstrip-dim-right"></div>
+                      <div class="rec-filmstrip-handle" data-handle="start"></div>
+                      <div class="rec-filmstrip-handle" data-handle="end"></div>
+                    </div>
+                  </div>
+                  <button type="button" id="rec-text-apply" class="vp-btn vp-btn-primary">Add Text</button>
+                </div>
+
+                <p id="rec-edit-msg" class="rec-inline-msg" style="display:none"></p>
+
+                <div class="rec-edit-actions">
+                  <a href="#" id="rec-edit-revert" class="rec-edit-revert-link">↩ Revert to original recording</a>
+                  <button type="button" id="rec-edit-done" class="vp-btn vp-btn-primary">← Back to Review</button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script src="/assets/js/config-global.js"></script>
+    <script src="/assets/js/icons.js"></script>
+    <script src="/assets/js/client-info.js"></script>
+    <script src="/assets/js/vendor-guard.js"></script>
+    <script src="/assets/js/tier-config.js"></script>
+    <script src="/assets/js/layout.js?v=20260814b"></script>
+    <script>
+      window.__pageScripts = ['/assets/js/vendor-screen-recorder.js'];
+    </script>
+  </body>
+</html>

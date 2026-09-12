@@ -1786,3 +1786,150 @@ body.admin-users .admin-users-table thead th {
     width: 100%;
   }
 }
+
+/* ======================================================
+   ITEM ACTIONS DROPDOWN — same pattern as buyer order-details
+   (frontend/assets/css/orders.css .order-actions-*): opening the
+   menu is guard layer 1, each action's own confirm dialog is
+   layer 2 — keeps destructive/money-moving buttons from sitting
+   directly clickable in the open.
+====================================================== */
+.order-actions-wrapper {
+  position: relative;
+  display: inline-block;
+}
+.order-actions-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 10px;
+  min-width: 220px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  z-index: 50;
+  border: 1px solid #e5e7eb;
+  /* Was an instant display:none/flex swap — fade + scale it open/closed
+     instead so it doesn't just snap into existence. */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px) scale(0.98);
+  transform-origin: top left;
+  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0s linear 0.16s;
+  pointer-events: none;
+}
+.order-actions-menu.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0s linear 0s;
+  pointer-events: auto;
+}
+/* Pointer so the menu visibly "comes out of" the toggle button — a clean
+   triangle (border-color layer behind a slightly smaller fill-color
+   layer, the standard CSS-triangle-with-outline trick), not a rotated
+   square, which read as having an odd extra "tail". */
+.order-actions-menu::before,
+.order-actions-menu::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+}
+.order-actions-menu::before {
+  top: -9px;
+  left: 15px;
+  border-bottom: 9px solid #e5e7eb;
+}
+.order-actions-menu::after {
+  top: -8px;
+  left: 16px;
+  border-bottom: 8px solid #ffffff;
+}
+
+/* Trigger and every action inside the menu were relying on unstyled
+   default <button> chrome ("plain square, says nothing") — give them
+   real depth so hovering visibly signals "clickable". Layered on top
+   of whatever inline color/border each button already sets. */
+.order-actions-toggle {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #111;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  transition: background 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+}
+.order-actions-toggle:hover {
+  background: #f9fafb;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+  transform: translateY(-1px);
+}
+.order-actions-toggle:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+.oat-caret {
+  display: inline-block;
+  font-size: 1.6em;
+  line-height: 0;
+  vertical-align: -3px;
+  margin-left: 1px;
+}
+
+/* Generic collapsible (History / Status history) — replaces native
+   <details>, which can't be smoothly animated with CSS alone. */
+.s4l-collapse-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.s4l-collapse-caret {
+  display: inline-block;
+  font-size: 1.4em;
+  line-height: 0;
+  color: #0b6b6a;
+  transition: transform 0.2s ease;
+}
+.s4l-collapse-toggle.open .s4l-collapse-caret {
+  transform: rotate(180deg);
+}
+.s4l-collapse-body {
+  margin: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease, margin-top 0.25s ease;
+}
+.s4l-collapse-body.open {
+  max-height: 600px;
+  margin-top: 6px;
+}
+.order-actions-menu button {
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+.order-actions-menu button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.14);
+  filter: brightness(0.96);
+}
+.order-actions-menu button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+.order-actions-menu button:disabled {
+  cursor: not-allowed;
+}

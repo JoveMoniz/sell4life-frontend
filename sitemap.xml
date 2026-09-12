@@ -1,28 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-
-  <!-- Core pages -->
   <url><loc>https://sell4life.com/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
   <url><loc>https://sell4life.com/shop/</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
   <url><loc>https://sell4life.com/stores/</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-
-  <!-- Categories -->
   <url><loc>https://sell4life.com/category/electronics.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://sell4life.com/category/fashion.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://sell4life.com/category/books.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://sell4life.com/category/health-beauty.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://sell4life.com/category/home-garden.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://sell4life.com/category/toys.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-
-  <!-- Info pages -->
   <url><loc>https://sell4life.com/about/</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://sell4life.com/contact/</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://sell4life.com/sell/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://sell4life.com/help/</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-
-  <!-- Legal -->
   <url><loc>https://sell4life.com/legal/terms.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://sell4life.com/legal/privacy.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://sell4life.com/legal/returns.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-
+  <url><loc>https://sell4life.com/stores/store.html?slug=myfirstshop</loc><lastmod>2026-07-08</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://sell4life.com/stores/store.html?slug=forgefound</loc><lastmod>2026-08-22</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://sell4life.com/stores/store.html?slug=billyshop</loc><lastmod>2026-07-19</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=training-kit-3kg-ball</loc><lastmod>2026-06-09</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=360-degrees-rotate-metal-desk-mobile-phone-holder-stand-for-phone-pad-adjustable-desktop-tablet-holderl-table-cell-phone-stand</loc><lastmod>2026-08-23</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=foldale-magnetic-phone-holder-multi-form-adjustable-desktop-tablet-stand-handheld-mount-laptop-bracket</loc><lastmod>2026-08-23</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=large-capacity-commuters-all-matching-portable-and-fashion-shoulder-bag-casual-tote-bag-autumn-and-winter-fashion-handbag</loc><lastmod>2026-08-23</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=womens-fashion-all-matching-large-capacity-crossbody-bag-1</loc><lastmod>2026-08-23</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=internet-celebrity-hot-sale-womens-ins-niche-messenger-bag-fashion-all-matching-1</loc><lastmod>2026-08-23</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=large-capacity-multifunctional-travel-waterproof-mummy-backpack-1</loc><lastmod>2026-08-23</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=12-1</loc><lastmod>2026-08-23</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=laptop-bag-mens-large-capacity-1</loc><lastmod>2026-08-23</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=fashion-new-womens-bag-large-capacity-1</loc><lastmod>2026-08-23</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=laptop-bag-waterproof-156inch-leisure-1</loc><lastmod>2026-08-23</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=black-and-white-laptop-bag-laptop-protective-cover-1</loc><lastmod>2026-08-23</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=multifunctional-fashion-oil-wax-leather-backpack-1</loc><lastmod>2026-08-23</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=new-laptop-stand-multifunctional-folding-lift-portable-laptop-stand-monitor-increase-rack-aluminum-alloy-base-1</loc><lastmod>2026-08-22</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=new-womens-fashion-beach-resort-bag-1</loc><lastmod>2026-08-21</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=printed-tote-bag-with-flower-pendant-new-temperament-shoulder-bag-for-women-fashion-large-capacity-crossbody-bag-1</loc><lastmod>2026-08-21</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=fashion-personalized-womens-shoulder-messenger-bag-1</loc><lastmod>2026-08-21</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=fashion-personalized-messenger-bag-for-women-1</loc><lastmod>2026-08-21</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=womens-shoulder-bag-fashion-simple-high-capacity-waterproof-totes-handbags-designer-1</loc><lastmod>2026-08-21</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=silver-shoulder-messenger-bag-three-purpose-backpack-fashion-1</loc><lastmod>2026-08-21</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=new-light-luxury-cowhide-earphone-sleeves-1</loc><lastmod>2026-08-21</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=adjustable-non-slip-laptop-stand-support-holder-base-riser-6-gears-height-notebook-cooling-stand-portable-for-11-17-inch-tablet-1</loc><lastmod>2026-08-21</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=george-foreman-electric-bbq-grill-25850-never-used-adjustable-temperature</loc><lastmod>2026-07-26</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=marcato-atlas-150-pasta-machine-brand-new-unused-made-in-italy</loc><lastmod>2026-07-26</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sell4life.com/product/product.html?slug=specialized-road-bike-54cm-carbon-fork-shimano-claris-very-good-condition</loc><lastmod>2026-08-15</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
 </urlset>

@@ -225,8 +225,8 @@ footer p {
 .header-container {
   width: 100%;
   display: flex;
-  height: 150px;
-  align-items: flex-end;
+  height: 60px;
+  align-items: center;
   justify-content: space-between;
   gap: 20px;
   margin: 0;
@@ -238,9 +238,8 @@ footer p {
 .desktop-header {
   width: 100%;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  padding-bottom: 40px;
   position: relative;
   overflow: visible;
 }
@@ -248,17 +247,26 @@ footer p {
 #s4l-logo-desktop,
 #s4l-logo-mobile {
   overflow: visible;
+  /* Opera draws the default anchor underline against the SVG's full
+     bounding box instead of suppressing it the way Chrome/Firefox do,
+     producing a thick bar under the whole logo rather than no line at
+     all. text-decoration: none on the parent link isn't enough to stop
+     it there, so it's repeated directly on the SVG (belt-and-suspenders;
+     harmless on browsers where it was already correctly suppressed). */
+  text-decoration: none !important;
 }
 
 .header-logo {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  font-size: 28px;
+  flex-shrink: 0;
+  font-size: 20px;
+  line-height: 1;
   font-weight: bold;
   letter-spacing: 3px;
-  text-decoration: none;
-  margin: 6px 0;
+  text-decoration: none !important;
+  margin: 0;
   padding-left: 20px;
 }
 
@@ -270,6 +278,7 @@ footer p {
 
 .header-nav {
   margin: 10px 0;
+  flex-shrink: 0;
 }
 
 .header-nav a {
@@ -291,38 +300,55 @@ footer p {
   position: relative;
   display: flex;
   align-items: center;
-  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 0 4px 0 16px;
   z-index: 99999;
   overflow: visible;
+  flex: 1 1 auto;
+  min-width: 90px;
+  max-width: 260px;
 }
 
 #desktop-search-input {
   border: none;
   outline: none;
-  width: 700px;
-  height: 36px;
-  padding: 0 10px;
-  font-size: 15px;
-  color: #094949;
-  border-radius: 5px 0 0 5px;
+  background: transparent;
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 0 8px 0 0;
+  font-size: 14px;
+  color: #fff;
+}
+
+#desktop-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .header-search button {
-  background: #f18c28;
+  background: transparent;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 36px;
-  width: 40px;
-  border-radius: 0 5px 5px 0;
+  height: 30px;
+  width: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
-.header-search button img {
-  width: 28px;
-  height: 28px;
+.header-search button:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.header-search button img,
+.header-search button svg {
+  width: 18px;
+  height: 18px;
   object-fit: contain;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 /* Base autocomplete styling (shared by desktop + mobile) */
@@ -407,8 +433,8 @@ footer p {
 ========================================================= */
 
 .header-icons {
-  width: 150px;
   display: flex;
+  flex-shrink: 0;
   margin-right: 20px;
   align-items: center;
   gap: 20px;
@@ -416,7 +442,6 @@ footer p {
 
 .account-menu {
   position: relative;
-  margin-bottom: 10px;
 }
 
 #accountBtnDesktop,
@@ -430,6 +455,47 @@ footer p {
   font-weight: 600;
   cursor: pointer;
   position: relative;
+}
+
+/* Account button: a small round icon always, no text — a generic person
+   icon when signed out, swapped to the first-initial avatar by layout.js
+   once s4l_user is known (textContent replaces the icon with the letter). */
+#accountBtnDesktop.account-avatar-btn,
+#accountBtnMobile.account-avatar-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  background: #167c7c;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+}
+/* Signed in — orange accent so it reads as "active/personalised" against
+   the teal default shown while signed out */
+#accountBtnDesktop.account-avatar-btn.logged-in,
+#accountBtnMobile.account-avatar-btn.logged-in {
+  background: #f18c28;
+  color: #1c1206;
+}
+#accountBtnDesktop.account-avatar-btn svg,
+#accountBtnMobile.account-avatar-btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* Desktop avatar a touch smaller than the base size above (mobile untouched) */
+.s4l-header-desktop #accountBtnDesktop.account-avatar-btn {
+  width: 27px;
+  height: 27px;
+}
+.s4l-header-desktop #accountBtnDesktop.account-avatar-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 .account-dropdown .auth {
@@ -460,21 +526,27 @@ footer p {
 
 .buyer-notif-badge {
   display: inline-block;
-  background: #e07b00;
-  color: #fff;
-  font-size: 9px;
-  font-weight: 700;
-  padding: 2px 4px;
-  border-radius: 8px;
+  /* Plain dot, not a number — a count that small was unreadable anyway,
+     and the specific numbers already live on the dropdown links
+     (.dd-order-badge / .dd-msg-badge). Red, not orange, since the avatar
+     itself turns orange when logged in (.account-avatar-btn.logged-in) —
+     an orange dot on an orange avatar was nearly invisible. The white
+     ring keeps it legible against both the teal (logged-out) and orange
+     (logged-in) avatar, and against the sticky bar's plain icon button. */
+  width: 10px;
+  height: 10px;
+  background: #dc2626;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: -2px;
+  right: -2px;
   margin: 0;
-  line-height: 1.2;
   pointer-events: none;
 }
 
-.dd-msg-badge {
+.dd-msg-badge,
+.dd-order-badge {
   display: none;
   background: #f28c28;
   color: #fff;
@@ -485,6 +557,25 @@ footer p {
   margin-left: 5px;
   vertical-align: middle;
   line-height: 15px;
+}
+
+/* Header "Dashboard" nav link (vendor's relabeled "Sell") — a plain dot
+   like the avatar's, not the numbered pill used on the big hero button,
+   since there's no room for a number next to plain nav text. */
+#nav-sell-desktop,
+#nav-sell-mobile {
+  position: relative;
+}
+.nav-dashboard-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #dc2626;
+  border-radius: 50%;
+  border: 1.5px solid #0b6b6a;
+  position: absolute;
+  top: -3px;
+  right: -8px;
 }
 
 .vendor-btn-badge {
@@ -509,12 +600,20 @@ footer p {
   min-width: 160px;
   padding: 6px 0;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
-  display: none;
   z-index: 99999;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0s linear 0.18s;
 }
 
 .account-dropdown.open {
-  display: block;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0s linear 0s;
 }
 
 .account-dropdown a,
@@ -577,6 +676,34 @@ footer p {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Desktop basket uses a single SVG glyph (same as product cards) instead of
+   the CSS-shape trick above, which mobile's basket-shell still relies on. */
+.s4l-header-desktop .basket-shell {
+  width: 30px;
+  height: 34px;
+  border: none !important;
+  border-radius: 0;
+  display: flex;
+  flex-direction: row;
+  color: #fff;
+}
+.s4l-header-desktop .basket-shell svg {
+  width: 27px;
+  height: 31px;
+}
+
+/* Desktop's badge sits bigger and more legible than mobile's tiny dot,
+   overlapping the top-right of the larger basket glyph. */
+.s4l-header-desktop .basket-qty {
+  top: -6px;
+  right: -8px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  font: 700 12px/1 system-ui, sans-serif;
+  border: 0.7px solid #0b6b6a;
 }
 
 /* === Quantity Badge === */
@@ -658,6 +785,16 @@ footer p {
   border-color: rgba(255, 255, 255, 1) !important;
 }
 
+/* Desktop's SVG-glyph basket fades via color instead of border-color
+   (it has no border), same empty/has-items states as mobile above. */
+.s4l-header-desktop .basket-wrapper.empty .basket-shell {
+  color: rgba(255, 255, 255, 0.45);
+  transition: color 0.25s ease;
+}
+.s4l-header-desktop .basket-wrapper:not(.empty) .basket-shell {
+  color: #fff;
+}
+
 /* =========================================================
    MINI CART
 ========================================================= */
@@ -694,7 +831,7 @@ footer p {
 .mini-cart {
   position: absolute;
   top: 50px;
-  right: -100px;
+  right: 0;
   width: 380px;
   background: #fff;
   border: 1px solid #ccc;
@@ -925,11 +1062,13 @@ footer p {
 }
 
 /* =========================================================
-   MOBILE + TABLET HEADER
-   (Triggers below 1280px)
+   MOBILE HEADER (phones only)
+   (Triggers below 768px — tablets of all sizes/orientations,
+   including iPad mini portrait at 768px, now use the compact
+   desktop header/hero below instead of this mobile layout.)
 ========================================================= */
 
-@media (max-width: 1280px) {
+@media (max-width: 767px) {
   .s4l-header-desktop {
     display: none;
   }
@@ -941,7 +1080,7 @@ footer p {
   .s4l-header-mobile {
     width: 100%;
     background: #0b6b6a;
-    padding: 10px 0 14px 0;
+    padding: 10px 0;
     position: relative;
     z-index: 9999;
   }
@@ -958,116 +1097,24 @@ footer p {
   }
 
   /* =========================================================
-   ROW 1 — LOGO LEFT | BASKET + SIGN-IN RIGHT
+   SINGLE ROW — FAVICON + SEARCH + HAMBURGER
 ========================================================= */
 
-  .mobile-top-row {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  /* Logo */
+  /* Logo (favicon mark) */
   .mobile-logo {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    font-size: 28px;
-    font-weight: bold;
-    text-decoration: none;
-    letter-spacing: 2px;
-  }
-
-  .mobile-logo .logo-wordmark {
-    display: flex;
-    align-items: baseline;
-  }
-
-
-  /* Right-side icons */
-  .mobile-right-icons {
-    display: flex;
     align-items: center;
-    gap: 18px;
   }
 
-  /* Basket */
-
-  .mobile-basket {
-    margin-top: 25px;
+  .mobile-logo img {
+    border-radius: 50%;
+    border: 1px solid #f18c28;
   }
-
-  .mobile-basket .basket-shell {
-    position: relative;
-    width: 28px;
-    height: 17px;
-    border: 1px solid #fff !important;
-    border-radius: 0 0 7px 7px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0;
-    cursor: pointer;
-  }
-
-  .mobile-basket .basket-handle {
-    position: absolute;
-    top: -13px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 15px;
-    height: 18px;
-    border: 1px solid #fff !important;
-    border-radius: 12px 12px 0 0;
-    border-bottom: none !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .mobile-basket .basket-qty {
-    position: absolute;
-    bottom: -4px;
-    right: -6px;
-    background: #f28c28;
-    color: white;
-    font-size: 12px;
-    padding: 2px 6px;
-    border-radius: 10px;
-  }
-
-  /* Sign in */
-  .mobile-right-icons .sign-in-link {
-    font-size: 14px;
-    color: #fdf4e7;
-    text-decoration: none;
-  }
-
-  /* =========================================================
-   ROW 2 — MENU + SEARCH
-========================================================= */
 
   .mobile-menu-col {
     display: flex;
     flex-direction: column;
     width: 100%;
-    gap: 14px;
-  }
-
-  /* NAV MENU */
-  .mobile-nav {
-    display: flex;
-    justify-content: center;
-    gap: 26px;
-  }
-
-  .mobile-nav a {
-    font-size: 16px;
-    color: #fdf4e7;
-    text-decoration: none;
-    font-weight: 600;
   }
 
   /* =========================================================
@@ -1079,33 +1126,37 @@ footer p {
     width: 100%;
     display: flex;
     background: white;
-    border-radius: 6px;
+    border-radius: 999px;
     overflow: visible;
   }
 
   .mobile-search input {
     width: 100%;
+    min-width: 0;
     border: none;
     outline: none;
-    padding: 10px;
-    font-size: 15px;
+    background: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+    padding: 8px 4px 8px 12px;
+    font-size: 14px;
     color: #094949;
-    border-radius: 5px 0 0 5px;
   }
 
   .mobile-search button {
-    width: 40px;
-    background: #f18c28;
+    width: 34px;
+    flex-shrink: 0;
+    background: transparent;
     border: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0 5px 5px 0;
   }
 
-  .mobile-search button img {
-    width: 22px;
-    height: 22px;
+  .mobile-search button svg {
+    width: 18px;
+    height: 18px;
+    color: #0b6b6a;
   }
 
   /* =========================================================
@@ -1230,27 +1281,27 @@ footer p {
     border: 1px solid #ff9a9a;
   }
 
-  .s4l-header-mobile .account-menu {
-    position: relative;
-    top: 10px;
-  }
-
   /* Search row — search form + hamburger side by side */
   .mobile-search-row {
     display: flex;
     gap: 8px;
-    align-items: stretch;
+    align-items: center;
     width: 100%;
+  }
+
+  .mobile-search-row .mobile-logo {
+    flex-shrink: 0;
   }
 
   .mobile-search-row .mobile-search {
     flex: 1;
     width: auto;
+    min-width: 0;
   }
 
   /* Hamburger button — hidden on tablet, shown on portrait phone */
   .mobile-hamburger {
-    display: none;
+    display: flex;
     width: 44px;
     min-height: 44px;
     background: rgba(255, 255, 255, 0.15);
@@ -1304,6 +1355,7 @@ footer p {
 
   .mobile-nav-drawer.open {
     max-height: 56px;
+    margin-top: 10px;
   }
 
   .mobile-nav-drawer a {
@@ -1395,17 +1447,6 @@ img {
   }
 }
 
-/* Portrait phones — swap inline nav for hamburger drawer */
-@media (max-width: 480px) {
-  .mobile-nav {
-    display: none;
-  }
-
-  .mobile-hamburger {
-    display: flex;
-  }
-}
-
 /* ── Cookie consent banner ─────────────────────────────── */
 
 .cookie-banner {
@@ -1472,4 +1513,30 @@ img {
 }
 .cookie-policy-link:hover {
   color: #094f4e;
+}
+
+/* ── Centralized button loading state (assets/js/button-loading.js) ──
+   currentColor spinner ring so it automatically matches any button's own
+   text color (teal CTA, orange CTA, plain dark text) with no per-button
+   color tuning needed. */
+.s4l-btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  margin-right: 7px;
+  vertical-align: -2px;
+  opacity: 0.9;
+  animation: s4lBtnSpin 0.7s linear infinite;
+}
+@keyframes s4lBtnSpin {
+  to { transform: rotate(360deg); }
+}
+.s4l-btn-loading {
+  cursor: wait !important;
+}
+.s4l-btn-loading:disabled {
+  opacity: 0.85;
 }

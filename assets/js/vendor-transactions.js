@@ -63,16 +63,39 @@ async function loadTransactions() {
     document.getElementById('txn-sales').textContent = '£' + Number(summary.totalSales || 0).toFixed(2);
     document.getElementById('txn-refunds').textContent = '£' + Number(summary.totalRefunds || 0).toFixed(2);
 
+    const founding = summary.foundingSeller || null;
+
+    const foundingRatePct = founding ? Math.round(founding.rate * 100) : 0;
+    const foundingJoinedText = founding?.joinedAt
+      ? ` Joined the program ${new Date(founding.joinedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}.`
+      : '';
+    const foundingBanner = document.getElementById('txn-founding-banner');
+    if (foundingBanner) {
+      if (founding?.active) {
+        foundingBanner.hidden = false;
+        const rateNote = foundingRatePct === 0 ? "you're paying 0% platform fee" : `you're paying a discounted ${foundingRatePct}% platform fee`;
+        foundingBanner.innerHTML = `<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="8" r="5"/><path d="M9 12.5L7 21l5-3 5 3-2-8.5"/></svg> Founding Seller — ${rateNote}. ${founding.remaining} free sale${founding.remaining !== 1 ? 's' : ''} left (${founding.used}/${founding.limit} used, normally ${Math.round(summary.normalCommissionRate * 100)}%).${foundingJoinedText}`;
+      } else if (founding?.enrolled) {
+        foundingBanner.hidden = false;
+        foundingBanner.textContent = `Your Founding Seller sales have all been used (${founding.used}/${founding.limit}) — the normal ${Math.round(summary.normalCommissionRate * 100)}% rate now applies.${foundingJoinedText}`;
+      } else {
+        foundingBanner.hidden = true;
+      }
+    }
+
     const rateEl = document.getElementById('txn-commission-rate');
-    if (rateEl) rateEl.textContent = Math.round((summary.commissionRate || commissionRate) * 100) + '%';
+    const rateCard = rateEl?.closest('.stat-card');
+    if (rateEl) {
+      rateEl.innerHTML = founding?.active
+        ? (foundingRatePct === 0 ? `Free ${window.s4lIcon ? window.s4lIcon('award') : ''}` : `${foundingRatePct}% ${window.s4lIcon ? window.s4lIcon('award') : ''}`)
+        : Math.round((summary.commissionRate || commissionRate) * 100) + '%';
+      rateCard?.classList.toggle('txn-founding-active', !!founding?.active);
+    }
     const resRateEl = document.getElementById('txn-reserve-rate');
     if (resRateEl) resRateEl.textContent = Math.round((summary.reserveRate || reserveRate) * 100) + '%';
 
     const feeEl = document.getElementById('txn-commission');
     if (feeEl) feeEl.textContent = '£' + Number(summary.totalCommission || 0).toFixed(2);
-
-    const stripeEl = document.getElementById('txn-stripe');
-    if (stripeEl) stripeEl.textContent = '£' + Number(summary.totalStripeFees || 0).toFixed(2);
 
     const shippingCard = document.getElementById('txn-shipping-card');
     const shippingEl   = document.getElementById('txn-shipping');
@@ -155,10 +178,22 @@ async function loadTransactions() {
   <td class="txn-desc">${t.description || ''}${dueByNote}</td>
   <td class="txn-item">${t.itemName || '-'}</td>
   <td class="txn-qty">${t.qty != null ? t.qty : '-'}</td>
-  <td class="txn-amount ${amountClass}">${isPending && isChargeback ? '⚠ pending' : amountSign + '£' + amount}</td>
+  <td class="txn-amount ${amountClass}">${isPending && isChargeback ? '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 3l9 16H3L12 3z"/><path d="M12 10v4M12 17h.01"/></svg> pending' : amountSign + '£' + amount}</td>
 </tr>`);
 
-      if (isSale && Number(t.commission) > 0) {
+      if (isSale && t.foundingFree) {
+        const rowPct = t.commissionRate != null ? Math.round(t.commissionRate * 100) : 0;
+        const label = rowPct === 0
+          ? `<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="8" r="5"/><path d="M9 12.5L7 21l5-3 5 3-2-8.5"/></svg> Founding Seller — platform fee waived`
+          : `<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="8" r="5"/><path d="M9 12.5L7 21l5-3 5 3-2-8.5"/></svg> Founding Seller rate (${rowPct}%, discounted)`;
+        txnRows.push(`
+<tr class="txn-row txn-row-commission">
+  <td class="txn-date"></td>
+  <td class="txn-order"></td>
+  <td class="txn-desc txn-commission-label" colspan="3" style="color:#854d0e">${label}</td>
+  <td class="txn-amount txn-commission-amount">${Number(t.commission) > 0 ? '-£' + Number(t.commission).toFixed(2) : '£0.00'}</td>
+</tr>`);
+      } else if (isSale && Number(t.commission) > 0) {
         const rowPct = t.commissionRate != null ? Math.round(t.commissionRate * 100) : commissionPct;
         txnRows.push(`
 <tr class="txn-row txn-row-commission">
@@ -169,7 +204,7 @@ async function loadTransactions() {
 </tr>`);
       }
 
-      if (isSale && Number(t.amount) > 0) {
+      if (isSale && Number(t.amount) > 0 && t.allDelivered) {
         const rowReserveRate = t.reserveRate != null ? t.reserveRate : reserveRate;
         const reserveAmt = Number((Math.abs(t.amount) * rowReserveRate).toFixed(2));
         const reservePct = Math.round(rowReserveRate * 100);
@@ -179,6 +214,14 @@ async function loadTransactions() {
   <td class="txn-order"></td>
   <td class="txn-desc txn-reserve-label" colspan="3">Reserve held (${reservePct}%) <span class="txn-reserve-note">releases at 90 days</span></td>
   <td class="txn-amount txn-reserve-amount">-£${reserveAmt.toFixed(2)}</td>
+</tr>`);
+      } else if (isSale && Number(t.amount) > 0) {
+        txnRows.push(`
+<tr class="txn-row txn-row-reserve">
+  <td class="txn-date"></td>
+  <td class="txn-order"></td>
+  <td class="txn-desc txn-reserve-label" colspan="3" style="color:#9ca3af">Hold &amp; reserve apply once delivered</td>
+  <td class="txn-amount"></td>
 </tr>`);
       }
 
@@ -192,6 +235,17 @@ async function loadTransactions() {
 </tr>`);
       }
 
+      if (!isSale && Number(t.shippingRefunded) > 0) {
+        const withNote = t.type === 'cancelled' ? 'with the cancellation above' : 'with the return above';
+        txnRows.push(`
+<tr class="txn-row txn-row-shipping">
+  <td class="txn-date"></td>
+  <td class="txn-order"></td>
+  <td class="txn-desc txn-shipping-label" colspan="3">Shipping refunded <span class="txn-stripe-note">${withNote}</span></td>
+  <td class="txn-amount txn-shipping-amount">-£${Number(t.shippingRefunded).toFixed(2)}</td>
+</tr>`);
+      }
+
       if (isSale && Number(t.shippingAmount) > 0) {
         txnRows.push(`
 <tr class="txn-row txn-row-shipping">
@@ -199,17 +253,6 @@ async function loadTransactions() {
   <td class="txn-order"></td>
   <td class="txn-desc txn-shipping-label" colspan="3">Shipping collected</td>
   <td class="txn-amount txn-shipping-amount">+£${Number(t.shippingAmount).toFixed(2)}</td>
-</tr>`);
-      }
-
-      if (isSale && Number(t.stripeFee) > 0) {
-        const est = t.stripeIsEstimated ? ' (est.)' : '';
-        txnRows.push(`
-<tr class="txn-row txn-row-stripe">
-  <td class="txn-date"></td>
-  <td class="txn-order"></td>
-  <td class="txn-desc txn-stripe-label" colspan="3">Stripe fee${est} <span class="txn-stripe-note">covered by platform</span></td>
-  <td class="txn-amount txn-stripe-amount">£${Number(t.stripeFee).toFixed(2)}</td>
 </tr>`);
       }
 
@@ -353,17 +396,6 @@ document.addEventListener('click', (e) => {
       ].join(','));
     }
 
-    if (t.type === 'sale' && Number(t.stripeFee) > 0) {
-      rows.push([
-        date,
-        t.displayId || t.orderId,
-        'stripe_fee',
-        `"Stripe fee${t.stripeIsEstimated ? ' (est.)' : ''} - covered by platform"`,
-        '',
-        '',
-        `${Number(t.stripeFee).toFixed(2)}`,
-      ].join(','));
-    }
   });
 
   const csv = [header.join(','), ...rows].join('\n');
@@ -473,7 +505,7 @@ async function loadPayouts() {
       if (reserveVal) reserveVal.textContent = '£' + Number(data.reservedBalance || 0).toFixed(2);
       if (reserveLabel) {
         const rate    = Math.round((data.reserveRate || 0.10) * 100);
-        const trusted = data.trustedSeller ? ' · ✓ Trusted' : '';
+        const trusted = data.trustedSeller ? ' · <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg> Trusted' : '';
         reserveLabel.textContent = `In Reserve (${rate}%${trusted})`;
       }
       reserveCard.hidden = false;
@@ -488,7 +520,7 @@ async function loadPayouts() {
         ? new Date(data.nextReserveReleaseDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
         : null;
       const trustedText = data.trustedSeller
-        ? '<span style="color:#15803d;font-weight:600">✓ Trusted Seller — 5% rate</span>'
+        ? '<span style="color:#15803d;font-weight:600"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg> Trusted Seller — 5% rate</span>'
         : `<span style="color:#9ca3af">6 months clean → 5% rate</span>`;
       reserveEl.innerHTML = `<span style="font-size:0.78rem;color:#6b7280">
         £${held} in reserve (${rate}%)${releaseDate ? ` · next release ${releaseDate}` : ''} · ${trustedText}

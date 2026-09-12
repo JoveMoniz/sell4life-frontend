@@ -14,6 +14,7 @@ if (!productId) {
   window.location.replace('/account/vendor/products.html');
 }
 if (!token) {
+  localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
   window.location.replace('/account/signin.html');
 }
 
@@ -53,7 +54,8 @@ const subcategoriesMap = {
     "Laptop Stands & Accessories","Mobile Phone Stands & Holders",
     "Computer Accessories",
     "TVs","Projectors & Screens","Blu-ray & DVD Players","Remote Controls",
-    "Headphones & Earphones","Speakers","Soundbars & Home Cinema","DAC & Amplifiers",
+    "Headphones & Earphones","Headphone & Earphone Cases & Accessories",
+    "Speakers","Soundbars & Home Cinema","DAC & Amplifiers",
     "Gaming Consoles","Video Games","Gaming Controllers","Gaming Headsets",
     "Gaming Chairs & Desks","PC Gaming Accessories",
     "Digital Cameras (DSLR / Mirrorless)","Action Cameras","Camera Lenses",
@@ -379,259 +381,708 @@ const TAG_SUGGESTIONS = {
   fashion: {
     _base: ['fashion', 'clothing', 'style', 'trendy', 'uk fashion', 'outfit', 'wardrobe'],
     "women's dresses": ['dress', 'womens dress', 'party dress', 'summer dress', 'maxi dress', 'midi dress', 'evening dress', 'floral dress', 'casual dress'],
-    "women's tops & t-shirts": ['womens top', 'blouse', 'ladies top', 'tshirt', 'casual top', 'summer top', 'vest top'],
-    "women's trousers & skirts": ['skirt', 'womens trousers', 'midi skirt', 'wide leg trousers', 'leggings'],
+    "women's tops & t-shirts": ['womens top', 'blouse', 'ladies top', 'tshirt', 'casual top', 'summer top', 'vest top', 'going out top'],
+    "women's trousers & skirts": ['skirt', 'womens trousers', 'midi skirt', 'wide leg trousers', 'leggings', 'flared trousers'],
     "women's coats & jackets": ['womens coat', 'ladies jacket', 'winter coat', 'blazer', 'puffer jacket', 'trench coat'],
+    "women's knitwear & cardigans": ['cardigan', 'jumper', 'knitwear', 'womens jumper', 'chunky knit', 'wool cardigan'],
+    "women's swimwear": ['swimsuit', 'bikini', 'swimwear', 'beachwear', 'one piece swimsuit', 'holiday swimwear'],
+    "women's lingerie & nightwear": ['lingerie', 'nightwear', 'pyjamas', 'bra set', 'nightdress', 'sleepwear'],
     "women's activewear": ['womens activewear', 'gym wear', 'yoga wear', 'leggings', 'sports bra', 'workout clothes'],
-    "men's t-shirts & tops": ['mens tshirt', 'mens top', 'graphic tee', 'polo shirt', 'casual tshirt'],
+    "women's plus size": ['plus size', 'curve fashion', 'plus size dress', 'plus size clothing', 'size 18-26'],
+    "men's t-shirts & tops": ['mens tshirt', 'mens top', 'graphic tee', 'polo shirt', 'casual tshirt', 'summer top'],
     "men's shirts": ['mens shirt', 'dress shirt', 'casual shirt', 'formal shirt', 'oxford shirt', 'linen shirt'],
-    "men's trousers & chinos": ['chinos', 'mens trousers', 'slim fit trousers', 'cargo trousers', 'joggers'],
+    "men's trousers & chinos": ['chinos', 'mens trousers', 'slim fit trousers', 'cargo trousers', 'joggers', 'smart trousers'],
     "men's suits & blazers": ['suit', 'mens suit', 'blazer', 'formal wear', 'business suit', 'wedding suit'],
-    "men's hoodies & sweatshirts": ['hoodie', 'sweatshirt', 'pullover', 'mens hoodie', 'zip hoodie'],
+    "men's hoodies & sweatshirts": ['hoodie', 'sweatshirt', 'pullover', 'mens hoodie', 'zip hoodie', 'fleece'],
     "men's activewear": ['mens gym wear', 'activewear', 'shorts', 'compression wear', 'training top'],
-    "trainers & sneakers": ['trainers', 'sneakers', 'sports shoes', 'casual shoes', 'white trainers'],
+    "men's underwear & socks": ['mens underwear', 'boxers', 'mens socks', 'briefs', 'trunks', 'sports socks'],
+    "men's coats & jackets": ['mens coat', 'mens jacket', 'winter coat', 'bomber jacket', 'parka', 'mens outerwear'],
+    'girls clothing (3-13)': ['girls clothes', 'girls dress', 'girls outfit', 'kids clothing', 'girls top'],
+    'boys clothing (3-13)': ['boys clothes', 'boys outfit', 'kids clothing', 'boys top', 'boys joggers'],
+    'baby & infant clothing (0-2)': ['baby clothes', 'infant clothing', 'babygrow', 'newborn outfit', 'baby romper'],
+    'school uniform': ['school uniform', 'school trousers', 'school shirt', 'school jumper', 'school pinafore'],
+    "trainers & sneakers": ['trainers', 'sneakers', 'sports shoes', 'casual shoes', 'white trainers', 'running shoes'],
     "boots": ['boots', 'ankle boots', 'chelsea boots', 'knee high boots', 'winter boots'],
+    'heels & wedges': ['heels', 'wedges', 'high heels', 'court shoes', 'block heels', 'party shoes'],
+    'sandals & flip flops': ['sandals', 'flip flops', 'summer sandals', 'beach shoes', 'slider sandals'],
+    'formal & smart shoes': ['formal shoes', 'smart shoes', 'office shoes', 'brogues', 'oxford shoes'],
+    'sports shoes': ['sports shoes', 'gym shoes', 'training shoes', 'cross trainers', 'athletic shoes'],
+    'slippers': ['slippers', 'house slippers', 'slipper boots', 'memory foam slippers', 'mens slippers'],
     "bags & handbags": ['handbag', 'tote bag', 'shoulder bag', 'clutch bag', 'crossbody bag', 'leather bag'],
-    "jewellery": ['jewellery', 'necklace', 'earrings', 'bracelet', 'ring', 'gold jewellery', 'silver jewellery'],
-    "watches": ['watch', 'wristwatch', 'mens watch', 'womens watch', 'luxury watch'],
-    "sunglasses": ['sunglasses', 'shades', 'uv400', 'fashion sunglasses', 'polarised sunglasses'],
+    'backpacks': ['backpack', 'rucksack', 'school bag', 'daypack', 'travel backpack'],
     "hats & caps": ['hat', 'cap', 'beanie', 'baseball cap', 'bucket hat', 'snapback'],
+    'scarves & wraps': ['scarf', 'wrap', 'winter scarf', 'silk scarf', 'pashmina'],
+    'belts': ['belt', 'leather belt', 'mens belt', 'womens belt', 'buckle belt'],
+    "sunglasses": ['sunglasses', 'shades', 'uv400', 'fashion sunglasses', 'polarised sunglasses'],
+    "jewellery": ['jewellery', 'necklace', 'earrings', 'bracelet', 'ring', 'gold jewellery', 'silver jewellery'],
+    "watches": ['watch', 'wristwatch', 'mens watch', 'womens watch', 'luxury watch', 'dress watch'],
+    'gloves & mittens': ['gloves', 'mittens', 'winter gloves', 'leather gloves', 'touchscreen gloves'],
   },
   electronics: {
     _base: ['electronics', 'gadget', 'tech', 'technology', 'uk electronics', 'gift for him'],
     'smartphones': ['smartphone', 'mobile phone', 'android phone', '5g phone', 'unlocked phone'],
-    'mobile phone cases & covers': ['phone case', 'phone cover', 'protective case', 'iphone case', 'samsung case'],
-    'mobile chargers & cables': ['charger', 'usb cable', 'fast charger', 'usb c', 'wireless charger'],
+    'mobile phone cases & covers': ['phone case', 'phone cover', 'protective case', 'iphone case', 'samsung case', 'mobile accessories'],
+    'mobile chargers & cables': ['charger', 'usb cable', 'fast charger', 'usb c', 'wireless charger', 'charging cable'],
+    'screen protectors': ['screen protector', 'tempered glass', 'phone screen protector', 'privacy screen', 'glass protector'],
     'power banks': ['power bank', 'portable charger', 'battery pack', 'usb power bank', 'travel charger'],
-    'tablets & e-readers': ['tablet', 'ipad', 'android tablet', 'e-reader', 'kindle'],
-    'laptops': ['laptop', 'notebook', 'gaming laptop', 'business laptop', 'ultrabook'],
+    'tablets & e-readers': ['tablet', 'ipad', 'android tablet', 'e-reader', 'kindle', 'reading tablet'],
+    'tablet accessories': ['tablet case', 'tablet stand', 'tablet cover', 'tablet keyboard', 'ipad accessories'],
+    'laptops': ['laptop', 'notebook', 'gaming laptop', 'business laptop', 'ultrabook', 'windows laptop'],
+    'desktop computers': ['desktop pc', 'computer tower', 'gaming pc', 'office pc', 'all in one pc'],
+    'computer monitors': ['monitor', 'pc monitor', 'gaming monitor', '4k monitor', 'curved monitor'],
+    'pc components (cpu, gpu, ram)': ['graphics card', 'cpu', 'ram', 'gpu', 'pc parts', 'processor'],
+    'storage (ssds, hdds, usb drives)': ['ssd', 'hard drive', 'usb stick', 'external hard drive', 'memory stick'],
+    'keyboards & mice': ['keyboard', 'mouse', 'wireless keyboard', 'gaming mouse', 'mechanical keyboard'],
     'laptop stands & accessories': ['laptop stand', 'laptop riser', 'cooling pad', 'docking station', 'laptop hub', 'laptop holder'],
     'mobile phone stands & holders': ['phone stand', 'phone holder', 'phone mount', 'car phone holder', 'pop socket', 'phone grip'],
     'laptop bags & sleeves': ['laptop bag', 'laptop sleeve', 'laptop case', 'laptop backpack'],
-    'headphones & earphones': ['headphones', 'earphones', 'wireless earbuds', 'bluetooth headphones', 'noise cancelling', 'over ear headphones', 'in ear'],
-    'speakers': ['bluetooth speaker', 'portable speaker', 'wireless speaker', 'waterproof speaker'],
+    'computer accessories': ['pc accessories', 'webcam', 'usb hub', 'computer accessories', 'laptop accessories'],
     'tvs': ['tv', 'smart tv', '4k tv', 'oled tv', 'led tv', 'television', 'flat screen'],
+    'projectors & screens': ['projector', 'mini projector', 'projector screen', 'home cinema projector', '4k projector'],
+    'blu-ray & dvd players': ['blu-ray player', 'dvd player', 'disc player', 'portable dvd player'],
+    'remote controls': ['remote control', 'universal remote', 'tv remote', 'replacement remote'],
+    'headphones & earphones': ['headphones', 'earphones', 'wireless earbuds', 'bluetooth headphones', 'noise cancelling', 'over ear headphones', 'in ear'],
+    'headphone & earphone cases & accessories': ['airpods case', 'earphone case', 'headphone case', 'earbuds case', 'protective case', 'silicone case', 'leather case', 'case cover'],
+    'speakers': ['bluetooth speaker', 'portable speaker', 'wireless speaker', 'waterproof speaker', 'party speaker'],
+    'soundbars & home cinema': ['soundbar', 'home cinema', 'tv soundbar', 'surround sound system'],
+    'dac & amplifiers': ['dac', 'headphone amp', 'audio amplifier', 'hi-fi amplifier'],
     'gaming consoles': ['gaming console', 'playstation', 'xbox', 'nintendo switch', 'gaming'],
-    'smartwatches': ['smartwatch', 'fitness watch', 'smart band', 'activity tracker'],
+    'video games': ['video game', 'ps5 game', 'xbox game', 'nintendo switch game', 'new release game'],
+    'gaming controllers': ['controller', 'ps5 controller', 'xbox controller', 'wireless controller', 'pc controller'],
+    'gaming headsets': ['gaming headset', 'gaming headphones', 'ps5 headset', 'xbox headset', 'surround sound'],
+    'gaming chairs & desks': ['gaming chair', 'gaming desk', 'racing chair', 'ergonomic gaming chair'],
+    'pc gaming accessories': ['gaming accessories', 'mouse mat', 'rgb accessories', 'gaming setup'],
     'digital cameras (dslr / mirrorless)': ['camera', 'dslr', 'mirrorless camera', 'photography', 'digital camera', 'vlogging camera'],
     'action cameras': ['action camera', 'gopro', 'sports camera', 'waterproof camera', 'helmet camera'],
+    'camera lenses': ['camera lens', 'dslr lens', 'zoom lens', 'wide angle lens', 'prime lens'],
+    'camera bags & accessories': ['camera bag', 'camera case', 'camera strap', 'lens cleaning kit'],
+    'tripods & stabilisers': ['tripod', 'camera tripod', 'phone tripod', 'gimbal stabiliser'],
     'smart speakers & displays': ['smart speaker', 'alexa', 'google home', 'voice assistant', 'smart home'],
-    'gaming headsets': ['gaming headset', 'gaming headphones', 'ps5 headset', 'xbox headset', 'surround sound'],
+    'smart home hubs': ['smart hub', 'smart home', 'home automation', 'zigbee hub'],
+    'smart plugs & switches': ['smart plug', 'smart switch', 'wifi plug', 'smart socket'],
+    'smart security cameras & doorbells': ['security camera', 'video doorbell', 'smart doorbell', 'cctv camera', 'ring doorbell'],
+    'smart lighting': ['smart bulb', 'smart lighting', 'led smart light', 'colour changing bulb'],
+    'smartwatches': ['smartwatch', 'fitness watch', 'smart band', 'activity tracker', 'apple watch alternative'],
+    'fitness trackers': ['fitness tracker', 'activity tracker', 'step counter', 'fitness band'],
+    'vr & ar headsets': ['vr headset', 'virtual reality', 'vr goggles', 'meta quest'],
+    'printers & scanners': ['printer', 'scanner', 'all in one printer', 'wireless printer', 'home printer'],
+    'ink & toner cartridges': ['ink cartridge', 'toner cartridge', 'printer ink', 'replacement ink'],
+    'routers & networking': ['router', 'wifi router', 'mesh wifi', 'networking'],
+    'range extenders': ['wifi extender', 'range extender', 'wifi booster', 'signal booster'],
+    'microwaves': ['microwave', 'combi microwave', 'countertop microwave', 'compact microwave'],
+    'coffee machines': ['coffee machine', 'espresso machine', 'pod coffee machine', 'bean to cup'],
+    'kettles': ['kettle', 'electric kettle', 'rapid boil kettle', 'cordless kettle'],
+    'toasters': ['toaster', '2 slice toaster', '4 slice toaster', 'retro toaster'],
+    'air fryers': ['air fryer', 'digital air fryer', 'dual air fryer', 'family air fryer'],
+    'cables & adaptors': ['cable', 'adaptor', 'usb cable', 'hdmi cable', 'adapter'],
+    'batteries': ['batteries', 'rechargeable batteries', 'aa batteries', 'aaa batteries'],
+    'car electronics': ['car electronics', 'car charger', 'car accessories', 'car audio'],
   },
   home: {
     _base: ['home', 'home decor', 'interior design', 'homeware', 'uk home', 'house'],
     'sofas & armchairs': ['sofa', 'couch', 'armchair', 'corner sofa', 'grey sofa', 'living room furniture'],
-    'beds & bed frames': ['bed frame', 'double bed', 'king size bed', 'ottoman bed', 'wooden bed'],
-    'mattresses': ['mattress', 'memory foam mattress', 'pocket sprung', 'orthopaedic mattress'],
-    'duvets & duvets sets': ['duvet', 'bedding set', 'duvet cover', 'double duvet', 'king duvet'],
-    'pillows': ['pillow', 'memory foam pillow', 'pillow pair', 'anti-allergy pillow'],
+    'sofa beds': ['sofa bed', 'sleeper sofa', 'futon', 'pull out sofa', 'guest bed sofa'],
+    'coffee tables & side tables': ['coffee table', 'side table', 'lamp table', 'nest of tables', 'living room table'],
+    'dining tables & chairs': ['dining table', 'dining chairs', 'dining set', 'kitchen table', 'extending table'],
+    'beds & bed frames': ['bed frame', 'double bed', 'king size bed', 'ottoman bed', 'wooden bed', 'upholstered bed'],
+    'mattresses': ['mattress', 'memory foam mattress', 'pocket sprung', 'orthopaedic mattress', 'medium firm'],
+    'wardrobes & dressing tables': ['wardrobe', 'dressing table', 'sliding door wardrobe', 'bedroom furniture'],
+    'chest of drawers': ['chest of drawers', 'drawers', 'bedroom drawers', 'tallboy'],
+    'bookcases & shelving': ['bookcase', 'shelving unit', 'book shelf', 'storage shelves', 'ladder shelf'],
+    'tv units & media furniture': ['tv unit', 'tv stand', 'media unit', 'entertainment unit'],
+    'office & study furniture': ['desk', 'office desk', 'study furniture', 'home office desk', 'computer desk'],
+    'kids furniture': ['kids bed', 'childrens furniture', 'kids desk', 'bunk bed', 'toddler bed'],
+    'duvets & duvets sets': ['duvet', 'bedding set', 'duvet cover', 'double duvet', 'king duvet', '10.5 tog'],
+    'pillows': ['pillow', 'memory foam pillow', 'pillow pair', 'anti-allergy pillow', 'cooling pillow'],
+    'bed sheets & fitted sheets': ['fitted sheet', 'bed sheets', 'flat sheet', 'egyptian cotton sheets', 'double bed sheet'],
+    'mattress toppers & protectors': ['mattress topper', 'mattress protector', 'memory foam topper', 'waterproof protector'],
+    'towels & bathrobes': ['towels', 'bath towel', 'bathrobe', 'towel set', 'egyptian cotton towel'],
+    'weighted blankets': ['weighted blanket', 'sensory blanket', 'anxiety blanket', 'cooling weighted blanket'],
     'pots & pans': ['cookware', 'frying pan', 'saucepan', 'non stick pan', 'wok', 'casserole dish'],
-    'kitchen knives': ['kitchen knife', 'chef knife', 'knife set', 'santoku knife'],
-    'candles & holders': ['candle', 'scented candle', 'soy candle', 'candle holder', 'home fragrance'],
+    'kitchen knives': ['kitchen knife', 'chef knife', 'knife set', 'santoku knife', 'bread knife'],
+    'baking trays & tins': ['baking tray', 'cake tin', 'baking tin', 'loaf tin', 'muffin tray'],
+    'kitchen utensils & gadgets': ['kitchen utensils', 'kitchen gadgets', 'utensil set', 'kitchen tools'],
+    'mixing bowls & measuring': ['mixing bowl', 'measuring jug', 'measuring cups', 'baking scales'],
+    'dinnerware & plates': ['dinner set', 'plates', 'dinnerware', 'crockery set', 'dinner plates'],
+    'glasses & mugs': ['mugs', 'drinking glasses', 'wine glasses', 'mug set', 'glassware'],
+    'food storage & containers': ['food storage', 'storage containers', 'airtight containers', 'tupperware'],
+    'lunch boxes': ['lunch box', 'bento box', 'lunch bag', 'kids lunch box', 'insulated lunch box'],
+    'bathroom accessories': ['bathroom accessories', 'bathroom set', 'toilet brush', 'bathroom storage'],
+    'shower curtains & rails': ['shower curtain', 'shower rail', 'shower curtain rings', 'curved shower rail'],
+    'bath mats': ['bath mat', 'bathroom rug', 'memory foam bath mat', 'non slip bath mat'],
+    'soap dispensers & toothbrush holders': ['soap dispenser', 'toothbrush holder', 'bathroom accessory set'],
+    'mirrors': ['mirror', 'wall mirror', 'full length mirror', 'round mirror', 'bathroom mirror'],
+    'towel rails': ['towel rail', 'heated towel rail', 'towel radiator', 'towel ring'],
+    'garden furniture & parasols': ['garden furniture', 'garden table', 'garden chairs', 'patio set', 'parasol', 'outdoor furniture'],
+    'garden sheds & storage': ['garden shed', 'storage shed', 'garden storage box', 'outdoor storage'],
+    'plant pots & planters': ['plant pot', 'planter', 'garden pots', 'hanging planter', 'flower pot'],
+    'seeds, bulbs & compost': ['seeds', 'bulbs', 'compost', 'vegetable seeds', 'flower seeds'],
+    'lawn mowers & garden tools': ['lawn mower', 'garden tools', 'spade', 'fork', 'pruners', 'garden shed'],
+    'bbq grills & accessories': ['bbq', 'barbecue', 'bbq grill', 'gas bbq', 'charcoal bbq'],
+    'outdoor heaters & fire pits': ['fire pit', 'patio heater', 'outdoor heater', 'gas fire pit'],
+    'hoses & watering': ['garden hose', 'hose reel', 'watering can', 'sprinkler'],
+    'ceiling lights & pendants': ['ceiling light', 'pendant light', 'chandelier', 'led light', 'light fitting'],
+    'floor & table lamps': ['floor lamp', 'table lamp', 'reading lamp', 'standing lamp'],
+    'led strip lights': ['led strip lights', 'led lights', 'rgb led strip', 'smart led strip'],
+    'outdoor & garden lighting': ['garden lighting', 'solar lights', 'outdoor lights', 'string lights'],
+    'smart lighting': ['smart bulb', 'smart light', 'colour changing bulb', 'home lighting'],
+    'wall art & prints': ['wall art', 'canvas print', 'framed print', 'poster', 'abstract art', 'wall decor'],
+    'clocks': ['clock', 'wall clock', 'mantel clock', 'alarm clock'],
+    'candles & holders': ['candle', 'scented candle', 'soy candle', 'candle holder', 'home fragrance', 'luxury candle'],
+    'cushions & throws': ['cushion', 'scatter cushion', 'throw blanket', 'velvet cushion', 'sofa throw'],
     'rugs': ['rug', 'area rug', 'living room rug', 'bedroom rug', 'hall runner', 'washable rug'],
-    'curtains & blinds': ['curtains', 'blackout curtains', 'eyelet curtains', 'roller blind'],
-    'wall art & prints': ['wall art', 'canvas print', 'framed print', 'poster', 'abstract art'],
-    'cushions & throws': ['cushion', 'scatter cushion', 'throw blanket', 'velvet cushion'],
-    'garden furniture & parasols': ['garden furniture', 'garden table', 'patio set', 'parasol', 'outdoor furniture'],
-    'ceiling lights & pendants': ['ceiling light', 'pendant light', 'chandelier', 'led light'],
-    'cleaning products': ['cleaning', 'household cleaner', 'disinfectant', 'multi-surface cleaner'],
-    'lawn mowers & garden tools': ['lawn mower', 'garden tools', 'spade', 'pruners', 'garden equipment'],
+    'curtains & blinds': ['curtains', 'blackout curtains', 'eyelet curtains', 'roller blind', 'roman blind'],
+    'vases & ornaments': ['vase', 'ornament', 'decorative vase', 'home ornament'],
+    'power tools': ['power tool', 'drill', 'cordless drill', 'circular saw', 'power tool set'],
+    'hand tools': ['hand tools', 'tool set', 'screwdriver set', 'hammer', 'spanner set'],
+    'ladders & steps': ['ladder', 'step ladder', 'folding ladder', 'step stool'],
+    'paint, brushes & rollers': ['paint', 'paint brush', 'paint roller', 'emulsion paint', 'wall paint'],
+    'wallpaper & paste': ['wallpaper', 'wallpaper paste', 'feature wallpaper', 'peel and stick wallpaper'],
+    'screws, fixings & rawlplugs': ['screws', 'fixings', 'rawlplugs', 'wall plugs', 'screw set'],
+    'safety & security (locks, alarms)': ['door lock', 'alarm', 'home security', 'smoke alarm', 'padlock'],
+    'cleaning products': ['cleaning', 'household cleaner', 'disinfectant', 'multi-surface cleaner', 'antibacterial'],
+    'mops, brushes & cloths': ['mop', 'cleaning brush', 'microfibre cloth', 'mop bucket'],
+    'laundry (detergent, pegs, airers)': ['laundry detergent', 'clothes airer', 'washing pegs', 'fabric softener'],
+    'storage boxes & baskets': ['storage box', 'storage basket', 'plastic storage box', 'woven basket'],
   },
   books: {
     _base: ['book', 'reading', 'paperback', 'hardback', 'gift book', 'bestseller'],
     'literary fiction': ['fiction', 'novel', 'literary fiction', 'booker prize', 'contemporary fiction'],
-    'crime & thriller': ['thriller', 'crime fiction', 'mystery', 'detective', 'suspense'],
-    'science fiction': ['sci-fi', 'science fiction', 'space opera', 'dystopian', 'cyberpunk'],
-    'fantasy': ['fantasy', 'epic fantasy', 'magic', 'dragons', 'high fantasy'],
+    'crime & thriller': ['thriller', 'crime fiction', 'mystery', 'detective', 'suspense', 'murder mystery'],
+    'science fiction': ['sci-fi', 'science fiction', 'space opera', 'dystopian', 'speculative fiction', 'cyberpunk'],
+    'fantasy': ['fantasy', 'epic fantasy', 'magic', 'dragons', 'high fantasy', 'urban fantasy'],
     'romance': ['romance novel', 'love story', 'romantic fiction', 'contemporary romance'],
+    'horror & gothic': ['horror', 'horror fiction', 'gothic fiction', 'scary book', 'supernatural horror'],
+    'historical fiction': ['historical fiction', 'period drama book', 'war fiction', 'historical novel'],
+    'humour': ['humour book', 'comedy book', 'funny book', 'satire'],
+    'short stories & poetry': ['short stories', 'poetry book', 'poems', 'anthology'],
     'biographies & memoirs': ['biography', 'memoir', 'autobiography', 'life story', 'true story'],
-    'self-help & motivation': ['self help', 'motivation', 'personal development', 'mindset', 'productivity'],
-    'business & entrepreneurship': ['business book', 'entrepreneurship', 'leadership', 'management'],
-    'cookbooks & food writing': ['cookbook', 'recipe book', 'cooking', 'baking book'],
-    "children's picture books (0-5)": ['childrens book', 'picture book', 'toddler book', 'bedtime story'],
+    'history': ['history book', 'world history', 'military history', 'british history'],
+    'politics & current affairs': ['politics book', 'current affairs', 'political book'],
+    'true crime': ['true crime', 'true crime book', 'crime story', 'real life crime'],
+    'science & nature': ['science book', 'nature book', 'popular science', 'physics book'],
+    'philosophy': ['philosophy book', 'philosophy', 'stoicism book', 'ethics book'],
+    'psychology & mental health': ['psychology book', 'mental health book', 'anxiety book', 'therapy book'],
+    'self-help & motivation': ['self help', 'motivation', 'personal development', 'mindset', 'productivity', 'wellbeing'],
+    'business & entrepreneurship': ['business book', 'entrepreneurship', 'leadership', 'management', 'startup'],
+    'economics & finance': ['economics book', 'finance book', 'investing book', 'money book'],
+    'law': ['law book', 'legal book', 'law textbook'],
+    'cookbooks & food writing': ['cookbook', 'recipe book', 'cooking', 'baking book', 'food book'],
+    'travel writing': ['travel writing', 'travel book', 'travel memoir', 'guidebook'],
+    'sport & fitness books': ['sports book', 'fitness book', 'football book', 'training book'],
+    'art, architecture & photography books': ['art book', 'photography book', 'architecture book', 'coffee table book'],
+    'design & fashion books': ['design book', 'fashion book', 'interior design book'],
+    'parenting & families': ['parenting book', 'baby book', 'family book', 'pregnancy book'],
+    'religion & spirituality': ['religion book', 'spirituality book', 'bible', 'mindfulness book'],
+    "children's picture books (0-5)": ['childrens book', 'picture book', 'toddler book', 'bedtime story', 'illustrated book'],
     "children's fiction (6-9)": ['childrens fiction', 'chapter book', 'kids novel', 'adventure story'],
-    'young adult (ya)': ['ya fiction', 'teen book', 'young adult', 'ya fantasy'],
+    "children's fiction (9-12)": ['childrens fiction', 'middle grade book', 'kids novel', 'adventure book'],
+    'young adult (ya)': ['ya fiction', 'teen book', 'young adult', 'coming of age', 'ya fantasy'],
+    'educational & textbooks (school)': ['textbook', 'school book', 'revision guide', 'gcse book'],
+    'academic & university': ['academic book', 'university textbook', 'course book'],
+    'comics & graphic novels': ['comic book', 'graphic novel', 'comics', 'superhero comic'],
+    'manga': ['manga', 'manga volume', 'japanese comic', 'shonen manga'],
+    'cds & music albums': ['cd', 'music album', 'cd album', 'music cd'],
+    'vinyl records': ['vinyl', 'vinyl record', 'lp record', 'record album'],
+    'dvds & blu-ray (film)': ['dvd', 'blu-ray', 'film dvd', 'movie dvd'],
+    'dvds & blu-ray (tv series)': ['tv series dvd', 'boxset', 'tv boxset', 'complete series'],
+    'magazines & periodicals': ['magazine', 'subscription magazine', 'periodical'],
   },
   toys: {
     _base: ['toy', 'kids toy', 'children', 'play', 'gift for kids', 'educational toy'],
-    'lego sets': ['lego', 'building blocks', 'construction toy', 'stem toy'],
-    'board games': ['board game', 'family game', 'party game', 'strategy game', 'game night'],
-    'action figures & playsets': ['action figure', 'playset', 'superhero toy', 'collectible figure'],
-    'dolls & dollhouses': ['doll', 'dollhouse', 'fashion doll', 'baby doll'],
-    'remote control cars & trucks': ['remote control car', 'rc car', 'toy car', 'radio controlled'],
-    'arts & crafts kits for kids': ['arts and crafts', 'craft kit', 'creative toy', 'painting kit'],
-    'outdoor play equipment': ['outdoor toy', 'garden toy', 'swing set', 'slide', 'climbing frame'],
-    'soft toys & stuffed animals': ['soft toy', 'stuffed animal', 'teddy bear', 'plush toy', 'cuddly toy'],
-    'puzzles': ['jigsaw puzzle', 'puzzle', 'brain teaser', '1000 piece puzzle'],
-    'scooters': ['scooter', 'kids scooter', '3 wheel scooter', 'kick scooter'],
     'baby toys (0-12 months)': ['baby toy', 'sensory toy', 'rattle', 'activity mat', 'infant toy'],
+    'toddler toys (1-3 years)': ['toddler toy', 'developmental toy', 'stacking toy', 'push along toy'],
+    'preschool toys (3-5 years)': ['preschool toy', 'learning toy', 'shape sorter', 'educational toy'],
+    'action figures & playsets': ['action figure', 'playset', 'superhero toy', 'collectible figure'],
+    'superhero & movie figures': ['superhero figure', 'movie figure', 'action hero', 'marvel figure'],
+    'dolls & dollhouses': ['doll', 'dollhouse', 'fashion doll', 'baby doll', 'barbie'],
+    'doll accessories & clothing': ['doll clothes', 'doll accessories', 'doll furniture', 'doll shoes'],
+    'lego sets': ['lego', 'building blocks', 'construction toy', 'stem toy', 'lego set'],
+    'other building & construction': ['building blocks', 'construction toy', 'building set', 'brick set'],
+    'board games': ['board game', 'family game', 'party game', 'strategy game', 'game night'],
+    'card games & trading cards': ['card game', 'trading cards', 'pokemon cards', 'card game set'],
+    'puzzles': ['jigsaw puzzle', 'puzzle', 'brain teaser', '1000 piece puzzle', 'kids puzzle'],
+    'remote control cars & trucks': ['remote control car', 'rc car', 'toy car', 'radio controlled'],
+    'remote control aircraft & drones': ['rc drone', 'toy drone', 'remote control plane', 'kids drone'],
+    'arts & crafts kits for kids': ['arts and crafts', 'craft kit', 'creative toy', 'painting kit', 'kids craft'],
+    'science & discovery kits': ['science kit', 'discovery kit', 'experiment kit', 'chemistry set'],
+    'outdoor play equipment': ['outdoor toy', 'garden toy', 'swing set', 'slide', 'climbing frame'],
+    'trampolines': ['trampoline', 'garden trampoline', 'kids trampoline', 'trampoline with net'],
+    'paddling pools': ['paddling pool', 'kids pool', 'inflatable pool', 'garden pool'],
+    'scooters': ['scooter', 'kids scooter', '3 wheel scooter', 'kick scooter', 'childrens scooter'],
+    'balance bikes & tricycles': ['balance bike', 'tricycle', 'kids bike', 'first bike'],
+    'ride-on cars': ['ride on car', 'kids electric car', 'ride on toy', 'battery car'],
+    'soft toys & stuffed animals': ['soft toy', 'stuffed animal', 'teddy bear', 'plush toy', 'cuddly toy'],
+    'fidget & sensory toys': ['fidget toy', 'sensory toy', 'fidget spinner', 'pop it'],
+    'collectible figures & blind boxes': ['blind box', 'collectible figure', 'mystery box toy', 'mini figure'],
+    'role play & dress up': ['dress up costume', 'role play toy', 'kids costume', 'pretend play'],
+    'kitchen & food play': ['play kitchen', 'toy food', 'play food set', 'kids kitchen'],
+    'electronic & interactive toys': ['interactive toy', 'electronic toy', 'talking toy', 'robot pet'],
     'coding & stem toys': ['stem toy', 'coding toy', 'robot toy', 'science kit', 'educational'],
+    'sports toys & games': ['kids sports toy', 'garden games', 'outdoor game', 'toy sports set'],
+    'pool & beach toys': ['beach toys', 'pool toys', 'sand toys', 'inflatable pool toy'],
   },
   health: {
     _base: ['health', 'beauty', 'skincare', 'wellness', 'personal care', 'self care'],
-    'face moisturisers & creams': ['moisturiser', 'face cream', 'hydrating cream', 'anti-ageing', 'spf moisturiser'],
-    'cleansers, toners & micellar water': ['cleanser', 'face wash', 'micellar water', 'toner'],
-    'serums & face oils': ['serum', 'vitamin c serum', 'hyaluronic acid', 'face oil', 'retinol'],
+    'face moisturisers & creams': ['moisturiser', 'face cream', 'hydrating cream', 'anti-ageing', 'spf moisturiser', 'day cream'],
+    'cleansers, toners & micellar water': ['cleanser', 'face wash', 'micellar water', 'toner', 'double cleanse'],
+    'serums & face oils': ['serum', 'vitamin c serum', 'hyaluronic acid', 'face oil', 'retinol serum'],
     'face masks & exfoliators': ['face mask', 'sheet mask', 'exfoliator', 'clay mask', 'scrub'],
-    'sunscreen & spf': ['sunscreen', 'spf', 'sun protection', 'factor 50', 'daily spf'],
+    'sunscreen & spf': ['sunscreen', 'spf', 'sun protection', 'factor 50', 'daily spf', 'sun cream'],
+    'eye cream & treatments': ['eye cream', 'dark circle treatment', 'eye serum', 'anti-ageing eye cream'],
+    'lip care': ['lip balm', 'lip care', 'chapstick', 'lip mask'],
     'foundation & concealer': ['foundation', 'concealer', 'full coverage', 'liquid foundation', 'bb cream'],
-    'eyeshadow palettes': ['eyeshadow palette', 'eye makeup', 'neutral palette', 'smoky eye'],
+    'powder, bronzer & blush': ['bronzer', 'blush', 'setting powder', 'highlighter makeup'],
     'lipstick, lip gloss & liner': ['lipstick', 'lip gloss', 'lip liner', 'lip colour', 'nude lipstick'],
-    'eyeliner & mascara': ['mascara', 'eyeliner', 'volumising mascara', 'waterproof mascara'],
+    'eyeshadow palettes': ['eyeshadow palette', 'eye makeup', 'neutral palette', 'smoky eye', 'glitter eyeshadow'],
+    'eyeliner & mascara': ['mascara', 'eyeliner', 'volumising mascara', 'waterproof mascara', 'liquid eyeliner'],
+    'eyebrow products': ['eyebrow pencil', 'brow gel', 'eyebrow powder', 'microblading pen'],
+    'makeup setting sprays & primers': ['setting spray', 'makeup primer', 'face primer', 'fixing spray'],
+    'makeup brushes & sponges': ['makeup brush', 'beauty blender', 'brush set', 'makeup sponge'],
+    'makeup remover & wipes': ['makeup remover', 'makeup wipes', 'cleansing wipes', 'micellar wipes'],
     'shampoo & conditioner': ['shampoo', 'conditioner', 'hair care', 'anti-frizz', 'moisturising shampoo'],
-    'hair styling (mousse, gel, wax, spray)': ['hair gel', 'hair wax', 'hairspray', 'hair mousse'],
+    'hair treatments & masks': ['hair mask', 'hair treatment', 'deep conditioner', 'hair repair'],
+    'hair styling (mousse, gel, wax, spray)': ['hair gel', 'hair wax', 'hairspray', 'hair mousse', 'styling product'],
+    'hair oil & serum': ['hair oil', 'hair serum', 'argan oil', 'frizz control oil'],
+    'hair colour & bleach': ['hair dye', 'hair colour', 'bleach kit', 'semi permanent colour'],
+    'heated styling tools': ['hair straighteners', 'curling wand', 'hair dryer', 'heated brush'],
+    'hairbrushes & combs': ['hair brush', 'comb', 'detangling brush', 'paddle brush'],
+    'hair accessories': ['hair clips', 'scrunchies', 'hair bands', 'hair ties'],
     "perfume (women's)": ['perfume', 'womens fragrance', 'eau de parfum', 'floral perfume', 'gift set'],
     "perfume (men's)": ['mens perfume', 'aftershave', 'cologne', 'mens fragrance', 'eau de toilette'],
-    'vitamins & multivitamins': ['vitamins', 'multivitamins', 'supplements', 'health supplements'],
-    'protein powder & bars': ['protein powder', 'whey protein', 'protein bar', 'sports nutrition'],
-    'electric shavers & trimmers': ['electric shaver', 'beard trimmer', 'hair clipper', 'grooming kit'],
-    'toothbrushes (manual & electric)': ['electric toothbrush', 'toothbrush', 'oral care', 'sonic toothbrush'],
+    'unisex & niche fragrances': ['unisex perfume', 'niche fragrance', 'designer fragrance'],
+    'body sprays & deodorants': ['deodorant', 'body spray', 'antiperspirant', 'roll on deodorant'],
+    'shaving razors & blades': ['razor', 'razor blades', 'disposable razor', 'safety razor'],
+    'shaving foam & gel': ['shaving foam', 'shaving gel', 'shaving cream'],
+    'aftershave & post-shave': ['aftershave', 'post shave balm', 'aftershave balm'],
+    'electric shavers & trimmers': ['electric shaver', 'beard trimmer', 'hair clipper', 'trimmer', 'grooming kit'],
+    'beard care & grooming': ['beard oil', 'beard balm', 'beard care', 'beard brush'],
+    "men's skincare": ['mens skincare', 'mens moisturiser', 'mens face wash'],
+    'vitamins & multivitamins': ['vitamins', 'multivitamins', 'supplements', 'health supplements', 'daily vitamins'],
+    'protein powder & bars': ['protein powder', 'whey protein', 'protein bar', 'sports nutrition', 'gym supplement'],
+    'pre-workout & sports nutrition': ['pre workout', 'sports nutrition', 'energy gel', 'bcaa'],
+    'weight management': ['weight management', 'diet supplement', 'meal replacement', 'fat burner'],
+    'omega 3, collagen & specialist supplements': ['omega 3', 'collagen', 'fish oil', 'specialist supplement'],
+    'toothbrushes (manual & electric)': ['electric toothbrush', 'toothbrush', 'oral care', 'dental care', 'sonic toothbrush'],
+    'toothpaste & whitening': ['toothpaste', 'teeth whitening', 'whitening strips', 'sensitive toothpaste'],
+    'mouthwash & floss': ['mouthwash', 'dental floss', 'oral rinse'],
+    'dental accessories': ['dental accessories', 'interdental brush', 'tongue scraper'],
+    'feminine care': ['sanitary pads', 'tampons', 'menstrual cup', 'feminine hygiene'],
+    'sexual health & contraception': ['condoms', 'lubricant', 'contraception', 'sexual wellness'],
+    'first aid kits & plasters': ['first aid kit', 'plasters', 'bandages', 'antiseptic cream'],
+    'pain relief & cold & flu': ['pain relief', 'paracetamol', 'cold and flu', 'headache tablets'],
+    'blood pressure monitors & health monitors': ['blood pressure monitor', 'health monitor', 'thermometer', 'pulse oximeter'],
+    'mobility aids & supports (knee, back, wrist)': ['knee support', 'back support', 'wrist brace', 'mobility aid'],
+    'aromatherapy & essential oils': ['essential oil', 'aromatherapy', 'diffuser oil', 'lavender oil'],
+    'massage & relaxation': ['massage gun', 'massager', 'relaxation', 'massage oil'],
+    'bath & shower gels': ['shower gel', 'bath gel', 'body wash', 'bubble bath'],
+    'body lotion & creams': ['body lotion', 'body cream', 'moisturising lotion', 'body butter'],
+    'soap & hand wash': ['soap', 'hand wash', 'bar soap', 'liquid hand soap'],
   },
   sports: {
     _base: ['sports', 'fitness', 'exercise', 'gym', 'active lifestyle', 'workout'],
-    'dumbbells & barbells': ['dumbbells', 'weights', 'barbell', 'strength training', 'home gym'],
+    'dumbbells & barbells': ['dumbbells', 'weights', 'barbell', 'free weights', 'strength training', 'home gym'],
+    'weight benches & racks': ['weight bench', 'squat rack', 'power rack', 'bench press'],
+    'resistance bands & tubes': ['resistance band', 'exercise band', 'booty band', 'workout band', 'glute band'],
     'yoga mats & accessories': ['yoga mat', 'yoga', 'pilates mat', 'exercise mat', 'non-slip yoga mat'],
-    'resistance bands & tubes': ['resistance band', 'exercise band', 'booty band', 'glute band'],
-    'cardio equipment (treadmills, bikes, rowing)': ['treadmill', 'exercise bike', 'rowing machine', 'home gym equipment'],
-    "running shoes (men's)": ['mens running shoes', 'running trainers', 'road running', 'jogging shoes'],
-    "running shoes (women's)": ['womens running shoes', 'running trainers', 'jogging shoes'],
-    'running clothing & tights': ['running tights', 'compression leggings', 'running top', 'running jacket'],
-    'swimming costumes & trunks': ['swimming costume', 'swimsuit', 'swim trunks', 'bikini'],
+    'cardio equipment (treadmills, bikes, rowing)': ['treadmill', 'exercise bike', 'rowing machine', 'cardio machine', 'home gym equipment'],
+    'pull-up bars & suspension trainers': ['pull up bar', 'suspension trainer', 'trx', 'doorway pull up bar'],
+    'foam rollers & recovery': ['foam roller', 'recovery roller', 'muscle roller', 'massage roller'],
     'road bikes': ['road bike', 'bicycle', 'cycling', 'road cycling', 'racing bike'],
+    'mountain bikes': ['mountain bike', 'mtb', 'off road bike', 'hardtail bike', 'full suspension bike'],
+    'electric bikes': ['electric bike', 'ebike', 'e-bike', 'electric mountain bike', 'folding electric bike'],
     'cycling helmets': ['cycling helmet', 'bike helmet', 'road helmet', 'mtb helmet'],
-    'footballs': ['football', 'match ball', 'training ball', 'size 5 football'],
+    'cycling clothing': ['cycling jersey', 'cycling shorts', 'bib shorts', 'cycling jacket', 'padded shorts'],
+    'cycling accessories': ['bike lock', 'bike lights', 'bike pump', 'bike bell', 'panniers', 'bike rack', 'bike bag', 'top tube bag', 'frame bag', 'saddle bag', 'handlebar bag', 'bike tool bag', 'phone mount', 'phone holder', 'bottle cage', 'mudguards', 'bike computer', 'kickstand', 'puncture repair kit', 'multi tool', 'bike tool kit', 'bike basket'],
+    "running shoes (men's)": ['mens running shoes', 'running trainers', 'road running', 'jogging shoes', 'trail shoes'],
+    "running shoes (women's)": ['womens running shoes', 'running trainers', 'jogging shoes', 'ladies running shoes'],
+    'running clothing & tights': ['running tights', 'compression leggings', 'running top', 'running jacket', 'activewear'],
+    'running accessories & gadgets': ['running belt', 'gps watch', 'running armband', 'running gadget'],
+    'swimming costumes & trunks': ['swimming costume', 'swimsuit', 'swim trunks', 'bikini', 'one piece swimsuit'],
+    'swim goggles & caps': ['swimming goggles', 'swim cap', 'anti fog goggles', 'kids swim goggles'],
+    'swimming equipment & pull buoys': ['pull buoy', 'swim fins', 'kickboard', 'swim training aid'],
+    'football boots & trainers': ['football boots', 'astro trainers', 'firm ground boots', 'kids football boots'],
+    'footballs': ['football', 'match ball', 'training ball', 'size 5 football', 'soccer ball'],
+    'football clothing': ['football kit', 'football shirt', 'training top', 'football shorts'],
+    'rugby': ['rugby ball', 'rugby boots', 'rugby shirt', 'rugby gear'],
+    'cricket': ['cricket bat', 'cricket ball', 'cricket gloves', 'cricket pads'],
+    'basketball': ['basketball', 'basketball hoop', 'basketball shoes', 'basketball jersey'],
+    'netball': ['netball', 'netball hoop', 'netball bib'],
     'tennis rackets & strings': ['tennis racket', 'tennis', 'beginner racket', 'graphite racket'],
+    'badminton': ['badminton racket', 'shuttlecock', 'badminton set'],
+    'squash': ['squash racket', 'squash ball'],
     'golf clubs': ['golf clubs', 'driver', 'iron set', 'golf set', 'golf equipment'],
-    'camping tents': ['tent', 'camping tent', '2 man tent', 'festival tent', 'outdoor camping'],
+    'golf bags & trolleys': ['golf bag', 'golf trolley', 'golf cart bag', 'push trolley'],
+    'golf clothing & accessories': ['golf clothing', 'golf gloves', 'golf shoes', 'golf accessories'],
+    'camping tents': ['tent', 'camping tent', '2 man tent', '4 man tent', 'festival tent', 'outdoor camping'],
     'sleeping bags & mats': ['sleeping bag', 'camping mat', 'sleeping mat', '3 season sleeping bag'],
+    'hiking boots & trail shoes': ['hiking boots', 'walking boots', 'trail shoes', 'waterproof boots'],
+    'hiking clothing': ['hiking jacket', 'walking trousers', 'outdoor clothing', 'waterproof jacket'],
+    'rucksacks & hydration packs': ['rucksack', 'hydration pack', 'hiking backpack', 'water bladder'],
+    'camping cooking & lanterns': ['camping stove', 'camping lantern', 'camp cookware', 'gas stove'],
+    'surfing & bodyboarding': ['surfboard', 'bodyboard', 'surf wax', 'surf leash'],
+    'kayaking & paddleboarding': ['kayak', 'paddleboard', 'sup board', 'kayak paddle'],
+    'water ski & wakeboard': ['wakeboard', 'water ski', 'tow rope'],
+    'wetsuits': ['wetsuit', 'surf wetsuit', 'diving wetsuit', 'shortie wetsuit'],
+    'ski & snowboard equipment': ['skis', 'snowboard', 'ski boots', 'snowboard boots'],
+    'ski clothing & accessories': ['ski jacket', 'ski gloves', 'thermal base layer', 'ski goggles'],
     'boxing gloves & bags': ['boxing gloves', 'punch bag', 'boxing', 'mma gloves', 'martial arts'],
+    'martial arts & mma': ['mma gloves', 'martial arts gi', 'karate uniform', 'sparring gear'],
+    'wrestling': ['wrestling mat', 'wrestling shoes', 'wrestling gear'],
     'fishing rods': ['fishing rod', 'fishing', 'angling', 'carp rod', 'fishing tackle'],
+    'fishing reels & lines': ['fishing reel', 'fishing line', 'spinning reel', 'fishing spool'],
+    'fishing tackle & bait': ['fishing tackle', 'fishing bait', 'lures', 'fishing hooks'],
+    'hunting & shooting accessories': ['hunting gear', 'shooting accessories', 'game bag', 'hunting knife'],
+    'sports nutrition & recovery': ['sports nutrition', 'recovery drink', 'electrolytes', 'energy gel'],
+    'sports protective gear': ['shin pads', 'protective gear', 'mouth guard', 'knee pads'],
   },
   automotive: {
     _base: ['car accessories', 'automotive', 'vehicle accessories', 'car parts', 'motoring'],
-    'dash cams': ['dash cam', 'dashcam', 'car camera', 'driving recorder', 'dual dash cam'],
-    'sat nav & gps': ['sat nav', 'gps', 'car navigation', 'satnav'],
+    'dash cams': ['dash cam', 'dashcam', 'car camera', 'driving recorder', 'dual dash cam', '4k dashcam'],
+    'sat nav & gps': ['sat nav', 'gps', 'car navigation', 'satnav', 'truck sat nav'],
     'car stereos & head units': ['car stereo', 'head unit', 'car radio', 'android auto', 'apple carplay'],
-    'car seat covers': ['car seat cover', 'universal seat cover', 'leather seat cover'],
-    'car cleaning & valeting kits': ['car cleaning', 'car wash kit', 'valeting kit', 'microfibre cloth'],
-    'jump starters & battery chargers': ['jump starter', 'portable jump starter', 'battery charger'],
-    'tyre inflators & gauges': ['tyre inflator', 'portable air compressor', 'tyre pump'],
-    'motorbike helmets': ['motorcycle helmet', 'full face helmet', 'open face helmet'],
-    'engine oil & additives': ['engine oil', 'motor oil', 'synthetic oil', '5w30'],
-    'phone holders & mounts': ['phone holder', 'car phone mount', 'magnetic phone holder'],
+    'car speakers & amplifiers': ['car speakers', 'car amplifier', 'car audio', 'door speakers'],
+    'parking sensors & cameras': ['parking sensors', 'reversing camera', 'rear camera', 'parking camera'],
+    'car seat covers': ['car seat cover', 'universal seat cover', 'leather seat cover', 'car interior'],
+    'car mats (rubber & carpet)': ['car mats', 'rubber car mats', 'carpet mats', 'floor mats'],
+    'steering wheel covers': ['steering wheel cover', 'leather steering cover'],
+    'phone holders & mounts': ['phone holder', 'car phone mount', 'magnetic phone holder', 'dashboard mount'],
+    'car air fresheners': ['car air freshener', 'car scent', 'vent clip air freshener'],
+    'sunshades & window covers': ['car sunshade', 'window shade', 'windscreen cover', 'sun visor'],
+    'car cleaning & valeting kits': ['car cleaning', 'car wash kit', 'valeting kit', 'microfibre cloth', 'car polish'],
+    'car wax & polish': ['car wax', 'car polish', 'ceramic coating', 'ceramic wax'],
+    'scratch removers & paint protection': ['scratch remover', 'paint protection film', 'touch up paint'],
+    'jump starters & battery chargers': ['jump starter', 'portable jump starter', 'battery charger', 'car battery charger'],
+    'car inverters & power adapters': ['car inverter', 'power inverter', '12v adapter'],
+    'tyre inflators & gauges': ['tyre inflator', 'portable air compressor', 'tyre pump', 'digital tyre gauge'],
+    'engine oil & additives': ['engine oil', 'motor oil', 'synthetic oil', 'oil additive', '5w30'],
+    'coolant & antifreeze': ['coolant', 'antifreeze', 'radiator fluid'],
+    'brake pads & discs': ['brake pads', 'brake discs', 'brake kit'],
+    'oil, air & fuel filters': ['oil filter', 'air filter', 'fuel filter'],
+    'spark plugs': ['spark plugs', 'ignition plugs'],
+    'bulbs & led lighting': ['car bulbs', 'led headlight bulb', 'led car lights', 'h7 bulb'],
+    'wipers': ['wiper blades', 'windscreen wipers', 'car wipers'],
+    'tyres': ['car tyres', 'tyres', 'winter tyres', 'all season tyres'],
+    'alloy wheels': ['alloy wheels', 'car alloys', 'wheel set'],
+    'wheel trims & hub caps': ['wheel trims', 'hub caps', 'wheel covers'],
+    'car body trim & accessories': ['car body trim', 'door trim', 'car styling accessories'],
+    'car tools & garage equipment': ['car tools', 'garage tools', 'car toolkit', 'socket set'],
+    'jacks & axle stands': ['car jack', 'axle stands', 'trolley jack'],
+    'tow ropes & recovery straps': ['tow rope', 'recovery strap', 'winch strap'],
+    'tow bars': ['tow bar', 'towbar', 'detachable towbar'],
+    'child car seats & boosters': ['child car seat', 'booster seat', 'isofix car seat'],
+    'motorbike helmets': ['motorcycle helmet', 'full face helmet', 'open face helmet', 'motorbike safety'],
+    'motorbike clothing & gloves': ['motorbike jacket', 'motorbike gloves', 'motorcycle trousers'],
+    'motorbike parts': ['motorbike parts', 'motorcycle parts', 'exhaust', 'brake lever'],
+    'motorbike accessories': ['motorbike accessories', 'bike cover', 'panniers motorcycle'],
+    'van racking & storage': ['van racking', 'van shelving', 'van storage'],
+    'van accessories': ['van accessories', 'van mats', 'van seat covers'],
   },
   food: {
     _base: ['food', 'grocery', 'uk food', 'gourmet', 'foodie', 'artisan'],
-    'chocolate & sweets': ['chocolate', 'sweets', 'confectionery', 'gift chocolate', 'luxury chocolate'],
-    'tea': ['tea', 'herbal tea', 'green tea', 'english breakfast tea', 'loose leaf tea'],
-    'coffee & hot chocolate': ['coffee', 'ground coffee', 'instant coffee', 'specialty coffee'],
-    'snacks, crisps & popcorn': ['snacks', 'crisps', 'popcorn', 'healthy snacks'],
-    'organic & natural foods': ['organic', 'natural food', 'healthy food', 'organic groceries'],
-    'vegan & plant-based': ['vegan', 'plant-based', 'dairy-free', 'meat-free'],
+    'fresh fruit': ['fresh fruit', 'seasonal fruit', 'fruit box'],
+    'fresh vegetables': ['fresh vegetables', 'seasonal veg', 'vegetable box'],
+    'fresh herbs': ['fresh herbs', 'herb plant', 'growing herbs'],
+    'bread & bakery': ['bread', 'artisan bread', 'sourdough', 'bakery'],
+    'cakes & pastries': ['cake', 'pastries', 'traybake', 'celebration cake'],
+    'meat & poultry': ['meat', 'poultry', 'chicken', 'beef'],
+    'fish & seafood': ['fish', 'seafood', 'salmon', 'prawns'],
+    'dairy (milk, cheese, butter, yoghurt)': ['cheese', 'milk', 'yoghurt', 'butter'],
+    'eggs': ['eggs', 'free range eggs', 'organic eggs'],
+    'tinned vegetables & beans': ['tinned vegetables', 'tinned beans', 'baked beans'],
+    'tinned fish & meat': ['tinned fish', 'tinned tuna', 'tinned meat'],
+    'tinned soups': ['tinned soup', 'canned soup'],
+    'pasta, noodles & rice': ['pasta', 'rice', 'noodles', 'basmati rice'],
+    'grains, pulses & lentils': ['lentils', 'pulses', 'quinoa', 'grains'],
+    'breakfast cereals & granola': ['cereal', 'granola', 'breakfast cereal', 'muesli'],
+    'porridge & oats': ['porridge oats', 'oats', 'instant porridge'],
+    'sauces, gravies & marinades': ['sauce', 'gravy', 'marinade', 'pasta sauce'],
+    'ketchup, mustard & mayo': ['ketchup', 'mustard', 'mayonnaise', 'condiments'],
+    'spices, herbs & seasonings': ['spices', 'herbs', 'seasoning', 'chilli', 'herb blend', 'rub'],
+    'salt & pepper': ['salt', 'pepper', 'sea salt', 'peppercorns'],
+    'cooking oils, vinegar & dressings': ['olive oil', 'cooking oil', 'vinegar', 'salad dressing'],
+    'snacks, crisps & popcorn': ['snacks', 'crisps', 'popcorn', 'healthy snacks', 'sharing snacks'],
+    'nuts & dried fruit': ['nuts', 'dried fruit', 'mixed nuts', 'raisins'],
+    'chocolate & sweets': ['chocolate', 'sweets', 'confectionery', 'gift chocolate', 'luxury chocolate', 'candy'],
+    'biscuits & cookies': ['biscuits', 'cookies', 'chocolate biscuits'],
+    'crackers': ['crackers', 'crispbread', 'water crackers'],
+    'tea': ['tea', 'herbal tea', 'green tea', 'english breakfast tea', 'loose leaf tea', 'tea bags'],
+    'coffee & hot chocolate': ['coffee', 'ground coffee', 'instant coffee', 'specialty coffee', 'hot chocolate'],
+    'herbal & fruit infusions': ['herbal tea', 'fruit tea', 'infusion tea'],
+    'soft drinks & juices': ['soft drink', 'juice', 'fruit juice', 'fizzy drink'],
+    'energy drinks': ['energy drink', 'sports drink'],
+    'water': ['bottled water', 'sparkling water', 'still water'],
+    'beer & cider': ['beer', 'cider', 'craft beer', 'ale'],
+    'wine': ['wine', 'red wine', 'white wine', 'rose wine'],
+    'spirits & liqueurs': ['spirits', 'liqueur', 'gin', 'whisky', 'vodka'],
+    'non-alcoholic alternatives': ['non alcoholic', 'alcohol free', 'mocktail'],
+    'organic & natural foods': ['organic', 'natural food', 'healthy food', 'organic groceries', 'wholefoods'],
+    'vegan & plant-based': ['vegan', 'plant-based', 'dairy-free', 'vegan food', 'meat-free'],
     'gluten-free': ['gluten free', 'coeliac', 'wheat free', 'gluten free food'],
-    'spices, herbs & seasonings': ['spices', 'herbs', 'seasoning', 'chilli', 'herb blend'],
-    'baking (flour, sugar, yeast, chocolate chips)': ['baking', 'flour', 'baking supplies', 'bread making'],
-    "world foods (asian, caribbean, middle eastern, european)": ['world food', 'asian food', 'caribbean food', 'international food'],
+    'diabetic & low-sugar': ['low sugar', 'diabetic food', 'sugar free'],
+    "world foods (asian, caribbean, middle eastern, european)": ['world food', 'asian food', 'caribbean food', 'international food', 'ethnic grocery'],
+    'baking (flour, sugar, yeast, chocolate chips)': ['baking', 'flour', 'baking supplies', 'bread making', 'cake making'],
+    'jam, honey & spreads': ['jam', 'honey', 'spread', 'marmalade'],
+    'pickles & chutneys': ['pickle', 'chutney', 'relish'],
+    'baby food & formula': ['baby food', 'infant formula', 'baby milk', 'weaning food'],
   },
   baby: {
     _base: ['baby', 'infant', 'newborn', 'toddler', 'baby gift', 'new baby'],
-    "nappies (disposable)": ['nappies', 'disposable nappies', 'baby nappies', 'newborn nappies'],
-    "baby clothing (0-6 months)": ['baby clothes', 'newborn clothing', 'babygrow', 'sleepsuit'],
-    "baby clothing (6-18 months)": ['baby clothes', 'baby outfit', 'toddler clothing', 'baby vest'],
-    'pushchairs & prams': ['pushchair', 'pram', 'stroller', 'baby buggy', 'travel system'],
-    'baby monitors (video & audio)': ['baby monitor', 'video baby monitor', 'wifi baby monitor'],
-    'cots & cribs': ['cot', 'baby cot', 'crib', 'cotbed', 'moses basket'],
-    'baby bottles & teats': ['baby bottle', 'feeding bottle', 'anti-colic bottle'],
-    'baby skincare & bath products': ['baby skincare', 'baby lotion', 'baby bath', 'gentle wash'],
-    'baby toys & rattles': ['baby toy', 'rattle', 'sensory toy', 'teether', 'activity toy'],
+    'baby bottles & teats': ['baby bottle', 'feeding bottle', 'anti-colic bottle', 'breast feeding'],
+    'breast pumps': ['breast pump', 'electric breast pump', 'manual breast pump'],
+    'sterilisers & warmers': ['bottle steriliser', 'bottle warmer', 'steam steriliser'],
+    'bibs & feeding accessories': ['baby bibs', 'feeding accessories', 'weaning bibs'],
     'weaning & high chairs': ['high chair', 'weaning', 'baby food', 'first foods', 'booster seat'],
-    'baby car seats (group 0, 0+)': ['baby car seat', 'infant car seat', 'group 0 seat'],
+    'baby food & formula': ['baby food', 'infant formula', 'baby milk', 'weaning food'],
+    'snacks & drinks for toddlers': ['toddler snacks', 'baby snacks', 'toddler drinks'],
+    "nappies (disposable)": ['nappies', 'disposable nappies', 'baby nappies', 'newborn nappies', 'nappy'],
+    'reusable nappies & wraps': ['reusable nappy', 'cloth nappy', 'nappy wrap'],
+    'nappy bags & changing mats': ['changing mat', 'nappy bag', 'changing bag'],
+    'baby wipes': ['baby wipes', 'sensitive wipes', 'water wipes'],
+    "baby clothing (0-6 months)": ['baby clothes', 'newborn clothing', 'baby outfit', 'babygrow', 'sleepsuit'],
+    "baby clothing (6-18 months)": ['baby clothes', 'baby outfit', 'toddler clothing', 'baby vest', 'baby top'],
+    'baby clothing (18m-2yr)': ['baby clothes', 'toddler clothing', 'baby outfit'],
+    'toddler clothing (2-5 years)': ['toddler clothes', 'kids clothing', 'toddler outfit'],
+    'pram suits & snowsuits': ['snowsuit', 'pram suit', 'baby snowsuit'],
+    'baby footwear': ['baby shoes', 'first walker shoes', 'baby booties'],
+    'pushchairs & prams': ['pushchair', 'pram', 'stroller', 'baby buggy', 'travel system', 'pram system'],
+    'travel systems': ['travel system', 'pram travel system', '3 in 1 travel system'],
+    'buggy boards': ['buggy board', 'stroller board'],
+    'baby car seats (group 0, 0+)': ['baby car seat', 'infant car seat', 'group 0 seat', 'newborn car seat'],
+    'toddler car seats (group 1, 2, 3)': ['toddler car seat', 'group 1 car seat', 'booster car seat'],
+    'baby monitors (video & audio)': ['baby monitor', 'video baby monitor', 'wifi baby monitor', 'smart baby monitor'],
+    'baby alarms': ['baby alarm', 'baby movement monitor'],
+    'cots & cribs': ['cot', 'baby cot', 'crib', 'cotbed', 'co-sleeper', 'moses basket'],
+    'moses baskets & stands': ['moses basket', 'moses basket stand'],
+    'baby bedding & sleeping bags': ['baby sleeping bag', 'cot bedding', 'baby blanket'],
+    'baby baths & changing units': ['baby bath', 'changing unit', 'baby bath tub'],
+    'baby skincare & bath products': ['baby skincare', 'baby lotion', 'baby bath', 'gentle wash', 'organic baby'],
+    'baby toiletries': ['baby toiletries', 'baby shampoo', 'baby lotion'],
+    'dummies & teethers': ['dummy', 'teether', 'soother', 'pacifier'],
+    'baby carriers & slings': ['baby carrier', 'baby sling', 'baby wrap'],
+    'baby bouncers & rockers': ['baby bouncer', 'baby rocker', 'baby swing'],
+    'baby walkers & activity centres': ['baby walker', 'activity centre', 'baby entertainer'],
+    'baby toys & rattles': ['baby toy', 'rattle', 'sensory toy', 'teether', 'activity toy'],
+    'stair gates & baby safety': ['stair gate', 'baby gate', 'safety gate'],
+    'baby monitors & safety': ['baby monitor', 'baby safety', 'socket covers'],
+    'kids bedroom furniture': ['kids bed', 'childrens furniture', 'kids desk', 'bunk bed', 'toddler bed'],
+    'kids bedding': ['kids bedding', 'kids duvet cover', 'childrens bedding'],
+    'school bags & lunchboxes': ['school bag', 'lunchbox', 'kids backpack'],
+    'kids stationery': ['kids stationery', 'school stationery', 'pencil case'],
+    "children's books (0-5)": ['childrens book', 'picture book', 'toddler book'],
+    "children's books (5-12)": ['childrens book', 'kids novel', 'chapter book'],
   },
   pets: {
     _base: ['pet', 'pet supplies', 'pet care', 'animal', 'uk pets'],
-    'dog dry food': ['dog food', 'dry dog food', 'kibble', 'grain free dog food'],
-    'dog leads & harnesses': ['dog lead', 'dog harness', 'no pull harness', 'dog walking'],
-    'dog beds & crates': ['dog bed', 'dog crate', 'pet bed', 'washable dog bed'],
+    'dog dry food': ['dog food', 'dry dog food', 'kibble', 'grain free dog food', 'dog nutrition'],
+    'dog wet food & pouches': ['dog wet food', 'dog pouches', 'wet dog food'],
+    'dog treats & chews': ['dog treats', 'dog chews', 'dental chews', 'training treats'],
+    'dog leads & harnesses': ['dog lead', 'dog harness', 'no pull harness', 'dog walking', 'retractable lead'],
+    'dog collars & id tags': ['dog collar', 'id tag', 'personalised collar'],
+    'dog beds & crates': ['dog bed', 'dog crate', 'pet bed', 'dog kennel', 'washable dog bed'],
+    'dog coats & accessories': ['dog coat', 'dog jacket', 'dog accessories'],
     'dog toys': ['dog toy', 'chew toy', 'rope toy', 'interactive dog toy', 'squeaky toy'],
-    'dog grooming (brushes, shampoo, clippers)': ['dog grooming', 'dog brush', 'dog shampoo', 'dog clippers'],
-    'cat dry food': ['cat food', 'dry cat food', 'cat kibble', 'indoor cat food'],
+    'dog grooming (brushes, shampoo, clippers)': ['dog grooming', 'dog brush', 'dog shampoo', 'slicker brush', 'dog clippers'],
+    'dog training & behaviour': ['dog training', 'training clicker', 'behaviour aid'],
+    'dog health & dental': ['dog dental', 'dog health', 'dog supplements'],
+    'cat dry food': ['cat food', 'dry cat food', 'cat kibble', 'indoor cat food', 'hairball cat food'],
+    'cat wet food & pouches': ['cat wet food', 'cat pouches', 'wet cat food'],
+    'cat treats': ['cat treats', 'cat snacks', 'dreamies'],
     'cat litter & litter trays': ['cat litter', 'clumping litter', 'litter tray', 'silica gel litter'],
-    'cat trees': ['cat tree', 'cat scratching post', 'cat furniture', 'cat tower'],
-    'cat toys': ['cat toy', 'cat wand', 'interactive cat toy', 'catnip toy'],
-    'flea & tick treatment': ['flea treatment', 'tick treatment', 'flea collar', 'pet health'],
-    'bird food & seed': ['bird food', 'wild bird seed', 'sunflower seeds', 'fat balls'],
+    'cat beds & cat trees': ['cat tree', 'cat scratching post', 'cat furniture', 'indoor cat', 'cat tower', 'cat bed'],
+    'cat toys': ['cat toy', 'cat wand', 'interactive cat toy', 'catnip toy', 'laser pointer'],
+    'cat collars & leads': ['cat collar', 'cat lead', 'cat harness'],
+    'cat grooming': ['cat grooming', 'cat brush', 'cat shampoo'],
+    'cat flaps & doors': ['cat flap', 'cat door', 'microchip cat flap'],
+    'cat health': ['cat health', 'cat supplements', 'hairball remedy'],
+    'fish tanks & aquariums': ['fish tank', 'aquarium', 'nano tank'],
+    'fish food': ['fish food', 'tropical fish food', 'goldfish food'],
+    'aquarium filters, heaters & pumps': ['aquarium filter', 'aquarium heater', 'air pump'],
+    'aquarium decorations': ['aquarium decoration', 'fish tank ornament', 'aquarium plants'],
+    'bird cages & aviaries': ['bird cage', 'aviary', 'parrot cage'],
+    'bird food & seed': ['bird food', 'wild bird seed', 'sunflower seeds', 'fat balls', 'bird feeder'],
+    'bird treats & accessories': ['bird treats', 'bird toys', 'bird accessories'],
+    'rabbit & guinea pig food': ['rabbit food', 'guinea pig food', 'hay'],
+    'small animal cages & runs': ['rabbit hutch', 'guinea pig cage', 'small animal run'],
+    'small animal bedding & accessories': ['small animal bedding', 'hamster bedding', 'sawdust'],
+    'reptile vivariums & enclosures': ['vivarium', 'reptile tank', 'reptile enclosure'],
+    'reptile heat & lighting': ['reptile heat lamp', 'uvb light', 'heat mat'],
+    'reptile food & supplements': ['reptile food', 'live food', 'reptile supplements'],
+    'veterinary & pet health products': ['pet health', 'vet products', 'pet supplements'],
+    'flea & tick treatment': ['flea treatment', 'tick treatment', 'flea collar', 'frontline', 'pet health'],
+    'pet carriers & travel accessories': ['pet carrier', 'cat carrier', 'dog travel accessories'],
   },
   arts: {
     _base: ['art', 'craft', 'creative', 'art supplies', 'handmade', 'diy'],
-    'acrylic paints & sets': ['acrylic paint', 'painting set', 'artist paint', 'canvas painting'],
-    'oil paints & sets': ['oil paint', 'oil painting', 'artist oil', 'fine art'],
+    'acrylic paints & sets': ['acrylic paint', 'painting set', 'artist paint', 'acrylic art', 'canvas painting'],
+    'oil paints & sets': ['oil paint', 'oil painting', 'artist oil', 'fine art', 'oil painting set'],
     'watercolour paints': ['watercolour', 'watercolor', 'water colour painting', 'watercolour set'],
-    'canvas (stretched & boards)': ['canvas', 'stretched canvas', 'canvas board', 'artist canvas'],
+    'gouache & inks': ['gouache paint', 'ink', 'india ink', 'gouache set'],
+    'spray paints': ['spray paint', 'aerosol paint', 'graffiti spray'],
+    'paintbrushes & palette knives': ['paintbrush', 'palette knife', 'artist brush set'],
+    'palette & mixing trays': ['palette', 'mixing tray', 'paint palette'],
+    'canvas (stretched & boards)': ['canvas', 'stretched canvas', 'canvas board', 'painting surface', 'artist canvas'],
+    'watercolour paper': ['watercolour paper', 'art paper', 'cold press paper'],
+    'sketchbooks': ['sketchbook', 'drawing pad', 'art journal'],
     'pencils, charcoal & pastels': ['pencil', 'charcoal', 'pastel', 'drawing pencil', 'sketching'],
-    'markers & brush pens': ['markers', 'brush pens', 'alcohol markers', 'art pens'],
+    'colouring pencils & pens': ['colouring pencils', 'colouring pens', 'adult colouring'],
+    'fine liners & technical pens': ['fine liner', 'technical pen', 'drawing pen'],
+    'markers & brush pens': ['markers', 'brush pens', 'copic markers', 'alcohol markers', 'art pens'],
+    'fabric & felt': ['fabric', 'felt', 'cotton fabric', 'craft felt'],
     'yarn & wool (knitting & crochet)': ['yarn', 'wool', 'knitting yarn', 'crochet yarn', 'chunky wool'],
-    'sewing machines': ['sewing machine', 'dressmaking', 'quilting', 'beginner sewing machine'],
-    'embroidery & cross stitch kits': ['embroidery kit', 'cross stitch', 'needlework', 'embroidery hoop'],
-    'acoustic guitars': ['guitar', 'acoustic guitar', 'beginner guitar', 'classical guitar'],
-    'electric guitars & basses': ['electric guitar', 'bass guitar', 'guitar', 'rock guitar'],
-    'piano & digital keyboards': ['keyboard', 'digital piano', 'piano', 'synthesizer'],
-    'candle making (wax, wicks, moulds)': ['candle making', 'soy wax', 'candle supplies', 'diy candle'],
-    'jewellery making (beads, wire, clasps)': ['jewellery making', 'beading', 'craft beads', 'diy jewellery'],
-    'clay & air-dry clay': ['clay', 'air dry clay', 'polymer clay', 'sculpting clay'],
+    'knitting needles & crochet hooks': ['knitting needles', 'crochet hook', 'knitting set'],
+    'sewing machines': ['sewing machine', 'dressmaking', 'quilting', 'fabric sewing', 'beginner sewing machine'],
+    'sewing thread & needles': ['sewing thread', 'needles', 'thread set'],
+    'fabric scissors & cutting tools': ['fabric scissors', 'rotary cutter', 'cutting mat'],
+    'embroidery & cross stitch kits': ['embroidery kit', 'cross stitch', 'needlework', 'embroidery hoop', 'sewing kit'],
+    'scrapbooking & card making': ['scrapbooking', 'card making', 'craft paper'],
+    'washi tape & stickers': ['washi tape', 'stickers', 'decorative tape'],
     'resin art supplies': ['resin art', 'epoxy resin', 'resin mould', 'uv resin', 'resin craft'],
+    'jewellery making (beads, wire, clasps)': ['jewellery making', 'beading', 'craft beads', 'wire jewellery', 'diy jewellery'],
+    'clay & air-dry clay': ['clay', 'air dry clay', 'polymer clay', 'sculpting clay', 'pottery'],
+    'sculpting tools': ['sculpting tools', 'clay tools', 'pottery tools'],
+    'printmaking & lino cutting': ['lino cutting', 'printmaking', 'lino print kit'],
+    'candle making (wax, wicks, moulds)': ['candle making', 'soy wax', 'candle supplies', 'diy candle', 'candle wicks'],
+    'soap making': ['soap making', 'soap base', 'soap mould'],
+    'photography equipment': ['camera equipment', 'photography gear', 'lighting kit'],
+    'darkroom & film photography': ['film camera', 'darkroom', '35mm film'],
+    'acoustic guitars': ['guitar', 'acoustic guitar', 'beginner guitar', 'classical guitar', 'folk guitar'],
+    'electric guitars & basses': ['electric guitar', 'bass guitar', 'guitar', 'rock guitar', 'fender style'],
+    'piano & digital keyboards': ['keyboard', 'digital piano', 'piano', 'synthesizer', 'learning piano'],
+    'drums & electronic drum kits': ['drum kit', 'electronic drums', 'practice pad'],
+    'ukulele': ['ukulele', 'uke', 'soprano ukulele'],
+    'violin & strings': ['violin', 'violin strings', 'cello'],
+    'wind & brass instruments': ['trumpet', 'saxophone', 'flute', 'clarinet'],
+    'music accessories (strings, picks, stands)': ['guitar strings', 'guitar picks', 'music stand'],
+    'sheet music & music books': ['sheet music', 'music book', 'songbook'],
+    'coin collecting': ['coin collecting', 'collectable coin', 'coin album'],
+    'stamp collecting': ['stamp collecting', 'stamp album', 'collectable stamp'],
+    'trading cards & collectibles (pokémon, football etc.)': ['trading cards', 'pokemon cards', 'football cards', 'collectibles'],
+    'model making & miniatures': ['model kit', 'miniatures', 'model making'],
+    'airfix & scale models': ['airfix', 'scale model', 'model kit'],
+    '3d printing supplies': ['3d printer filament', '3d printing', 'pla filament'],
+    'laser cutting materials': ['laser cutting', 'plywood sheet', 'acrylic sheet'],
+    'party & event supplies': ['party supplies', 'party decorations', 'event supplies'],
+    'balloons & decorations': ['balloons', 'party decorations', 'foil balloons'],
   },
   office: {
     _base: ['office', 'stationery', 'desk', 'workspace', 'school supplies', 'work from home'],
-    'notebooks (hardback)': ['notebook', 'hardback notebook', 'journal', 'a5 notebook'],
-    'notebooks (softback & spiral)': ['notebook', 'spiral notebook', 'notepad', 'a4 notebook'],
-    'planners & diaries': ['planner', 'diary', '2026 planner', 'organiser', 'weekly planner'],
-    'ballpoint & rollerball pens': ['pen', 'ballpoint pen', 'rollerball pen', 'writing pen'],
-    'highlighters & markers': ['highlighter', 'marker pen', 'fluorescent highlighter'],
+    'ballpoint & rollerball pens': ['pen', 'ballpoint pen', 'rollerball pen', 'writing pen', 'smooth pen'],
+    'fountain pens': ['fountain pen', 'ink pen', 'calligraphy pen'],
+    'gel pens': ['gel pen', 'gel ink pen', 'coloured gel pens'],
+    'highlighters & markers': ['highlighter', 'marker pen', 'stabilo', 'fluorescent highlighter'],
+    'pencils & mechanical pencils': ['pencil', 'mechanical pencil', 'hb pencil'],
+    'notebooks (hardback)': ['notebook', 'hardback notebook', 'journal', 'writing book', 'a5 notebook'],
+    'notebooks (softback & spiral)': ['notebook', 'spiral notebook', 'notepad', 'writing pad', 'a4 notebook'],
+    'planners & diaries': ['planner', 'diary', '2026 planner', 'organiser', 'daily planner', 'weekly planner'],
     'sticky notes & memo pads': ['sticky notes', 'post it notes', 'memo pad', 'desk notes'],
-    'office chairs (ergonomic)': ['ergonomic chair', 'office chair', 'desk chair', 'lumbar support'],
-    'standing desks': ['standing desk', 'sit stand desk', 'adjustable desk', 'height adjustable'],
-    'desk lamps': ['desk lamp', 'led desk lamp', 'study lamp', 'eye care lamp'],
-    'printers': ['printer', 'inkjet printer', 'laser printer', 'wireless printer'],
-    'whiteboards & cork boards': ['whiteboard', 'dry erase board', 'corkboard', 'notice board'],
-    'monitor stands & laptop risers': ['monitor stand', 'laptop stand', 'laptop riser', 'ergonomic stand'],
+    'folders & ring binders': ['ring binder', 'folder', 'lever arch file'],
+    'document wallets & sleeves': ['document wallet', 'plastic sleeve', 'punched pockets'],
+    'filing cabinets & desktop organisers': ['filing cabinet', 'desk organiser', 'desktop tidy'],
+    'paper (a4, a3, coloured)': ['a4 paper', 'printer paper', 'coloured paper'],
+    'card & envelopes': ['card stock', 'envelopes', 'craft card'],
+    'printer labels & stickers': ['printer labels', 'address labels', 'sticker sheets'],
+    'ink cartridges (inkjet)': ['ink cartridge', 'inkjet cartridge', 'replacement ink'],
+    'toner cartridges (laser)': ['toner cartridge', 'laser toner'],
+    'printers': ['printer', 'inkjet printer', 'laser printer', 'home printer', 'wireless printer'],
+    'scanners': ['scanner', 'document scanner', 'photo scanner'],
+    'shredders': ['paper shredder', 'cross cut shredder', 'office shredder'],
+    'laminators & laminating pouches': ['laminator', 'laminating pouches', 'a4 laminator'],
+    'binding machines': ['binding machine', 'comb binder'],
+    'office chairs (ergonomic)': ['ergonomic chair', 'office chair', 'desk chair', 'lumbar support', 'computer chair'],
+    'standing desks': ['standing desk', 'sit stand desk', 'adjustable desk', 'height adjustable desk'],
+    'monitor stands & laptop risers': ['monitor stand', 'laptop stand', 'laptop riser', 'desk organiser', 'ergonomic stand'],
+    'whiteboards & cork boards': ['whiteboard', 'dry erase board', 'corkboard', 'notice board', 'magnetic board'],
+    'notice board accessories': ['notice board pins', 'push pins', 'noticeboard accessories'],
+    'staplers, punches & tape dispensers': ['stapler', 'hole punch', 'tape dispenser'],
+    'scissors, letter openers & rulers': ['scissors', 'letter opener', 'ruler'],
+    'calculators': ['calculator', 'scientific calculator', 'desktop calculator'],
+    'presentation clickers & pointers': ['presentation clicker', 'laser pointer', 'remote presenter'],
+    'desk lamps': ['desk lamp', 'led desk lamp', 'study lamp', 'office lamp', 'eye care lamp'],
+    'cable management': ['cable management', 'cable organiser', 'cable clips'],
   },
   antiques: {
     _base: ['antique', 'vintage', 'collectible', 'rare', 'retro', 'period piece', 'uk antiques'],
-    'antique furniture (victorian, georgian, edwardian)': ['antique furniture', 'victorian furniture', 'georgian', 'edwardian'],
-    'original oil paintings & watercolours': ['original painting', 'oil painting', 'original artwork', 'fine art'],
-    'vintage clothing & accessories (pre-1990)': ['vintage clothing', 'retro fashion', 'vintage style', 'vintage dress'],
-    'vintage watches': ['vintage watch', 'mechanical watch', 'antique watch', 'collectors watch'],
-    'ceramics & pottery (china, porcelain, stoneware)': ['ceramics', 'pottery', 'porcelain', 'china'],
-    'coins & banknotes (uk)': ['coin', 'uk coin', 'numismatics', 'old coins', 'collectors coin'],
-    'vintage jewellery': ['vintage jewellery', 'antique jewellery', 'art deco jewellery'],
-    'sports memorabilia (signed shirts, programmes)': ['sports memorabilia', 'signed shirt', 'football memorabilia'],
-    'first edition & antiquarian books': ['first edition', 'rare book', 'antiquarian book', 'collectors book'],
-    'military memorabilia & medals': ['military memorabilia', 'medal', 'ww2 memorabilia', 'military badge'],
+    'antique furniture (victorian, georgian, edwardian)': ['antique furniture', 'victorian furniture', 'georgian', 'edwardian', 'period furniture'],
+    'mid-century modern furniture': ['mid century furniture', 'mid century modern', 'retro furniture'],
+    'vintage clothing & accessories (pre-1990)': ['vintage clothing', 'retro fashion', 'vintage style', 'pre-owned', 'vintage dress'],
+    'vintage watches': ['vintage watch', 'mechanical watch', 'antique watch', 'collectors watch', 'pocket watch'],
+    'vintage cameras & electronics': ['vintage camera', 'retro electronics', 'film camera', 'antique radio'],
+    'original oil paintings & watercolours': ['original painting', 'oil painting', 'original artwork', 'signed painting', 'fine art'],
+    'prints & engravings': ['antique print', 'engraving', 'vintage print'],
+    'ceramics & pottery (china, porcelain, stoneware)': ['ceramics', 'pottery', 'porcelain', 'china', 'antique china'],
+    'glass & crystal (victorian, art deco, etc.)': ['antique glass', 'crystal glass', 'victorian glass'],
+    'silver & silverplate': ['antique silver', 'silverplate', 'sterling silver'],
+    'pewter & metalware': ['pewter', 'antique metalware', 'brass antique'],
+    'antique clocks & mantel clocks': ['antique clock', 'mantel clock', 'carriage clock'],
+    'pocket watches': ['pocket watch', 'antique pocket watch'],
+    'coins & banknotes (uk)': ['coin', 'uk coin', 'numismatics', 'old coins', 'collectors coin', 'banknote'],
+    'coins & banknotes (world)': ['world coins', 'foreign coins', 'world banknotes'],
+    'stamps (british)': ['british stamps', 'stamp collection'],
+    'stamps (world & thematic)': ['world stamps', 'thematic stamps'],
+    'first edition & antiquarian books': ['first edition', 'rare book', 'antiquarian book', 'collectors book', 'signed book'],
+    'postcards, photographs & ephemera': ['vintage postcard', 'old photograph', 'ephemera'],
+    'military memorabilia & medals': ['military memorabilia', 'medal', 'ww2 memorabilia', 'military badge', 'army collectible'],
+    'uniforms & badges': ['military uniform', 'badge', 'vintage badge'],
+    'sports memorabilia (signed shirts, programmes)': ['sports memorabilia', 'signed shirt', 'football memorabilia', 'match programme'],
+    'vintage toys & games': ['vintage toy', 'retro toy', 'vintage game'],
+    'tin toys & dolls': ['tin toy', 'antique doll', 'vintage tin toy'],
+    'vintage jewellery': ['vintage jewellery', 'antique jewellery', 'art deco jewellery', 'estate jewellery'],
+    'art nouveau & art deco': ['art deco', 'art nouveau', 'art deco antique'],
+    'maps, globes & scientific instruments': ['antique map', 'vintage globe', 'scientific instrument'],
+    'advertising & breweriana': ['advertising sign', 'breweriana', 'vintage advertising'],
+    'pub & barware': ['pub sign', 'barware', 'vintage bar accessories'],
+    'fossils, minerals & natural history': ['fossil', 'mineral specimen', 'natural history'],
   },
   travel: {
     _base: ['travel', 'luggage', 'holiday', 'travel accessories', 'trip', 'travel gift'],
-    'hard shell suitcases (cabin)': ['cabin suitcase', 'carry on luggage', 'hand luggage', 'cabin bag'],
-    'hard shell suitcases (medium / large)': ['suitcase', 'large suitcase', 'hold luggage', '4 wheel suitcase'],
-    'soft shell suitcases': ['soft suitcase', 'lightweight suitcase', 'fabric suitcase'],
-    'travel pillows (neck & inflatable)': ['travel pillow', 'neck pillow', 'inflatable pillow', 'flight pillow'],
+    'hard shell suitcases (cabin)': ['cabin suitcase', 'carry on luggage', 'hand luggage', 'cabin bag', '20 inch suitcase'],
+    'hard shell suitcases (medium / large)': ['suitcase', 'large suitcase', 'hold luggage', 'holiday suitcase', '4 wheel suitcase'],
+    'soft shell suitcases': ['soft suitcase', 'lightweight suitcase', 'fabric suitcase', 'expanding suitcase'],
+    'wheeled holdalls & duffel bags': ['holdall', 'duffel bag', 'wheeled holdall', 'weekend bag'],
+    'backpacks (travel & hiking)': ['travel backpack', 'hiking rucksack', 'backpack', 'carry on backpack', 'laptop backpack'],
+    'day packs & daybags': ['day pack', 'daybag', 'small backpack'],
+    'laptop bags & briefcases': ['laptop bag', 'briefcase', 'laptop case'],
+    'handbags & crossbody bags': ['crossbody bag', 'travel handbag', 'sling bag'],
+    'travel pillows (neck & inflatable)': ['travel pillow', 'neck pillow', 'inflatable pillow', 'flight pillow', 'memory foam travel pillow'],
+    'eye masks & earplugs': ['sleep mask', 'eye mask', 'earplugs', 'flight eye mask'],
+    'luggage locks, straps & tags': ['luggage lock', 'tsa lock', 'luggage strap', 'luggage tag', 'travel security'],
+    'packing cubes & compression bags': ['packing cubes', 'compression bags', 'luggage organiser'],
     'travel adapters & multi-plugs': ['travel adapter', 'universal adapter', 'world plug', 'usb travel adapter'],
-    'travel wallets & passport holders': ['passport holder', 'travel wallet', 'rfid blocking', 'travel organiser'],
-    'backpacks (travel & hiking)': ['travel backpack', 'hiking rucksack', 'backpack', 'carry on backpack'],
-    'toiletry bags & wash bags': ['wash bag', 'toiletry bag', 'travel toiletry bag', 'waterproof wash bag'],
-    'luggage locks, straps & tags': ['luggage lock', 'tsa lock', 'luggage strap', 'luggage tag'],
+    'portable power banks': ['power bank', 'portable charger', 'travel power bank'],
+    'travel wallets & passport holders': ['passport holder', 'travel wallet', 'rfid blocking', 'document holder', 'travel organiser'],
+    'money belts & pouches': ['money belt', 'travel pouch', 'hidden money pouch'],
+    'toiletry bags & wash bags': ['wash bag', 'toiletry bag', 'travel toiletry bag', 'mens wash bag', 'waterproof wash bag'],
+    'mini travel bottles & containers': ['travel bottles', 'travel size containers', 'liquid travel bottles'],
+    'travel clothing (packable jackets, scarves)': ['packable jacket', 'travel scarf', 'travel clothing'],
+    'waterproof bags & dry sacks': ['dry bag', 'waterproof bag', 'dry sack'],
+    'maps, guidebooks & travel books': ['travel guide', 'map', 'guidebook'],
+    'travel games & entertainment': ['travel games', 'card games travel', 'travel entertainment'],
   },
   software: {
     _base: ['software', 'digital download', 'activation key', 'license key', 'instant delivery'],
-    'antivirus & internet security': ['antivirus', 'internet security', 'cybersecurity', 'malware protection'],
+    'pc software (windows)': ['windows software', 'pc software', 'windows key'],
+    'mac software (macos)': ['mac software', 'macos software', 'apple software'],
+    'antivirus & internet security': ['antivirus', 'internet security', 'cybersecurity', 'malware protection', 'online security'],
     'vpn software': ['vpn', 'virtual private network', 'privacy software', 'anonymous browsing'],
-    'design & creative (adobe, affinity etc.)': ['design software', 'photo editing', 'creative suite'],
-    'gaming (pc / digital code)': ['pc game', 'digital game', 'steam key', 'game code'],
+    'design & creative (adobe, affinity etc.)': ['design software', 'photo editing', 'video editing software', 'creative suite'],
+    'video editing software': ['video editing software', 'video editor', 'premiere pro'],
+    'audio & music production software': ['music production software', 'daw software', 'audio software'],
+    'cad & engineering software': ['cad software', 'engineering software', 'autocad'],
+    'business & office software': ['office software', 'microsoft office', 'word processor', 'spreadsheet', 'business tools'],
+    'accounting software': ['accounting software', 'bookkeeping software', 'quickbooks'],
+    'educational software & learning tools': ['learning software', 'educational software', 'elearning'],
+    'gaming (pc / digital code)': ['pc game', 'digital game', 'steam key', 'game code', 'gaming download'],
+    'gaming dlc & in-game currency': ['dlc code', 'in game currency', 'game credits'],
     'amazon gift cards': ['amazon gift card', 'amazon voucher', 'gift card', 'amazon code'],
-    'gaming gift cards (playstation, xbox, nintendo, steam)': ['psn gift card', 'xbox gift card', 'nintendo eshop', 'steam wallet'],
-    'business & office software': ['office software', 'microsoft office', 'business tools'],
+    "itunes & app store gift cards": ['itunes gift card', 'app store gift card', 'apple gift card'],
+    'gaming gift cards (playstation, xbox, nintendo, steam)': ['psn gift card', 'xbox gift card', 'nintendo eshop', 'steam wallet', 'gaming voucher'],
+    'retail & restaurant gift cards': ['gift card', 'retail voucher', 'restaurant gift card'],
+    'other digital downloads & e-books': ['ebook', 'digital download', 'e-book'],
   },
   other: {
     _base: ['miscellaneous', 'general', 'unique', 'gift idea', 'variety'],
+    'miscellaneous': ['miscellaneous', 'other', 'misc item', 'unique find'],
   },
 };
 
@@ -681,15 +1132,27 @@ function renderTagChips(catValue, subcatText) {
   });
 }
 
+// Auto-fills the Tags field from the category/subcategory's suggested tags
+// — only when the vendor hasn't typed any tags of their own yet, so this
+// never overwrites a real choice.
+function autoFillTagsIfEmpty(catValue, subcatText) {
+  const input = document.getElementById('product-tags');
+  if (!input || input.value.trim()) return;
+  const auto = getSuggestedTags(catValue, subcatText).slice(0, 6);
+  if (auto.length) input.value = auto.join(', ');
+}
+
 function bindTagSuggestions() {
   const catSel = document.getElementById('product-category');
   const subSel = document.getElementById('product-subcategory');
   catSel?.addEventListener('change', () => {
     renderTagChips(catSel.value, '');
+    autoFillTagsIfEmpty(catSel.value, '');
   });
   subSel?.addEventListener('change', () => {
     const subcatText = subSel.options[subSel.selectedIndex]?.text || '';
     renderTagChips(catSel.value, subcatText);
+    autoFillTagsIfEmpty(catSel.value, subcatText);
   });
 }
 
@@ -1076,12 +1539,12 @@ function bindImageUploads() {
     const selAllBtn = document.createElement('button');
     selAllBtn.type = 'button';
     selAllBtn.id = 'img-sel-all-btn';
-    selAllBtn.textContent = '☑ Select All';
+    selAllBtn.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l3 3 5-6"/></svg> Select All';
     selAllBtn.style.cssText = 'font-size:0.82rem;padding:5px 12px;background:#f0f9f8;border:1px solid #0b6b6a;color:#0b6b6a;border-radius:6px;cursor:pointer;font-weight:600';
     const clearSelBtn = document.createElement('button');
     clearSelBtn.type = 'button';
     clearSelBtn.id = 'img-clear-sel-btn';
-    clearSelBtn.textContent = '✕ Clear Selected';
+    clearSelBtn.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M6 6l12 12M18 6L6 18"/></svg> Clear Selected';
     clearSelBtn.style.cssText = 'font-size:0.82rem;padding:5px 12px;background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;cursor:pointer;font-weight:600';
     selAllBtn.addEventListener('click', () => {
       const filledCbs = Array.from(document.querySelectorAll('.img-slot-check')).filter(c => c.style.display !== 'none');
@@ -1096,6 +1559,133 @@ function bindImageUploads() {
     });
     imgBtnRow.appendChild(selAllBtn);
     imgBtnRow.appendChild(clearSelBtn);
+
+    // "Fetch images from CJ" button — shown only when product has CJ variant refs
+    if (!document.getElementById('btn-fetch-cj-images')) {
+      const cjBtn = document.createElement('button');
+      cjBtn.type = 'button';
+      cjBtn.id   = 'btn-fetch-cj-images';
+      cjBtn.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M4 12a8 8 0 0114-5.3M20 12a8 8 0 01-14 5.3"/><path d="M18 3v5h-5M6 21v-5h5"/></svg> Sync from CJ';
+      cjBtn.style.cssText = 'font-size:0.82rem;padding:5px 12px;background:#f0f9f8;border:1px solid #0b6b6a;color:#0b6b6a;border-radius:6px;cursor:pointer;font-weight:600;display:none';
+      // Styled modal flow (replaces the native confirm popup):
+      // confirm state → indeterminate progress → result, then reload.
+      const syncOverlay = () => document.getElementById('cj-sync-overlay');
+      const syncMsg     = () => document.getElementById('cj-sync-msg');
+      const syncTrack   = () => document.getElementById('cj-sync-track');
+      const syncActions = () => document.getElementById('cj-sync-actions');
+
+      cjBtn.addEventListener('click', () => {
+        const ov = syncOverlay();
+        if (!ov) return;
+        syncMsg().textContent = 'Images, videos, variant thumbnails, supplier info and shipping cost will be replaced with fresh CJ data. Any unsaved edits on this page will be lost.';
+        syncTrack().hidden = true;
+        syncActions().hidden = false;
+        const cancelB = document.getElementById('cj-sync-cancel');
+        const confirmB = document.getElementById('cj-sync-confirm');
+        if (cancelB)  { cancelB.textContent = 'Cancel'; }
+        if (confirmB) { confirmB.hidden = false; }
+        ov.classList.add('active');
+      });
+
+      document.getElementById('cj-sync-cancel')?.addEventListener('click', () => {
+        syncOverlay()?.classList.remove('active');
+      });
+
+      document.getElementById('cj-sync-confirm')?.addEventListener('click', async () => {
+        const id = new URLSearchParams(window.location.search).get('id');
+        syncActions().hidden = true;
+        syncTrack().hidden = false;
+        syncMsg().textContent = 'Syncing from CJ…';
+        try {
+          const token = localStorage.getItem('s4l_token');
+          const res  = await fetch(`${window.API_BASE}/vendor/products/${id}/cj-sync`, {
+            method:  'POST',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          syncTrack().hidden = true;
+          if (!res.ok) {
+            // Debug data logged quietly, not shown to the vendor — useful
+            // for troubleshooting a real report without interrupting normal
+            // use with a technical popup.
+            console.error('[cj-sync] error:', data.error, data.cjSearchDebug);
+            syncMsg().textContent = data.error || 'CJ sync failed';
+          } else if (data.note === 'variant-fallback') {
+            // CJ's search didn't re-find this product — images were kept from
+            // what was already stored, but category/subcategory/supplier were
+            // never touched (that only happens on a real CJ match). Previously
+            // this showed the same "✓ Synced" message as a full success, so a
+            // vendor had no way to know those fields still needed filling in
+            // by hand — only a console.warn recorded the real story.
+            console.warn('[cj-sync] fell back to existing images — CJ search found nothing:', data.cjSearchError, data.cjSearchDebug);
+            syncMsg().innerHTML = `<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 3l9 16H3L12 3z"/><path d="M12 10v4M12 17h.01"/></svg> CJ couldn't re-match this product — kept the ${data.images} existing image${data.images !== 1 ? 's' : ''}, but category/subcategory and supplier info were NOT updated. Set them manually if still blank. Reloading…`;
+            setTimeout(() => window.location.reload(), 2200);
+          } else {
+            const parts = [`${data.images} images`];
+            if (data.videos)           parts.push(`${data.videos} video${data.videos !== 1 ? 's' : ''}`);
+            if (data.variantsSynced)   parts.push(`${data.variantsSynced} variant image${data.variantsSynced !== 1 ? 's' : ''}`);
+            if (data.shipping != null) parts.push(`£${data.shipping} shipping`);
+            syncMsg().textContent = `Synced from CJ: ${parts.join(', ')}. Reloading…`;
+            if (data.categoryDebug) console.log('[cj-sync] category debug:', data.categoryDebug);
+            setTimeout(() => window.location.reload(), 1100);
+            return;
+          }
+        } catch (_) {
+          syncTrack().hidden = true;
+          syncMsg().textContent = 'Network error syncing from CJ';
+        }
+        // Error path: offer a Close button
+        const cancelB = document.getElementById('cj-sync-cancel');
+        const confirmB = document.getElementById('cj-sync-confirm');
+        if (cancelB)  cancelB.textContent = 'Close';
+        if (confirmB) confirmB.hidden = true;
+        syncActions().hidden = false;
+      });
+      imgBtnRow.appendChild(cjBtn);
+
+      // Re-derive category/subcategory from THIS PRODUCT'S OWN TITLE and
+      // overwrite whatever is stored — unlike "Sync from CJ" above, which
+      // never touches category once it's set, and unrelated to CJ: purely
+      // internal, works for every vendor tier, no supplier link needed.
+      if (!document.getElementById('btn-rematch-category')) {
+        const rematchBtn = document.createElement('button');
+        rematchBtn.type = 'button';
+        rematchBtn.id   = 'btn-rematch-category';
+        rematchBtn.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M3 11V5a2 2 0 012-2h6l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1.1" fill="currentColor" stroke="none"/></svg> Re-match Category';
+        rematchBtn.style.cssText = 'font-size:0.82rem;padding:5px 12px;background:#f0f9f8;border:1px solid #0b6b6a;color:#0b6b6a;border-radius:6px;cursor:pointer;font-weight:600';
+        rematchBtn.addEventListener('click', async () => {
+          if (!confirm('Re-derive category and subcategory from this product\'s title and overwrite what\'s set now?')) return;
+          if (rematchBtn.disabled) return;
+          rematchBtn.disabled = true;
+          const originalText = rematchBtn.textContent;
+          rematchBtn.textContent = 'Re-matching…';
+          const id = new URLSearchParams(window.location.search).get('id');
+          const token = localStorage.getItem('s4l_token');
+          try {
+            const res = await fetch(`${window.API_BASE}/vendor/products/${id}/rematch-category`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+            console.log('[rematch-category] matched:', data.matched);
+            if (!res.ok) { window.showToast?.(data.error || 'Re-match failed', 'error'); return; }
+            window.showToast?.(`Category set to ${data.category} / ${data.subcategory || '(no subcategory)'}`);
+            // Existing tags may have come from the OLD (wrong) category —
+            // force a fresh tag suggestion fill on reload too, not just
+            // when tags happen to be empty, since this is already an
+            // explicit "overwrite what's set now" action.
+            sessionStorage.setItem('s4l_forceTagRefill', '1');
+            setTimeout(() => window.location.reload(), 900);
+          } catch {
+            window.showToast?.('Network error re-matching category', 'error');
+          } finally {
+            rematchBtn.disabled = false;
+            rematchBtn.textContent = originalText;
+          }
+        });
+        imgBtnRow.appendChild(rematchBtn);
+      }
+    }
   }
 
   const showMoreBtn = document.getElementById('ap-show-more');
@@ -1131,7 +1721,7 @@ function bindImageUploads() {
 // ======================================================
 
 let _variantRowId = 0;
-let _variantGlobalMode = 'color';
+let _variantGlobalMode = 'image';
 
 function getAttrNames() {
   return Array.from(document.querySelectorAll('#attr-names-wrap .attr-name-input'))
@@ -1169,7 +1759,9 @@ function addAttrInput(name, addColToRows) {
       if (!swatchTd) return;
       const td = document.createElement('td');
       td.className = 'vb-dyn-attr-td';
-      td.innerHTML = '<input type="text" class="vb-input" name="vr-attr" placeholder="" />';
+      ensureAttrDatalist(idx);
+      td.innerHTML = `<input type="text" class="vb-input" name="vr-attr" data-attr-idx="${idx}" list="vb-attr-dl-${idx}" placeholder="" />`;
+      td.querySelector('input').addEventListener('change', () => updateAttrDatalist(idx));
       tr.insertBefore(td, swatchTd);
     });
   }
@@ -1193,6 +1785,27 @@ function syncVariantHeaders() {
   checkTh.style.cssText = 'width:28px;text-align:center;vertical-align:middle;padding:4px';
   checkTh.innerHTML = '<input type="checkbox" id="vr-check-all-hdr" title="Select / deselect all rows" style="width:15px;height:15px;cursor:pointer;accent-color:#14b8a6" />';
   headerRow.insertBefore(checkTh, headerRow.firstElementChild);
+}
+
+function ensureAttrDatalist(attrIdx) {
+  const id = `vb-attr-dl-${attrIdx}`;
+  if (!document.getElementById(id)) {
+    const dl = document.createElement('datalist');
+    dl.id = id;
+    document.body.appendChild(dl);
+  }
+}
+
+function updateAttrDatalist(attrIdx) {
+  ensureAttrDatalist(attrIdx);
+  const dl = document.getElementById(`vb-attr-dl-${attrIdx}`);
+  if (!dl) return;
+  const values = new Set();
+  document.querySelectorAll(`[name="vr-attr"][data-attr-idx="${attrIdx}"]`).forEach(inp => {
+    const v = inp.value.trim();
+    if (v) values.add(v);
+  });
+  dl.innerHTML = [...values].sort().map(v => `<option value="${v}"></option>`).join('');
 }
 
 function setRowMode(tr, mode) {
@@ -1219,16 +1832,20 @@ function addVariantRow(data) {
   const tr = document.createElement('tr');
   tr.dataset.rowId = id;
   const _ph = ['e.g. Black', 'e.g. Large', 'e.g. iPhone 15'];
-  const attrCells = attrNames.map((_, i) =>
-    `<td class="vb-dyn-attr-td"><input type="text" class="vb-input" name="vr-attr" value="${attrVals[i] || ''}" placeholder="${_ph[i] || 'e.g. value'}" /></td>`
-  ).join('');
+  const attrCells = attrNames.map((_, i) => {
+    ensureAttrDatalist(i);
+    return `<td class="vb-dyn-attr-td"><input type="text" class="vb-input" name="vr-attr" data-attr-idx="${i}" list="vb-attr-dl-${i}" value="${attrVals[i] || ''}" placeholder="${_ph[i] || 'e.g. value'}" /></td>`;
+  }).join('');
   tr.innerHTML = `
     <td class="vb-check-td" style="width:28px;text-align:center;vertical-align:middle;padding:4px">
       <input type="checkbox" class="vr-row-check" style="width:15px;height:15px;cursor:pointer;accent-color:#14b8a6" />
     </td>
     ${attrCells}
     <td class="vb-color-cell">
-      <input type="color" class="vb-color-pick" name="vr-color" value="${color}" data-user-set="${data.color ? 'true' : 'false'}" title="Pick swatch colour" />
+      <div class="vr-swatch-row">
+        <input type="color" class="vb-color-pick" name="vr-color" value="${color}" data-user-set="${data.color ? 'true' : 'false'}" title="Pick swatch colour" />
+        ${'EyeDropper' in window ? `<button type="button" class="vr-eyedrop-btn" title="Sample the exact colour from anywhere on screen, e.g. right off the product photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-2.5 2.5-4-4L17 3z"/><path d="M14.5 5.5L4 16v3.5h3.5L18.5 8.5"/><circle cx="5.5" cy="18.5" r="1"/></svg></button>` : ''}
+      </div>
       <span class="vr-mode-sel"><button type="button" class="vr-mode-btn" data-pick="color" title="Show as colour swatch on product page">Clr</button><button type="button" class="vr-mode-btn" data-pick="image" title="Show as image thumbnail on product page">Img</button></span>
     </td>
     <td class="ao-img-cell">
@@ -1247,10 +1864,16 @@ function addVariantRow(data) {
     <td><input type="number" class="vb-input vb-input-sm" name="vr-price" step="0.01" min="0" value="${data.price != null ? data.price : ''}" placeholder="0.00" /></td>
     <td><input type="number" class="vb-input vb-input-sm" name="vr-stock" min="0" value="${data.stock != null ? data.stock : ''}" placeholder="0" /></td>
     <td><input type="text" class="vb-input" name="vr-sku" value="${data.sku || ''}" placeholder="SKU-001" /></td>
-    <td><button type="button" class="vb-remove-btn" data-row="${id}">✕</button></td>
+    <td><button type="button" class="vb-remove-btn" data-row="${id}"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M6 6l12 12M18 6L6 18"/></svg></button></td>
   `;
   tbody.appendChild(tr);
   setRowMode(tr, rowMode);
+
+  // Keep datalists up to date as values are typed
+  tr.querySelectorAll('[name="vr-attr"]').forEach(inp => {
+    inp.addEventListener('change', () => updateAttrDatalist(parseInt(inp.dataset.attrIdx, 10)));
+  });
+  attrNames.forEach((_, i) => updateAttrDatalist(i));
 
   // Wire per-row upload button
   const uploadBtn   = tr.querySelector('.vr-upload-btn');
@@ -1293,7 +1916,7 @@ function addVariantRow(data) {
           }
         });
       } catch { window.showToast?.('Image upload failed', 'error'); }
-      uploadBtn.textContent = '📷';
+      uploadBtn.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7l1.5-3h5L16 7"/><circle cx="12" cy="13.5" r="3.3"/></svg>';
       uploadBtn.disabled = false;
       uploadInput.value = '';
     });
@@ -1323,7 +1946,7 @@ function getVariants() {
     const sku = tr.querySelector('[name="vr-sku"]')?.value.trim();
     const color = tr.querySelector('[name="vr-color"]')?.value || '';
     const image = tr.querySelector('[name="vr-image"]')?.value.trim() || '';
-    const displayMode = tr.dataset.mode || 'color';
+    const displayMode = tr.dataset.mode || 'image';
     const attributes = {};
     attrNames.forEach((name, i) => {
       const val = i === 0 ? a1 : (attrInputs[i]?.value.trim() || '');
@@ -1366,7 +1989,7 @@ function loadVariants(variants) {
       sku: v.sku,
       color: v.color || '',
       image: v.image || '',
-      displayMode: v.displayMode || 'color',
+      displayMode: v.displayMode || 'image',
     });
   });
 }
@@ -1447,7 +2070,7 @@ function openGenModal() {
       </div>`).join('')}
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
       <button id="_gen-cancel" style="padding:7px 16px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:0.9rem">Cancel</button>
-      <button id="_gen-ok" style="padding:7px 16px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;font-weight:600">&#9889; Generate</button>
+      <button id="_gen-ok" style="padding:7px 16px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;font-weight:600"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M13 3L4 14h6l-1 7 9-11h-6l1-7z"/></svg> Generate</button>
     </div>`;
   overlay.appendChild(box);
   document.body.appendChild(overlay);
@@ -1478,7 +2101,7 @@ function openGenModal() {
         price: row.querySelector('[name="vr-price"]')?.value || '',
         stock: row.querySelector('[name="vr-stock"]')?.value || '',
         sku:   row.querySelector('[name="vr-sku"]')?.value || '',
-        displayMode: row.dataset.mode || 'color',
+        displayMode: row.dataset.mode || 'image',
       };
     });
     // Remove rows that are not in the new combination set (old colour-only rows)
@@ -1515,85 +2138,6 @@ function bindVariants() {
 
   document.getElementById('btn-add-variant')?.addEventListener('click', () => addVariantRow());
 
-  /* ── Bulk variant image upload ─────────────────────── */
-  const vbMultiInput  = document.getElementById('vb-multi-img-input');
-  const btnVariantImgs = document.getElementById('btn-variant-imgs');
-
-  btnVariantImgs?.addEventListener('click', () => vbMultiInput?.click());
-
-  function nameFromFilename(file) {
-    return file.name
-      .replace(/\.[^.]+$/, '')          // remove extension
-      .replace(/[-_\.]+/g, ' ')         // hyphens/underscores → spaces
-      .replace(/\s+/g, ' ').trim()      // collapse spaces
-      .replace(/\b\w/g, c => c.toUpperCase()); // Title Case
-  }
-
-  vbMultiInput?.addEventListener('change', async (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-
-    // Ensure variants section is visible without auto-adding a blank row
-    const hasVariantsChk = document.getElementById('has-variants');
-    if (hasVariantsChk && !hasVariantsChk.checked) {
-      hasVariantsChk.checked = true;
-      const builder = document.getElementById('variant-builder');
-      if (builder) builder.style.display = '';
-    }
-
-    // ── Pass 1: create/fill rows with names from filenames ──
-    for (let i = 0; i < files.length; i++) {
-      const name = nameFromFilename(files[i]);
-      const rows = Array.from(document.querySelectorAll('#variant-rows tr'));
-      if (i >= rows.length) {
-        // Create row with name pre-filled
-        addVariantRow({ attr1: name });
-      } else {
-        // Fill existing row's name only if blank
-        const ni = rows[i].querySelector('[name="vr-attr"]');
-        if (ni && !ni.value.trim()) ni.value = name;
-      }
-    }
-
-    // ── Pass 2: upload images ───────────────────────────────
-    const count = files.length;
-    btnVariantImgs.disabled = true;
-    btnVariantImgs.textContent = `Uploading 0 / ${count}…`;
-
-    let uploaded = 0;
-    for (let i = 0; i < count; i++) {
-      const file = files[i];
-      const rows = Array.from(document.querySelectorAll('#variant-rows tr'));
-      const row  = rows[i];
-      if (!row) continue;
-
-      const imgInput   = row.querySelector('[name="vr-image"]');
-      const imgPreview = row.querySelector('.vr-img-preview');
-      if (!imgInput) continue;
-
-      const blobUrl = URL.createObjectURL(file);
-      if (imgPreview) { imgPreview.src = blobUrl; imgPreview.style.display = ''; }
-
-      btnVariantImgs.textContent = `Uploading ${i + 1} / ${count}…`;
-
-      try {
-        const cdnUrl = await uploadToCloudinary(file);
-        imgInput.value = cdnUrl;
-        if (imgPreview) { imgPreview.src = cdnUrl; URL.revokeObjectURL(blobUrl); }
-        uploaded++;
-      } catch (err) {
-        console.error('Variant image upload error:', err);
-        window.showToast?.(`Image ${i + 1} failed — try again`, 'error');
-        if (imgPreview) { imgPreview.src = ''; imgPreview.style.display = 'none'; }
-      }
-    }
-
-    btnVariantImgs.disabled = false;
-    btnVariantImgs.textContent = '📁 Bulk upload images';
-    vbMultiInput.value = '';
-    if (uploaded) window.showToast?.(`${uploaded} variant image${uploaded > 1 ? 's' : ''} uploaded ✓`);
-  });
-
   document.getElementById('btn-add-attr')?.addEventListener('click', () => addAttrInput('', true));
   document.getElementById('btn-gen-variants')?.addEventListener('click', openGenModal);
   addAttrInput('Colour');
@@ -1611,12 +2155,12 @@ function bindVariants() {
     const selAllBtn = document.createElement('button');
     selAllBtn.type = 'button';
     selAllBtn.id = 'vr-sel-all-btn';
-    selAllBtn.textContent = '☑ Select All';
+    selAllBtn.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l3 3 5-6"/></svg> Select All';
     selAllBtn.style.cssText = 'font-size:0.82rem;padding:6px 12px;background:#f0f9f8;border:1px solid #0b6b6a;color:#0b6b6a;border-radius:6px;cursor:pointer;font-weight:600';
     const removeSelBtn = document.createElement('button');
     removeSelBtn.type = 'button';
     removeSelBtn.id = 'vr-remove-sel-btn';
-    removeSelBtn.textContent = '✕ Remove Selected';
+    removeSelBtn.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M6 6l12 12M18 6L6 18"/></svg> Remove Selected';
     removeSelBtn.style.cssText = 'font-size:0.82rem;padding:6px 12px;background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;cursor:pointer;font-weight:600';
     selAllBtn.addEventListener('click', () => {
       const checks = Array.from(document.querySelectorAll('#variant-rows .vr-row-check'));
@@ -1639,6 +2183,19 @@ function bindVariants() {
 
   const variantRows = document.getElementById('variant-rows');
   variantRows?.addEventListener('click', (e) => {
+    if (e.target.closest('.vr-eyedrop-btn')) {
+      const btn = e.target.closest('.vr-eyedrop-btn');
+      const tr = btn.closest('tr');
+      const picker = tr?.querySelector('[name="vr-color"]');
+      if (!picker || !('EyeDropper' in window)) return;
+      new window.EyeDropper().open()
+        .then(({ sRGBHex }) => {
+          picker.value = sRGBHex;
+          picker.dataset.userSet = 'true';
+        })
+        .catch(() => { /* vendor pressed Escape / cancelled — leave swatch as-is */ });
+      return;
+    }
     if (e.target.classList.contains('vr-mode-btn')) {
       const tr = e.target.closest('tr');
       setRowMode(tr, e.target.dataset.pick);
@@ -1735,7 +2292,7 @@ function bindVariants() {
       }
       vrBulkInput.value = '';
       vrBulkBtn.disabled = false;
-      vrBulkBtn.textContent = '📷 Bulk upload images';
+      vrBulkBtn.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7l1.5-3h5L16 7"/><circle cx="12" cy="13.5" r="3.3"/></svg> Bulk upload images';
     });
   }
 
@@ -1790,12 +2347,12 @@ function bindVariants() {
     sep.style.cssText = 'color:#d1d5db;margin:0 2px';
     const topSelAll = document.createElement('button');
     topSelAll.type = 'button';
-    topSelAll.textContent = '☑ Select All';
+    topSelAll.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l3 3 5-6"/></svg> Select All';
     topSelAll.style.cssText = 'padding:3px 10px;background:#f0f9f8;border:1px solid #0b6b6a;color:#0b6b6a;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600';
     topSelAll.addEventListener('click', () => document.getElementById('vr-sel-all-btn')?.click());
     const topRemSel = document.createElement('button');
     topRemSel.type = 'button';
-    topRemSel.textContent = '✕ Remove Selected';
+    topRemSel.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M6 6l12 12M18 6L6 18"/></svg> Remove Selected';
     topRemSel.style.cssText = 'padding:3px 10px;background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600';
     topRemSel.addEventListener('click', () => document.getElementById('vr-remove-sel-btn')?.click());
     ctrl.appendChild(lbl); ctrl.appendChild(btnClr); ctrl.appendChild(btnImg);
@@ -1833,7 +2390,7 @@ function addAddonRow(data) {
     <td><input type="text" class="vb-input" name="ao-name" value="${data.name || ''}" placeholder="e.g. Battery pack" /></td>
     <td><input type="number" class="vb-input vb-input-sm" name="ao-price" step="0.01" min="0" value="${data.price != null ? data.price : ''}" placeholder="0.00" /></td>
     <td><input type="text" class="vb-input" name="ao-desc" value="${data.description || ''}" placeholder="Short description (optional)" /></td>
-    <td><button type="button" class="vb-remove-btn" data-row="${id}">✕</button></td>
+    <td><button type="button" class="vb-remove-btn" data-row="${id}"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M6 6l12 12M18 6L6 18"/></svg></button></td>
   `;
   tbody.appendChild(tr);
 }
@@ -1925,6 +2482,92 @@ function bindSubcategory() {
 }
 
 // ======================================================
+// CONDITION SELECTOR
+// ======================================================
+
+const CONDITIONS = [
+  { value: 'New',       label: 'New',       icon: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>' },
+  { value: 'Like New',  label: 'Like New',  icon: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg>' },
+  { value: 'Very Good', label: 'Very Good', icon: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1h3zm0 0l4-7.5A2 2 0 0 1 14.6 5L13 9h5.4a2 2 0 0 1 1.94 2.5l-1.6 6.5A2 2 0 0 1 16.8 20H9a2 2 0 0 1-2-2"/></svg>' },
+  { value: 'Good',      label: 'Good',      icon: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>' },
+  { value: 'Fair',      label: 'Fair',      icon: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="7.5" x2="12" y2="13"/><circle cx="12" cy="16.5" r="0.9" fill="currentColor" stroke="none"/></svg>' },
+  { value: 'For Parts', label: 'For Parts', icon: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 1 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.8 2.8-2-2 2.8-2.8z"/></svg>' },
+];
+
+function setConditionValue(val) {
+  const hidden = document.getElementById('product-condition');
+  if (hidden) hidden.value = val || '';
+  document.querySelectorAll('.ap-cond-btn').forEach((b) => b.classList.toggle('active', b.dataset.value === val));
+}
+
+function bindCondition() {
+  const grid = document.getElementById('ap-cond-grid');
+  if (!grid) return;
+  CONDITIONS.forEach((c) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ap-cond-btn';
+    btn.dataset.value = c.value;
+    btn.innerHTML = c.icon + `<span>${c.label}</span>`;
+    grid.appendChild(btn);
+  });
+  grid.addEventListener('click', (e) => {
+    const btn = e.target.closest('.ap-cond-btn');
+    if (!btn) return;
+    setConditionValue(btn.dataset.value);
+  });
+}
+
+// ======================================================
+// SHIPPING MODE (Free / I'll Charge / Collection Only)
+// ======================================================
+
+function setShippingMode(mode) {
+  const hidden = document.getElementById('product-shipping-mode');
+  const toggle = document.getElementById('product-ship-charge-toggle');
+  if (hidden) hidden.value = mode;
+  document.querySelectorAll('.ap-ship-btn').forEach((b) => b.classList.toggle('active', b.dataset.mode === mode));
+  if (toggle) toggle.checked = mode === 'charge';
+  // The shipping cost field stays visible and keeps its value across mode
+  // changes now — it's also the markup calculator's reference cost, needed
+  // whether or not this mode actually charges the buyer for it.
+}
+
+function bindShippingMode() {
+  const grid = document.getElementById('ap-ship-grid');
+  if (grid) {
+    grid.addEventListener('click', (e) => {
+      const btn = e.target.closest('.ap-ship-btn');
+      if (!btn) return;
+      setShippingMode(btn.dataset.mode);
+    });
+  }
+  const toggle = document.getElementById('product-ship-charge-toggle');
+  if (toggle) {
+    toggle.addEventListener('change', () => setShippingMode(toggle.checked ? 'charge' : 'free'));
+  }
+}
+
+// ======================================================
+// SHIPPING SCOPE (Worldwide / UK only / UK + Europe / Custom)
+// ======================================================
+
+function bindShippingScope() {
+  const scopeEl = document.getElementById('product-shipping-scope');
+  const countriesEl = document.getElementById('product-shipping-countries');
+  if (!scopeEl || !countriesEl) return;
+
+  if (Array.isArray(window.S4L_COUNTRIES)) {
+    countriesEl.innerHTML = window.S4L_COUNTRIES
+      .map(c => `<option value="${c.code}">${c.name}</option>`).join('');
+  }
+
+  scopeEl.addEventListener('change', () => {
+    countriesEl.style.display = scopeEl.value === 'custom' ? '' : 'none';
+  });
+}
+
+// ======================================================
 // STATUS RADIO VISUAL
 // ======================================================
 
@@ -1966,6 +2609,12 @@ function numOrNull(id) {
   return isNaN(v) || v === 0 ? undefined : v;
 }
 
+// Like numOrNull but allows 0 (e.g. shippingCost = 0 means free shipping, not "unset")
+function numOrUndef(id) {
+  const v = parseFloat(document.getElementById(id)?.value);
+  return isNaN(v) ? undefined : v;
+}
+
 function val(id) {
   return document.getElementById(id)?.value.trim() || '';
 }
@@ -1994,9 +2643,11 @@ async function loadProduct() {
 
     const p = await res.json();
 
-    // Page title
+    // Page title — prefer the original supplier (CJ) title when one was
+    // snapshotted, so the vendor can still tell which supplier product this
+    // is after AI generation has rewritten the buyer-facing Product Name.
     const titleEl = document.getElementById('page-title');
-    if (titleEl && p.name) titleEl.textContent = `Edit: ${p.name}`;
+    if (titleEl && p.name) titleEl.textContent = `Edit: ${p.supplierTitle || p.name}`;
     const stickyTitleEl = document.getElementById('ep-sticky-title');
     if (stickyTitleEl && p.name) stickyTitleEl.textContent = p.name;
 
@@ -2010,7 +2661,46 @@ async function loadProduct() {
     if (p.price !== undefined)        setVal('product-price', p.price);
     if (p.comparePrice !== undefined)  setVal('product-compare-price', p.comparePrice);
     if (p.costPrice !== undefined)     setVal('product-cost-price', p.costPrice);
-    if (p.shippingCost !== undefined)  setVal('product-shipping-cost', p.shippingCost);
+    // shipIncluded (when explicitly set) takes priority over shippingCost
+    // for deriving the mode shown here — it's what checkout actually
+    // honours (shipIncluded:true means £0 at checkout regardless of
+    // shippingCost), so an older product saved before this field existed
+    // consistently, or with any pre-existing mismatch, shows its REAL
+    // current checkout behaviour rather than a stale/incorrect mode.
+    const _shipMode = p.collectionOnly
+      ? 'collection'
+      : (p.shipIncluded === true ? 'free' : (p.shipIncluded === false ? 'charge' : (Number(p.shippingCost) > 0 ? 'charge' : 'free')));
+    setShippingMode(_shipMode);
+    // Always populate — the field stays visible in every mode now, used as
+    // the markup calculator's reference cost whether or not it's charged.
+    setVal('product-shipping-cost', p.shippingCost);
+    const _scopeEl = document.getElementById('product-shipping-scope');
+    if (_scopeEl) {
+      _scopeEl.value = p.shippingScope || 'worldwide';
+      const _countriesEl = document.getElementById('product-shipping-countries');
+      if (_countriesEl) {
+        _countriesEl.style.display = _scopeEl.value === 'custom' ? '' : 'none';
+        if (Array.isArray(p.shippingCountries)) {
+          Array.from(_countriesEl.options).forEach(o => { o.selected = p.shippingCountries.includes(o.value); });
+        }
+      }
+    }
+    // Fire input events so markup-calc.js captures values and shows its panel.
+    // Shipping must fire first so the note/state is set before deriveMarkup runs.
+    document.getElementById('product-shipping-cost')?.dispatchEvent(new Event('input'));
+    document.getElementById('product-cost-price')?.dispatchEvent(new Event('input'));
+
+    // Condition & Offers
+    setConditionValue(p.condition);
+    const _acceptOffersEl = document.getElementById('product-accept-offers');
+    if (_acceptOffersEl) _acceptOffersEl.checked = !!p.acceptOffers;
+    // If the product has a stored markupPct, inject it into the markup field and fire its
+    // input event — this sets _userEditedMarkup=true inside markup-calc.js so deriveMarkup()
+    // won't overwrite it with a derived value.
+    if (p.markupPct != null && isFinite(p.markupPct) && p.markupPct >= 0) {
+      const _markupEl = document.getElementById('ap-markup-pct');
+      if (_markupEl) { _markupEl.value = p.markupPct; _markupEl.dispatchEvent(new Event('input')); }
+    }
 
     // Images — pre-populate slots with existing URLs
     (p.images || []).slice(0, 20).forEach((url, i) => preloadSlot(i + 1, url));
@@ -2023,6 +2713,33 @@ async function loadProduct() {
       if (showMoreBtn) showMoreBtn.textContent = '− Hide extra photo slots';
     }
 
+    // Show CJ image fetch button when product has CJ variant data
+    // (supplierVariantRef or CJ-style SKU) OR a supplierUrl was pasted in —
+    // syncProductFromCj resolves a pid from either (cjPidFromUrl), so a
+    // product synced only via a pasted link was previously left with no
+    // way to trigger a sync at all despite the backend supporting it.
+    // Professional+ vendors with CJ credentials connected only.
+    if ((p.variants || []).some(v => v.supplierVariantRef || (v.sku && /^CJ/i.test(v.sku))) || p.supplierUrl) {
+      const cjBtn      = document.getElementById('btn-fetch-cj-images');
+      const rematchBtn = document.getElementById('btn-rematch-category');
+      const tierOk = ({ professional: 1, enterprise: 1 })[localStorage.getItem('s4l_vendorType')];
+      if ((cjBtn || rematchBtn) && tierOk) {
+        (async () => {
+          try {
+            const res = await fetch(`${window.API_BASE}/vendor/supplier/providers`, {
+              headers: { Authorization: `Bearer ${localStorage.getItem('s4l_token')}` },
+            });
+            const data = res.ok ? await res.json() : null;
+            const cj   = data?.providers?.find(pr => pr.providerName === 'cjdropshipping');
+            if (cj?.configured) {
+              if (cjBtn) cjBtn.style.display = '';
+              if (rematchBtn) rematchBtn.style.display = '';
+            }
+          } catch (_) { /* leave hidden */ }
+        })();
+      }
+    }
+
     // Category + subcategory
     if (p.category) {
       categorySelect.value = p.category;
@@ -2031,8 +2748,23 @@ async function loadProduct() {
       renderTagChips(p.category, subcatText);
     }
 
-    // Tags
-    if (p.tags?.length) setVal('product-tags', p.tags.join(', '));
+    // Tags — auto-fill from the category/subcategory's suggested tags when
+    // the product has none of its own yet (never overwrites real tags,
+    // same "only fill when genuinely empty" rule as category/subcategory)
+    // — UNLESS this reload was triggered by "Re-match Category" itself,
+    // whose whole point is to overwrite a wrong prior match, tags included.
+    const forceTagRefill = sessionStorage.getItem('s4l_forceTagRefill') === '1';
+    sessionStorage.removeItem('s4l_forceTagRefill');
+    if (p.tags?.length && !forceTagRefill) {
+      setVal('product-tags', p.tags.join(', '));
+    } else if (p.category) {
+      const subcatText = subcategorySelect?.options[subcategorySelect?.selectedIndex]?.text || '';
+      const auto = getSuggestedTags(p.category, subcatText).slice(0, 6);
+      if (auto.length) {
+        setVal('product-tags', auto.join(', '));
+        renderTagChips(p.category, subcatText);
+      }
+    }
 
     // Inventory
     if (p.stock !== undefined) setVal('product-stock', p.stock);
@@ -2051,6 +2783,13 @@ async function loadProduct() {
     if (freeReturnsCb) freeReturnsCb.checked = typeof p.freeReturns === 'boolean' ? p.freeReturns : !!p.vendorFreeReturns;
     setVal('product-supplier', p.supplier);
     setVal('product-supplier-url', p.supplierUrl);
+    // Read-only — set by CJ sync/import, never submitted back from this form.
+    if (p.shippingOriginCountry) {
+      const row = document.getElementById('product-ships-from-row');
+      if (row) row.style.display = '';
+      const names = { CN: 'China', US: 'United States', GB: 'United Kingdom', DE: 'Germany' };
+      setVal('product-ships-from', names[p.shippingOriginCountry] || p.shippingOriginCountry);
+    }
 
     // Refurbished fields
     if (p.conditionGrade)     { const el = document.getElementById('refurb-condition-grade'); if (el) el.value = p.conditionGrade; }
@@ -2146,8 +2885,22 @@ if (form) {
       description:      val('product-description'),
       price:            Number(document.getElementById('product-price')?.value),
       comparePrice:     numOrNull('product-compare-price'),
-      costPrice:        numOrNull('product-cost-price'),
-      shippingCost:     numOrNull('product-shipping-cost'),
+      costPrice:        numOrUndef('product-cost-price'),
+      condition:        val('product-condition') || undefined,
+      acceptOffers:     !!(document.getElementById('product-accept-offers')?.checked),
+      // Always saved, whether or not it's charged to the buyer — also the
+      // reference figure the markup calculator uses. shipIncluded (below)
+      // is the single source of truth for whether the buyer actually pays
+      // it; this used to be a second, independently-set checkbox
+      // (#ap-include-ship) that could silently disagree with this mode.
+      shippingCost:     document.getElementById('product-shipping-mode')?.value === 'collection' ? 0 : numOrUndef('product-shipping-cost'),
+      collectionOnly:   document.getElementById('product-shipping-mode')?.value === 'collection',
+      shippingScope:    document.getElementById('product-shipping-scope')?.value || 'worldwide',
+      shippingCountries: document.getElementById('product-shipping-scope')?.value === 'custom'
+        ? Array.from(document.getElementById('product-shipping-countries')?.selectedOptions || []).map(o => o.value)
+        : [],
+      shipIncluded:     document.getElementById('product-shipping-mode')?.value !== 'charge',
+      markupPct:        numOrUndef('ap-markup-pct'),
       images,
       category:         categorySelect.value,
       subcategory:      subcategorySelect.value || undefined,
@@ -2172,7 +2925,7 @@ if (form) {
       videoUrl3:        val('product-video-url3') || '',
       videoUrl4:        val('product-video-url4') || '',
       videoUrl5:        val('product-video-url5') || '',
-      variantDisplay:   document.getElementById('vb-color-mode')?.checked !== false ? 'color' : 'image',
+      variantDisplay:   document.getElementById('vb-color-mode')?.checked === true ? 'color' : 'image',
       variants:         getVariants(),
       addOns:           getAddOns(),
       conditionGrade:     document.getElementById('refurb-condition-grade')?.value  || undefined,
@@ -2186,6 +2939,9 @@ if (form) {
     if (!Number.isFinite(product.price) || product.price < 0) { window.showToast?.('Invalid price', 'error');    reset(btn); return; }
     if (!product.category)                               { window.showToast?.('Select a category', 'error');      reset(btn); return; }
     if (!product.subcategory)                            { window.showToast?.('Select a subcategory', 'error');   reset(btn); return; }
+    if (document.getElementById('product-shipping-mode')?.value === 'charge' && !(product.shippingCost > 0)) {
+      window.showToast?.('Enter a shipping cost, or choose Free/Collection instead', 'error'); reset(btn); return;
+    }
 
     try {
       const res = await fetch(`${window.API_BASE}/products/${productId}`, {
@@ -2205,7 +2961,7 @@ if (form) {
         floatBtn.classList.remove('saving');
         floatBtn.style.background = '#16a34a';
         const lbl = floatBtn.querySelector('.ep-save-label');
-        if (lbl) lbl.textContent = '✓ Saved!';
+        if (lbl) lbl.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg> Saved!';
       }
       setTimeout(() => { window.location.href = '/account/vendor/products.html'; }, 1200);
     } catch (err) {
@@ -2225,7 +2981,7 @@ function reset(btn) {
     floatBtn.classList.remove('saving');
     floatBtn.style.background = '';
     const lbl = floatBtn.querySelector('.ep-save-label');
-    if (lbl) lbl.textContent = '💾 Save';
+    if (lbl) lbl.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 4h11l3 3v13H5V4z"/><path d="M8 4v5h7V4"/><path d="M8 14h8v6H8z"/></svg> Save';
   }
 }
 
@@ -2235,6 +2991,9 @@ function reset(btn) {
 
 function initEditProduct() {
   bindSubcategory();
+  bindCondition();
+  bindShippingMode();
+  bindShippingScope();
   bindImageUploads();
   bindVideoSlots();
   bindTagSuggestions();

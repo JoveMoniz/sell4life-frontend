@@ -11,7 +11,7 @@
 
     <link rel="icon" type="image/png" href="/assets/images/hero/favicon.png" />
 
-    <link rel="stylesheet" href="/assets/css/auth.css?v=20260206-dev" />
+    <link rel="stylesheet" href="/assets/css/auth.css?v=20260715c" />
     <script>
       window.__disableLayout = true;
     </script>
@@ -29,7 +29,10 @@
           <input type="email" id="email" required />
 
           <label for="password">Password</label>
-          <input type="password" id="password" required />
+          <div class="pw-field-wrap">
+            <input type="password" id="password" required />
+            <button type="button" class="pw-toggle-btn" aria-label="Show password"></button>
+          </div>
 
           <div style="text-align:right;margin-top:-4px;margin-bottom:8px">
             <a href="/account/forgot-password.html" style="font-size:13px;color:rgba(255,255,255,0.75);text-decoration:none">Forgot password?</a>
@@ -50,9 +53,11 @@
     <!-- Page scripts LAST -->
 
     <script src="/assets/js/config-global.js"></script>
+    <script src="/assets/js/icons.js"></script>
+    <script src="/assets/js/client-info.js"></script>
 
     <script>
-      window.__pageScripts = ['/assets/js/user-signin.js'];
+      window.__pageScripts = ['/assets/js/password-toggle.js', '/assets/js/user-signin.js'];
     </script>
   </body>
 </html>
