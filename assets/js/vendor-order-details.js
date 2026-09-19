@@ -347,7 +347,7 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
                 ? "Cancellation requested, but CJ never confirmed it and automatic retry has stopped — needs your decision (retry below, or contact admin about a manual refund)."
                 : "Cancellation requested, but CJ couldn't stop the shipment — it may already be on its way. We keep asking CJ automatically; the refund fires as soon as they confirm the cancellation."
             }
-            ${item.cjOrderStatus === 'CREATED' ? `
+            ${item.cjOrderStatus !== 'cancelled' ? `
               <button class="btn-retry-cj-cancel" data-item-id="${item._id}"
                 style="display:block;margin-top:4px;padding:3px 8px;background:#fff;border:1px solid #92400e;color:#92400e;border-radius:4px;cursor:pointer;font-size:0.72rem">
                 Retry CJ cancel
@@ -358,11 +358,10 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
             <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 3l9 16H3L12 3z"/><path d="M12 10v4M12 17h.01"/></svg> ${item.status === 'Cancelled' ? 'Cancelled' : 'Returned'} on Sell4Life, but a CJ order (${item.cjOrderNumber || item.cjOrderId}) was already created —
             <a href="https://cjdropshipping.com/mine/dropshipping/orderList?orderType=3&childType=1" target="_blank" rel="noopener"
               style="color:#92400e;text-decoration:underline">check/cancel it in your CJ dashboard</a>
-            ${item.cjOrderStatus === 'CREATED' ? `
-              <button class="btn-retry-cj-cancel" data-item-id="${item._id}"
-                style="display:block;margin-top:4px;padding:3px 8px;background:#fff;border:1px solid #92400e;color:#92400e;border-radius:4px;cursor:pointer;font-size:0.72rem">
-                Retry CJ cancel
-              </button>` : ''}
+            <button class="btn-retry-cj-cancel" data-item-id="${item._id}"
+              style="display:block;margin-top:4px;padding:3px 8px;background:#fff;border:1px solid #92400e;color:#92400e;border-radius:4px;cursor:pointer;font-size:0.72rem">
+              Retry CJ cancel
+            </button>
           </div>` : ''}
         ${badges    ? `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:4px">${badges}</div>` : ''}
         ${qtyDetail ? `<div style="font-size:0.75rem;color:#9ca3af;margin-top:6px">${qtyDetail}</div>` : ''}
