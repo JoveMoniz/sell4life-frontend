@@ -340,6 +340,30 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
           <div style="margin-top:4px;padding:3px 10px;background:#fef2f2;border:1px solid #fca5a5;color:#b91c1c;border-radius:4px;font-size:0.75rem;font-weight:600;display:inline-block">
             <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 3l9 16H3L12 3z"/><path d="M12 10v4M12 17h.01"/></svg> CJ auto-order failed — place this order manually (${item.cjOrderError || 'unknown error'})
           </div>` : ''}
+        ${item.cjCancelDenied ? `
+          <div style="margin-top:4px;padding:3px 10px;background:${item.refundStatus === 'requested' ? '#fef2f2' : '#fffbeb'};border:1px solid ${item.refundStatus === 'requested' ? '#ef4444' : '#f59e0b'};color:${item.refundStatus === 'requested' ? '#991b1b' : '#92400e'};border-radius:4px;font-size:0.75rem;font-weight:600;display:inline-block">
+            <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 3l9 16H3L12 3z"/><path d="M12 10v4M12 17h.01"/></svg> ${
+              item.refundStatus === 'requested'
+                ? "Cancellation requested, but CJ never confirmed it and automatic retry has stopped — needs your decision (retry below, or contact admin about a manual refund)."
+                : "Cancellation requested, but CJ couldn't stop the shipment — it may already be on its way. We keep asking CJ automatically; the refund fires as soon as they confirm the cancellation."
+            }
+            ${item.cjOrderStatus === 'CREATED' ? `
+              <button class="btn-retry-cj-cancel" data-item-id="${item._id}"
+                style="display:block;margin-top:4px;padding:3px 8px;background:#fff;border:1px solid #92400e;color:#92400e;border-radius:4px;cursor:pointer;font-size:0.72rem">
+                Retry CJ cancel
+              </button>` : ''}
+          </div>` : ''}
+        ${item.cjOrderId && item.cjOrderStatus !== 'failed' && item.cjOrderStatus !== 'cancelled' && (item.status === 'Cancelled' || item.returnStatus === 'returned') ? `
+          <div style="margin-top:4px;padding:3px 10px;background:#fffbeb;border:1px solid #f59e0b;color:#92400e;border-radius:4px;font-size:0.75rem;font-weight:600;display:inline-block">
+            <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 3l9 16H3L12 3z"/><path d="M12 10v4M12 17h.01"/></svg> ${item.status === 'Cancelled' ? 'Cancelled' : 'Returned'} on Sell4Life, but a CJ order (${item.cjOrderNumber || item.cjOrderId}) was already created —
+            <a href="https://cjdropshipping.com/mine/dropshipping/orderList?orderType=3&childType=1" target="_blank" rel="noopener"
+              style="color:#92400e;text-decoration:underline">check/cancel it in your CJ dashboard</a>
+            ${item.cjOrderStatus === 'CREATED' ? `
+              <button class="btn-retry-cj-cancel" data-item-id="${item._id}"
+                style="display:block;margin-top:4px;padding:3px 8px;background:#fff;border:1px solid #92400e;color:#92400e;border-radius:4px;cursor:pointer;font-size:0.72rem">
+                Retry CJ cancel
+              </button>` : ''}
+          </div>` : ''}
         ${badges    ? `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:4px">${badges}</div>` : ''}
         ${qtyDetail ? `<div style="font-size:0.75rem;color:#9ca3af;margin-top:6px">${qtyDetail}</div>` : ''}
         ${item.trackingNumber
@@ -410,16 +434,20 @@ async function loadOrder() {
     // doesn't bleed into the other vendor's payment display.
     const orderPayment = (order.paymentStatus || 'pending').toLowerCase();
     const vendorRefundStatuses = vendorItems.map(i => i.refundStatus || 'none');
-    const vendorHasReturnedItems = vendorItems.some(i =>
-      ['returned', 'partially_returned'].includes(i.returnStatus)
-    );
+    // Covers both a Return-triggered refund AND a Cancel-triggered refund —
+    // item.refundStatus is set to 'scheduled' by both flows on the backend,
+    // whereas returnStatus is only ever set by the Return flow. Checking
+    // returnStatus alone (the original condition) meant a cancelled item's
+    // scheduled refund never flipped paymentStatus to 'refund_scheduled'
+    // here, silently hiding the countdown timer below for every cancel.
+    const vendorHasScheduledRefund = vendorRefundStatuses.some(s => s === 'scheduled');
     const paymentStatus = !['paid', 'partially_refunded', 'refunded', 'refund_scheduled'].includes(orderPayment)
       ? orderPayment
       : vendorRefundStatuses.every(s => s === 'processed')
         ? 'refunded'
         : vendorRefundStatuses.some(s => ['processed', 'partially_refunded'].includes(s))
           ? 'partially_refunded'
-          : (orderPayment === 'refund_scheduled' && vendorHasReturnedItems)
+          : (orderPayment === 'refund_scheduled' && vendorHasScheduledRefund)
             ? 'refund_scheduled'
             : 'paid';
     const paymentLabel = getPaymentLabel(paymentStatus);
@@ -481,13 +509,13 @@ async function loadOrder() {
         <div class="order-status">
           <div>Status: <strong>${getDisplayStatus({ ...order, status: vendorStatus, refundScheduledAt: vendorRefundScheduledAt, paymentStatus })}</strong></div>
           <div>Payment: <strong>${paymentLabel}</strong></div>
-          ${paymentStatus === 'refund_scheduled' && vendorRefundScheduledAt ? `
-            <div class="refund-info">
-              <div>Refund scheduled: ${new Date(order.refundScheduledAt).toLocaleString()}</div>
-              <div id="refund-timer" data-time="${order.refundScheduledAt}"></div>
-            </div>` : ''}
-          ${statusHistoryHTML}
         </div>
+        ${paymentStatus === 'refund_scheduled' && vendorRefundScheduledAt ? `
+          <div class="refund-info" style="margin:-10px 0 14px;padding:6px 10px;background:#fffbeb;border:1px solid #f59e0b;color:#92400e;border-radius:6px;font-size:0.82rem;display:inline-block">
+            Refund scheduled for ${new Date(order.refundScheduledAt).toLocaleString()}
+            <span id="refund-timer" data-time="${order.refundScheduledAt}"></span>
+          </div>` : ''}
+        ${statusHistoryHTML}
 
         <div class="order-items">
           ${vendorItems.length === 0
@@ -740,6 +768,34 @@ document.addEventListener('click', async (e) => {
       if (msg) { msg.style.color = '#dc2626'; msg.textContent = 'Save failed — please try again.'; }
       saveBtn.disabled    = false;
       saveBtn.textContent = 'Save & Notify Buyer';
+    }
+    return;
+  }
+
+  // Retry cancelling the matching CJ order (for items cancelled before
+  // this feature existed, or whose first live attempt failed)
+  const retryCjBtn = e.target.closest('.btn-retry-cj-cancel');
+  if (retryCjBtn) {
+    const itemId = retryCjBtn.dataset.itemId;
+    retryCjBtn.disabled = true;
+    retryCjBtn.textContent = 'Retrying…';
+    try {
+      const res = await authFetch(`${API_BASE}/vendor/orders/${orderId}/items/${itemId}/retry-cj-cancel`, {
+        method: 'PATCH',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        window.showToast?.(data.error || 'CJ cancel failed', 'error');
+        retryCjBtn.disabled = false;
+        retryCjBtn.textContent = 'Retry CJ cancel';
+        return;
+      }
+      window.showToast?.('CJ order cancelled');
+      loadOrder();
+    } catch (err) {
+      window.showToast?.('Something went wrong', 'error');
+      retryCjBtn.disabled = false;
+      retryCjBtn.textContent = 'Retry CJ cancel';
     }
     return;
   }

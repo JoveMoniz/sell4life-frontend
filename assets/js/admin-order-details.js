@@ -341,8 +341,8 @@ async function loadOrder() {
 
     /* ========= STATUS + TIMER ========= */
     orderStatusEl.innerHTML = window.s4lStatusBadge ? window.s4lStatusBadge(order.status) : order.status;
-    if (order.paymentStatus === 'refund_scheduled') {
-      orderStatusEl.innerHTML += ' <span style="font-size:0.85em;color:#6b7280">refund pending</span>';
+    if (order.paymentStatus === 'refund_scheduled' && order.refundScheduledAt) {
+      orderStatusEl.innerHTML += ` <span class="refund-badge" data-time="${order.refundScheduledAt}">refund pending<span class="refund-timer"></span></span>`;
     }
 
     /* ========= PAYMENT ========= */
@@ -454,8 +454,10 @@ async function loadOrder() {
 
         const actionBtns = [];
 
-        // ── Admin per-item cancel (total override — any non-cancelled state) ──
-        if (item.status !== 'Cancelled') {
+        // ── Admin per-item cancel (total override — any non-cancelled, non-delivered
+        // state; once delivered, the goods are already with the buyer, so "cancel"
+        // doesn't make sense — Goodwill Refund is the right action instead) ──
+        if (item.status !== 'Cancelled' && item.status !== 'Delivered') {
           const outstandingQty = Math.max(0, qty - Number(item.refundedQuantity || 0));
           const cancelPreview = Math.max(0,
             price * outstandingQty + Number(item.shippingCost || 0) - Number(item.discountAmount || 0)
@@ -609,6 +611,22 @@ async function loadOrder() {
                   </button>
                 </div>
               </div>
+            </div>`);
+        }
+
+        if (item.cjCancelDenied && item.refundStatus === 'scheduled') {
+          actionBtns.push(`
+            <div style="margin-top:4px;padding:6px;background:#fffbeb;border:1px solid #f59e0b;border-radius:6px;font-size:0.72rem;color:#92400e;min-width:200px">
+              Cancel requested, but CJ couldn't stop the shipment — it may already be on its way.
+              <div style="margin-top:2px">No refund yet — retrying CJ automatically, refund fires as soon as they confirm the cancellation</div>
+              <div style="font-size:0.68rem;color:#a16207;margin-top:2px">Next automatic retry: <strong class="goodwill-countdown" data-time="${item.refundScheduledAt}"></strong> (${new Date(item.refundScheduledAt).toLocaleString()})</div>
+            </div>`);
+        }
+
+        if (item.cjCancelDenied && item.refundStatus === 'requested') {
+          actionBtns.push(`
+            <div style="margin-top:4px;padding:6px;background:#fee2e2;border:1px solid #ef4444;border-radius:6px;font-size:0.72rem;color:#991b1b;min-width:200px">
+              CJ never confirmed this cancellation (or the item was delivered before it could) — automatic retry has stopped. Needs a manual decision: refund now, or leave as-is.
             </div>`);
         }
 
@@ -1118,7 +1136,7 @@ const backfillVendorStatusBtn = document.getElementById('backfillVendorStatusBtn
 
 if (backfillVendorStatusBtn) {
   backfillVendorStatusBtn.addEventListener('click', async () => {
-    if (!confirm('Recompute vendorOrders[].status for every order on the platform? Safe to run more than once.')) return;
+    if (!(await window.s4lConfirm('Recompute vendorOrders[].status for every order on the platform? Safe to run more than once.'))) return;
     try {
       backfillVendorStatusBtn.disabled    = true;
       backfillVendorStatusBtn.textContent = 'Running...';
@@ -1146,7 +1164,7 @@ const backfillDeliveredNotifyBtn = document.getElementById('backfillDeliveredNot
 
 if (backfillDeliveredNotifyBtn) {
   backfillDeliveredNotifyBtn.addEventListener('click', async () => {
-    if (!confirm('Send the "Delivered" email + message to every buyer whose item is already Delivered but never got notified? Only run this ONCE — running it again after the live flow has since notified some buyers will re-notify them.')) return;
+    if (!(await window.s4lConfirm('Send the "Delivered" email + message to every buyer whose item is already Delivered but never got notified? Only run this ONCE — running it again after the live flow has since notified some buyers will re-notify them.'))) return;
     try {
       backfillDeliveredNotifyBtn.disabled    = true;
       backfillDeliveredNotifyBtn.textContent = 'Sending...';
