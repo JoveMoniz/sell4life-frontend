@@ -234,6 +234,7 @@ if (cart.length && window.s4lTrack) {
 
 let token = localStorage.getItem('s4l_token');
 const emailField = document.getElementById('checkout-email');
+const changeEmailBtn = document.getElementById('checkout-change-email');
 
 // ======================================================
 // PREFILL SAVED SHIPPING ADDRESS (signed-in buyers only)
@@ -283,7 +284,14 @@ if (!STRIPE_PK) {
 const stripe = STRIPE_PK ? Stripe(STRIPE_PK) : null;
 
 let elements = null;
+let paymentElement = null;
 let currentOrder = null;
+// Set when the email typed belongs to an existing real account — the order
+// still goes through, but this browser was never proven to be that account
+// holder, so it doesn't get a login token. The Pay Now handler below then
+// authorizes the shipping-address call via the PaymentIntent's own
+// clientSecret instead of a Bearer token.
+let placedWithoutLogin = false;
 
 // ======================================================
 // BUILD ORDER ITEMS PAYLOAD
@@ -315,6 +323,12 @@ async function initPayment() {
     return;
   }
 
+  // A previous attempt (e.g. a self-purchase block) may have overwritten
+  // the order summary with an error message and never restored it — retry
+  // starts from a clean, correct items display every time, not just on a
+  // full page reload.
+  renderItems();
+
   // No account yet — don't create a PaymentIntent (and no guest account)
   // until there's a real email to attach it to. The email field's own
   // listener below re-calls initPayment() once one is typed.
@@ -331,6 +345,18 @@ async function initPayment() {
     let order;
     let res;
 
+    // Same analytics session id client-info.js already tracks this browser
+    // tab under — carried through to the order so the admin analytics page
+    // can link a session to its order directly instead of guessing by
+    // "same logged-in account, paid within ~2h" (which breaks the moment
+    // checkout happens on a different device/account than whatever was
+    // logged in during earlier browsing, e.g. guest checkout, or testing on
+    // mobile while a vendor/admin account is logged in on desktop).
+    let analyticsSessionId = '';
+    try {
+      analyticsSessionId = sessionStorage.getItem('s4l_session_id') || '';
+    } catch { /* best-effort only */ }
+
     if (token) {
       res = await fetch(`${API_BASE}/orders/create-payment-intent?t=${Date.now()}`, {
         method: 'POST',
@@ -338,7 +364,7 @@ async function initPayment() {
           'Content-Type': 'application/json',
           Authorization: 'Bearer ' + token,
         },
-        body: JSON.stringify({ items: buildOrderItemsPayload() }),
+        body: JSON.stringify({ items: buildOrderItemsPayload(), analyticsSessionId }),
       });
     } else {
       // --------------------------------------------------
@@ -362,7 +388,7 @@ async function initPayment() {
       res = await fetch(`${API_BASE}/orders/guest-checkout?t=${Date.now()}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailField.value.trim(), items: buildOrderItemsPayload(), utm, referrer }),
+        body: JSON.stringify({ email: emailField.value.trim(), items: buildOrderItemsPayload(), utm, referrer, analyticsSessionId }),
       });
     }
 
@@ -381,25 +407,16 @@ async function initPayment() {
       return;
     }
 
-    if (res.status === 409 && data.code === 'ACCOUNT_EXISTS') {
-      setMessage(data.error + ' ');
-      const link = document.createElement('a');
-      link.href = '#';
-      link.textContent = 'Sign in';
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
-        window.location.href = '/account/signin.html';
-      });
-      msgEl?.appendChild(link);
-      disableButton(true, 'Fix cart');
-      return;
-    }
-
     if (!res.ok) {
-      setMessage(data.error || 'Some items are unavailable');
+      const errorText = data.error || 'Some items are unavailable';
+      setMessage(errorText);
 
-      itemsWrap.innerHTML = '<p>Some items are out of stock. Please update your cart.</p>';
+      // Show the real reason here too — this box is far more visible than
+      // #payment-message (right column vs. buried in the Payment section
+      // below an empty Stripe mount) — previously always overwritten with
+      // a hardcoded "out of stock" claim regardless of the actual error
+      // (e.g. the self-purchase block), which was actively misleading.
+      itemsWrap.innerHTML = `<p>${errorText}</p>`;
 
       disableButton(true, 'Fix cart');
 
@@ -413,6 +430,11 @@ async function initPayment() {
       localStorage.setItem('s4l_token', token);
       localStorage.setItem('s4l_user', JSON.stringify(data.user));
       if (emailField) emailField.readOnly = true;
+      if (changeEmailBtn) changeEmailBtn.hidden = false;
+    } else if (!token && data.accountExists) {
+      placedWithoutLogin = true;
+      if (emailField) emailField.readOnly = true;
+      if (changeEmailBtn) changeEmailBtn.hidden = false;
     }
 
     order = data;
@@ -437,7 +459,7 @@ async function initPayment() {
       clientSecret: currentOrder.clientSecret,
     });
 
-    const paymentElement = elements.create('payment');
+    paymentElement = elements.create('payment');
 
     paymentElement.mount('#payment-element');
 
@@ -461,6 +483,40 @@ if (emailField && !token) {
     if (!paymentInitialized && EMAIL_RE.test(emailField.value.trim())) initPayment();
   });
 }
+
+// Lets a mistyped email be corrected after guest checkout has already
+// created a session for it (or matched an existing account) — that
+// session is only ever a lightweight guest account for the wrong address,
+// so discarding it locally and starting over is safe. Only ever shown for
+// a session created mid-checkout, never for a genuinely pre-existing
+// login at page load (that case is handled separately in
+// prefillShippingAddress() above, which locks a real account's email on
+// purpose — this button is never revealed for it).
+changeEmailBtn?.addEventListener('click', () => {
+  localStorage.removeItem('s4l_token');
+  localStorage.removeItem('s4l_user');
+  token = null;
+  placedWithoutLogin = false;
+
+  paymentElement?.unmount();
+  paymentElement = null;
+  elements = null;
+  currentOrder = null;
+  paymentInitialized = false;
+
+  const container = document.getElementById('payment-element');
+  if (container) container.innerHTML = '';
+
+  if (emailField) {
+    emailField.readOnly = false;
+    emailField.value = '';
+    emailField.focus();
+  }
+  changeEmailBtn.hidden = true;
+
+  setMessage('Enter your email above to continue.');
+  disableButton(true);
+});
 
 // ======================================================
 // PAY NOW BUTTON
@@ -505,16 +561,20 @@ orderBtn?.addEventListener('click', async () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + token,
+        ...(token ? { Authorization: 'Bearer ' + token } : {}),
       },
       body: JSON.stringify({
         paymentIntentId: currentOrder?.paymentIntentId,
+        // Only meaningful (and only checked server-side) when there's no
+        // token — proves this browser legitimately owns this specific
+        // checkout without needing a login session for the account.
+        clientSecret: currentOrder?.clientSecret,
         ...shippingAddress,
         saveAsDefault: !!saveAddressEl?.checked,
       }),
     });
 
-    if (addrRes.status === 401) {
+    if (addrRes.status === 401 && token) {
       localStorage.removeItem('s4l_token');
       localStorage.removeItem('s4l_user');
       localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
