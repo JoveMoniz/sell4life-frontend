@@ -5,11 +5,15 @@
 // prices — those scripts should `await window.S4L_CURRENCY_READY` before
 // their first price render.
 //
-// Display-only: the actual Stripe charge always happens in GBP. This
-// just shows buyers an approximate price in a currency they recognize,
-// with a small conversion markup baked in (same principle Stripe's own
-// "Adaptive Pricing" uses) so it doesn't undersell once real card-network
-// conversion costs are accounted for.
+// Display-only: this GeoIP-based guess shows buyers an approximate price
+// in a currency they recognize while browsing, with a small conversion
+// markup baked in (same principle Stripe's own "Adaptive Pricing" uses)
+// so it doesn't undersell once real card-network conversion costs are
+// accounted for. The ACTUAL charge currency at checkout is resolved
+// separately, server-side, from the buyer's validated shipping address —
+// see backend/backend/utils/chargeCurrency.js — not from this GeoIP
+// guess, which is a coarser, sometimes-wrong signal (VPNs, mobile
+// carriers, a gift shipped to a different country than the buyer's own).
 // ======================================================
 (function () {
   let info = { currency: 'GBP', rate: 1, symbol: '£' };

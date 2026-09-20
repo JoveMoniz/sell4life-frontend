@@ -49,11 +49,19 @@ if (countryList) {
   countryList.innerHTML = COUNTRIES.map(c => `<option value="${c.name}"></option>`).join('');
 }
 
-function setCountryCode(code, { skipFormat } = {}) {
+// True once the country has been set for a real reason (the buyer typed
+// one, or a signed-in buyer's saved address supplied one) — the GeoIP
+// default below only ever applies before that, so it can never clobber an
+// actual preference, just replace the initial "United Kingdom" guess for a
+// buyer who hasn't touched the field yet.
+let countryExplicitlySet = false;
+
+function setCountryCode(code, { skipFormat, explicit } = {}) {
   const resolvedCode = countryByCode.has(code) ? code : 'GB';
   shippingFields.country.value = resolvedCode;
   if (countryNameInput) countryNameInput.value = countryByCode.get(resolvedCode) || '';
   if (!skipFormat) applyAddressFormat(resolvedCode);
+  if (explicit) countryExplicitlySet = true;
 }
 
 function resolveCountryFromTypedName() {
@@ -63,6 +71,7 @@ function resolveCountryFromTypedName() {
   if (matchedCode) {
     shippingFields.country.value = matchedCode;
     applyAddressFormat(matchedCode);
+    countryExplicitlySet = true;
   }
   // An unmatched/partial name is left as typed — no country change fires
   // until it resolves to a real one, so the format/currency logic never
@@ -77,6 +86,22 @@ countryNameInput?.addEventListener('blur', resolveCountryFromTypedName);
 countryNameInput?.addEventListener('focus', () => countryNameInput.select());
 
 setCountryCode('GB', { skipFormat: true });
+
+// Default the country field to the buyer's actual detected location (same
+// GeoIP lookup currency.js already uses for the price display) instead of
+// always guessing United Kingdom — a real US visitor shouldn't have to
+// manually change this away from the wrong country before they can even
+// start filling in their address. Only applies if the buyer hasn't already
+// set a real country themselves (typed one, or a saved address supplied
+// one) by the time this resolves.
+if (window.S4L_CURRENCY_READY) {
+  window.S4L_CURRENCY_READY.then(() => {
+    const detected = window.s4lCurrencyInfo?.()?.country;
+    if (!countryExplicitlySet && detected && countryByCode.has(detected)) {
+      setCountryCode(detected);
+    }
+  });
+}
 
 // ======================================================
 // ADDRESS FORMAT BY COUNTRY
@@ -427,7 +452,7 @@ const changeEmailBtn = document.getElementById('checkout-change-email');
     if (shippingFields.city && addr.city) shippingFields.city.value = addr.city;
     if (shippingFields.county && addr.county) shippingFields.county.value = addr.county;
     if (shippingFields.postcode && addr.postcode) shippingFields.postcode.value = addr.postcode;
-    if (addr.country) setCountryCode(addr.country);
+    if (addr.country) setCountryCode(addr.country, { explicit: true });
   } catch (_) {
     // Non-fatal — buyer can just type their address in
   } finally {
