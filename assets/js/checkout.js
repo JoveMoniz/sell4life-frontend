@@ -16,6 +16,10 @@ const existingOrderId = params.get('order');
 
 const itemsWrap = document.getElementById('checkout-items');
 const subtotalEl = document.getElementById('checkout-subtotal');
+// shippingFields.country is the HIDDEN code input (checkout-country-code) —
+// every other part of this file (address-format lookup, the Pay Now
+// payload, prefill) reads/writes an ISO code exactly as before. The visible
+// typeahead (countryNameInput, below) is name-based and resolves into it.
 const shippingFields = {
   name: document.getElementById('checkout-name'),
   phone: document.getElementById('checkout-phone'),
@@ -24,18 +28,55 @@ const shippingFields = {
   city: document.getElementById('checkout-city'),
   county: document.getElementById('checkout-county'),
   postcode: document.getElementById('checkout-postcode'),
-  country: document.getElementById('checkout-country'),
+  country: document.getElementById('checkout-country-code'),
 };
-// Populate the country dropdown with real ISO codes as values — replaces
-// the old free-text field, whose typed value was silently discarded
-// server-side anyway (shipping-address always forced country to 'GB'
-// regardless of what was typed). GB is selected by default since that's
-// still the primary market.
-if (shippingFields.country && Array.isArray(window.S4L_COUNTRIES)) {
-  shippingFields.country.innerHTML = window.S4L_COUNTRIES
-    .map(c => `<option value="${c.code}">${c.name}</option>`).join('');
-  shippingFields.country.value = 'GB';
+
+// ======================================================
+// COUNTRY — type-to-search instead of scrolling a ~190-option list.
+// A plain <select> already existed here; this swaps it for an <input>
+// backed by a <datalist> (same pattern as vendor-edit-product.js's
+// attribute datalists) since datalist binds by visible text, not the ISO
+// code the backend needs — a hidden input (shippingFields.country) holds
+// the resolved code, kept in sync on every input/change/blur.
+// ======================================================
+const countryNameInput = document.getElementById('checkout-country');
+const countryList = document.getElementById('checkout-country-list');
+const COUNTRIES = Array.isArray(window.S4L_COUNTRIES) ? window.S4L_COUNTRIES : [];
+const countryByCode = new Map(COUNTRIES.map(c => [c.code, c.name]));
+const countryByNameLower = new Map(COUNTRIES.map(c => [c.name.toLowerCase(), c.code]));
+
+if (countryList) {
+  countryList.innerHTML = COUNTRIES.map(c => `<option value="${c.name}"></option>`).join('');
 }
+
+function setCountryCode(code, { skipFormat } = {}) {
+  const resolvedCode = countryByCode.has(code) ? code : 'GB';
+  shippingFields.country.value = resolvedCode;
+  if (countryNameInput) countryNameInput.value = countryByCode.get(resolvedCode) || '';
+  if (!skipFormat) applyAddressFormat(resolvedCode);
+}
+
+function resolveCountryFromTypedName() {
+  if (!countryNameInput) return;
+  const typed = countryNameInput.value.trim().toLowerCase();
+  const matchedCode = countryByNameLower.get(typed);
+  if (matchedCode) {
+    shippingFields.country.value = matchedCode;
+    applyAddressFormat(matchedCode);
+  }
+  // An unmatched/partial name is left as typed — no country change fires
+  // until it resolves to a real one, so the format/currency logic never
+  // acts on a country that isn't actually valid.
+}
+
+countryNameInput?.addEventListener('change', resolveCountryFromTypedName);
+countryNameInput?.addEventListener('blur', resolveCountryFromTypedName);
+// Select the pre-filled country name on focus so the first keystroke just
+// replaces it — without this, a buyer has to manually clear "United
+// Kingdom" before they can type their own country.
+countryNameInput?.addEventListener('focus', () => countryNameInput.select());
+
+setCountryCode('GB', { skipFormat: true });
 
 // ======================================================
 // ADDRESS FORMAT BY COUNTRY
@@ -47,10 +88,18 @@ if (shippingFields.country && Array.isArray(window.S4L_COUNTRIES)) {
 // "State / Region" (optional) + "Postal Code" shape rather than the
 // UK-specific wording.
 // ======================================================
+// postalPattern: catches the case a country selection alone doesn't —
+// picking "United States" but leaving a UK-shaped postcode typed in used
+// to pass validation, since only "is it non-empty" was checked, never
+// "does it actually look right for the country selected." Deliberately
+// only set for the countries we explicitly model (GB/US/DE); anything
+// falling through to DEFAULT_ADDRESS_FORMAT has too many real-world postal
+// formats to safely hardcode one pattern without false-rejecting a
+// legitimate address, so it stays a plain required-field check.
 const ADDRESS_FORMATS = {
-  GB: { regionLabel: 'County', regionRequired: false, showRegion: true, postalLabel: 'Postcode', postalPlaceholder: '', phonePlaceholder: '07…' },
-  US: { regionLabel: 'State', regionRequired: true, showRegion: true, postalLabel: 'ZIP Code', postalPlaceholder: '90210', phonePlaceholder: '(555) 123-4567' },
-  DE: { regionLabel: '', regionRequired: false, showRegion: false, postalLabel: 'Postal Code', postalPlaceholder: '10115', phonePlaceholder: '030 12345678' },
+  GB: { regionLabel: 'County', regionRequired: false, showRegion: true, postalLabel: 'Postcode', postalPlaceholder: '', phonePlaceholder: '07…', postalPattern: /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i, postalExample: 'SW1A 1AA' },
+  US: { regionLabel: 'State', regionRequired: true, showRegion: true, postalLabel: 'ZIP Code', postalPlaceholder: '90210', phonePlaceholder: '(555) 123-4567', postalPattern: /^\d{5}(-\d{4})?$/, postalExample: '90210' },
+  DE: { regionLabel: '', regionRequired: false, showRegion: false, postalLabel: 'Postal Code', postalPlaceholder: '10115', phonePlaceholder: '030 12345678', postalPattern: /^\d{5}$/, postalExample: '10115' },
 };
 const DEFAULT_ADDRESS_FORMAT = { regionLabel: 'State / Region', regionRequired: false, showRegion: true, postalLabel: 'Postal Code', postalPlaceholder: '', phonePlaceholder: 'Phone number' };
 
@@ -71,10 +120,88 @@ function applyAddressFormat(countryCode) {
   if (shippingFields.postcode) shippingFields.postcode.placeholder = fmt.postalPlaceholder;
 
   if (shippingFields.phone) shippingFields.phone.placeholder = fmt.phonePlaceholder;
+
+  // US State becomes a searchable list (same typeahead pattern as Country)
+  // instead of free text — every other country's region field stays plain
+  // text, since there's no equivalent well-known short list to offer.
+  if (shippingFields.county) {
+    if (countryCode === 'US') {
+      shippingFields.county.setAttribute('list', 'checkout-state-list');
+    } else {
+      shippingFields.county.removeAttribute('list');
+    }
+  }
 }
 
 applyAddressFormat(shippingFields.country?.value || 'GB');
-shippingFields.country?.addEventListener('change', () => applyAddressFormat(shippingFields.country.value));
+
+// ======================================================
+// US STATE LIST + PHONE MASK + ZIP AUTOFILL
+// ======================================================
+
+if (document.getElementById('checkout-state-list') && Array.isArray(window.S4L_US_STATES)) {
+  document.getElementById('checkout-state-list').innerHTML = window.S4L_US_STATES
+    .map(s => `<option value="${s.name}"></option>`).join('');
+}
+
+// US phone numbers are conventionally written (XXX) XXX-XXXX — format live
+// as digits are typed instead of leaving the buyer to type the punctuation
+// themselves. Only active while US is selected; switching away leaves
+// whatever was typed alone rather than fighting a different country's
+// format.
+function formatUsPhone(digits) {
+  const d = digits.replace(/\D/g, '').slice(0, 10);
+  if (d.length === 0) return '';
+  if (d.length < 4) return `(${d}`;
+  if (d.length < 7) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
+  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+}
+
+shippingFields.phone?.addEventListener('input', () => {
+  if (shippingFields.country?.value !== 'US') return;
+  const caretWasAtEnd = shippingFields.phone.selectionStart === shippingFields.phone.value.length;
+  shippingFields.phone.value = formatUsPhone(shippingFields.phone.value);
+  if (caretWasAtEnd) {
+    shippingFields.phone.setSelectionRange(shippingFields.phone.value.length, shippingFields.phone.value.length);
+  }
+});
+
+// A US ZIP reliably maps to a real city/state (unlike area codes, which
+// don't map cleanly to either) — autofill City/State from it instead of
+// asking the buyer to pick a city from an unmanageably long list. Buyer
+// can still hand-edit either field afterward; this never blocks or
+// overwrites a correct manual entry with a failed/slow lookup.
+//
+// Routed through our own backend (/api/currency/us-zip-lookup/:zip) rather
+// than calling the third-party lookup API directly from here — a direct
+// browser call was confirmed to silently fail in real testing, almost
+// certainly a browser ad-blocker/privacy extension blocking fetches to an
+// unfamiliar third-party domain (common, and impossible to control for
+// from the frontend). The backend has no such risk.
+let lastZipLookup = '';
+async function autofillFromUsZip() {
+  if (shippingFields.country?.value !== 'US') return;
+  const zip = (shippingFields.postcode?.value || '').trim().slice(0, 5);
+  if (!/^\d{5}$/.test(zip) || zip === lastZipLookup) return;
+  lastZipLookup = zip;
+  try {
+    const res = await fetch(`${API_BASE}/currency/us-zip-lookup/${zip}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data?.found) return;
+    if (shippingFields.city && data.city) shippingFields.city.value = data.city;
+    if (shippingFields.county) {
+      const stateName = window.S4L_US_STATES?.find(s => s.code === data.stateCode)?.name;
+      shippingFields.county.value = stateName || data.stateName || shippingFields.county.value;
+    }
+  } catch {
+    // Best-effort only — a failed/offline lookup never blocks checkout,
+    // the buyer just fills City/State in by hand as before.
+  }
+}
+
+shippingFields.postcode?.addEventListener('input', autofillFromUsZip);
+shippingFields.postcode?.addEventListener('blur', autofillFromUsZip);
 
 const saveAddressEl = document.getElementById('checkout-save-address');
 const shippingEl = document.getElementById('checkout-shipping');
@@ -300,12 +427,15 @@ const changeEmailBtn = document.getElementById('checkout-change-email');
     if (shippingFields.city && addr.city) shippingFields.city.value = addr.city;
     if (shippingFields.county && addr.county) shippingFields.county.value = addr.county;
     if (shippingFields.postcode && addr.postcode) shippingFields.postcode.value = addr.postcode;
-    if (shippingFields.country && addr.country) {
-      shippingFields.country.value = addr.country;
-      applyAddressFormat(addr.country);
-    }
+    if (addr.country) setCountryCode(addr.country);
   } catch (_) {
     // Non-fatal — buyer can just type their address in
+  } finally {
+    // Setting .value programmatically doesn't fire blur/change — without
+    // this, a signed-in buyer with a complete saved address would never
+    // trigger the readiness check below and the payment element would
+    // never mount until they manually clicked into a field.
+    maybeInitPayment();
   }
 })();
 
@@ -350,6 +480,39 @@ function buildOrderItemsPayload() {
 }
 
 // ======================================================
+// SHIPPING ADDRESS — read + validate (shared by the readiness gate below
+// and the Pay Now handler, so the two can never drift out of sync).
+// ======================================================
+
+function readShippingAddress() {
+  return {
+    name: shippingFields.name?.value?.trim() || '',
+    phone: shippingFields.phone?.value?.trim() || '',
+    address1: shippingFields.address1?.value?.trim() || '',
+    address2: shippingFields.address2?.value?.trim() || '',
+    city: shippingFields.city?.value?.trim() || '',
+    county: shippingFields.county?.value?.trim() || '',
+    postcode: shippingFields.postcode?.value?.trim() || '',
+    country: shippingFields.country?.value?.trim() || 'GB',
+  };
+}
+
+function validateShippingAddress(addr) {
+  if (!addr.name || !addr.address1 || !addr.city || !addr.postcode) {
+    return 'Please fill in your name, address, city and postcode.';
+  }
+  const addressFormat = ADDRESS_FORMATS[addr.country] || DEFAULT_ADDRESS_FORMAT;
+  if (addressFormat.regionRequired && !addr.county) {
+    return `Please fill in your ${addressFormat.regionLabel.toLowerCase()}.`;
+  }
+  if (addressFormat.postalPattern && !addressFormat.postalPattern.test(addr.postcode)) {
+    const countryName = countryByCode.get(addr.country) || addr.country;
+    return `That doesn't look like a valid ${countryName} ${addressFormat.postalLabel.toLowerCase()} (e.g. ${addressFormat.postalExample}) — please check it.`;
+  }
+  return null;
+}
+
+// ======================================================
 // INITIALIZE PAYMENT
 // ======================================================
 
@@ -380,6 +543,20 @@ async function initPayment() {
     return;
   }
 
+  // Don't create the PaymentIntent (or mount the payment element) until a
+  // complete shipping address exists — the PaymentIntent's currency is
+  // fixed forever at creation, so the real shipping country needs to be
+  // known before that call, not filled in afterward alongside an
+  // already-mounted payment box. Each shipping field's blur listener
+  // (below) re-calls this once the buyer finishes filling the form.
+  const shippingAddress = readShippingAddress();
+  const addressError = validateShippingAddress(shippingAddress);
+  if (addressError) {
+    setMessage(addressError);
+    disableButton(true);
+    return;
+  }
+
   setMessage('');
   disableButton(true, 'Preparing payment…');
 
@@ -401,10 +578,17 @@ async function initPayment() {
 
     // The currency/rate/symbol this buyer was actually shown on-screen
     // (currency.js, GeoIP-based) — stored on the order so the confirmation
-    // email and thank-you page can show the SAME figure the buyer saw here,
-    // instead of always showing GBP regardless of what was displayed during
-    // checkout (the real Stripe charge itself is still always GBP).
+    // email and thank-you page show the same figure. For an order the
+    // backend actually converts (currently just a US shipping address —
+    // see utils/chargeCurrency.js), the real charge overrides this rather
+    // than the two potentially drifting apart.
     const displayCurrency = window.s4lCurrencyInfo ? window.s4lCurrencyInfo() : { currency: 'GBP', rate: 1, symbol: '£' };
+
+    // The validated shipping country (not the GeoIP-guessed display one) —
+    // this is what the backend actually resolves the REAL charge currency
+    // from. Stripe fixes a PaymentIntent's currency forever at creation, so
+    // this has to be known and sent right here, before that call.
+    const country = shippingAddress.country;
 
     if (token) {
       res = await fetch(`${API_BASE}/orders/create-payment-intent?t=${Date.now()}`, {
@@ -413,7 +597,7 @@ async function initPayment() {
           'Content-Type': 'application/json',
           Authorization: 'Bearer ' + token,
         },
-        body: JSON.stringify({ items: buildOrderItemsPayload(), analyticsSessionId, displayCurrency }),
+        body: JSON.stringify({ items: buildOrderItemsPayload(), analyticsSessionId, displayCurrency, country }),
       });
     } else {
       // --------------------------------------------------
@@ -437,7 +621,7 @@ async function initPayment() {
       res = await fetch(`${API_BASE}/orders/guest-checkout?t=${Date.now()}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailField.value.trim(), items: buildOrderItemsPayload(), utm, referrer, analyticsSessionId, displayCurrency }),
+        body: JSON.stringify({ email: emailField.value.trim(), items: buildOrderItemsPayload(), utm, referrer, analyticsSessionId, displayCurrency, country }),
       });
     }
 
@@ -508,7 +692,28 @@ async function initPayment() {
       clientSecret: currentOrder.clientSecret,
     });
 
-    paymentElement = elements.create('payment');
+    // Without this, Stripe's own card form defaults its billing
+    // Country/Postal code fields independently of the shipping address
+    // already entered above — confirmed in testing to default to United
+    // Kingdom regardless of the buyer's real country, which then rejects a
+    // US ZIP as an invalid UK postcode. Pre-filling from the shipping
+    // address the buyer already gave us keeps the two in sync.
+    paymentElement = elements.create('payment', {
+      defaultValues: {
+        billingDetails: {
+          name: shippingAddress.name,
+          phone: shippingAddress.phone,
+          address: {
+            line1: shippingAddress.address1,
+            line2: shippingAddress.address2,
+            city: shippingAddress.city,
+            state: shippingAddress.county,
+            postal_code: shippingAddress.postcode,
+            country: shippingAddress.country,
+          },
+        },
+      },
+    });
 
     paymentElement.mount('#payment-element');
 
@@ -522,16 +727,27 @@ async function initPayment() {
   }
 }
 
-initPayment();
-
-// A guest hasn't typed their email yet at page load (initPayment() above
-// just shows the "enter your email" prompt and stops) — this fires it for
-// real the moment they provide one, without waiting for the Pay Now click.
-if (emailField && !token) {
-  emailField.addEventListener('blur', () => {
-    if (!paymentInitialized && EMAIL_RE.test(emailField.value.trim())) initPayment();
-  });
+// Re-checks readiness (email + complete shipping address) and creates the
+// PaymentIntent/mounts the payment element the moment both are satisfied —
+// safe to call repeatedly (initPayment() itself re-validates and bails
+// early if something's still missing), guarded here only so an already-
+// mounted payment element doesn't get torn down and recreated on every
+// subsequent field edit.
+function maybeInitPayment() {
+  if (!paymentInitialized) initPayment();
 }
+
+maybeInitPayment();
+
+// Neither the email nor any shipping field is filled in at page load for a
+// guest (initPayment() above just shows a prompt and stops) — re-check
+// readiness as each one is completed, without waiting for the Pay Now
+// click. countryNameInput's own blur already resolves the typed name into
+// shippingFields.country before this fires, so a completed country
+// selection is reflected immediately.
+[emailField, ...Object.values(shippingFields), countryNameInput].forEach((el) => {
+  el?.addEventListener('blur', maybeInitPayment);
+});
 
 // Lets a mistyped email be corrected after guest checkout has already
 // created a session for it (or matched an existing account) — that
@@ -578,25 +794,10 @@ orderBtn?.addEventListener('click', async () => {
     return;
   }
 
-  const shippingAddress = {
-    name: shippingFields.name?.value?.trim() || '',
-    phone: shippingFields.phone?.value?.trim() || '',
-    address1: shippingFields.address1?.value?.trim() || '',
-    address2: shippingFields.address2?.value?.trim() || '',
-    city: shippingFields.city?.value?.trim() || '',
-    county: shippingFields.county?.value?.trim() || '',
-    postcode: shippingFields.postcode?.value?.trim() || '',
-    country: shippingFields.country?.value?.trim() || 'GB',
-  };
-
-  if (!shippingAddress.name || !shippingAddress.address1 || !shippingAddress.city || !shippingAddress.postcode) {
-    setMessage('Please fill in your name, address, city and postcode.');
-    return;
-  }
-
-  const addressFormat = ADDRESS_FORMATS[shippingAddress.country] || DEFAULT_ADDRESS_FORMAT;
-  if (addressFormat.regionRequired && !shippingAddress.county) {
-    setMessage(`Please fill in your ${addressFormat.regionLabel.toLowerCase()}.`);
+  const shippingAddress = readShippingAddress();
+  const addressError = validateShippingAddress(shippingAddress);
+  if (addressError) {
+    setMessage(addressError);
     return;
   }
 
