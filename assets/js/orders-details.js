@@ -6,6 +6,18 @@ console.log('orders-details.js running');
 
 const API = window.API_BASE;
 
+// Set once per page load (right after the order loads, before any price
+// renders) from order.displayCurrency* — for a converted order this is the
+// REAL charged currency (see backend/backend/utils/chargeCurrency.js), not
+// just a display estimate. Defaults to GBP/1 so nothing breaks before the
+// order has loaded or for a pre-existing GBP order.
+let orderCurrencySymbol = '£';
+let orderCurrencyRate = 1;
+
+function fmtOrder(gbpAmount) {
+  return `${orderCurrencySymbol}${(Number(gbpAmount) * orderCurrencyRate).toFixed(2)}`;
+}
+
 /* ======================================================
    AUTH FETCH
 ====================================================== */
@@ -168,7 +180,7 @@ function buildItemHTML(item) {
         ${window.s4lVariantLabel && window.s4lVariantLabel(item.attributes)
           ? `<div style="font-size:0.8rem;color:#0b6b6a;font-weight:600;margin-top:2px">${window.s4lVariantLabel(item.attributes)}</div>`
           : ''}
-        <div class="order-qty">${qty} × £${price.toFixed(2)}</div>
+        <div class="order-qty">${qty} × ${fmtOrder(price)}</div>
         ${badges ? `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:4px">${badges}</div>` : ''}
         ${quantityDetail ? `<div style="font-size:0.75rem;color:#6b7280;margin-top:6px">${quantityDetail}</div>` : ''}
         ${item.trackingNumber
@@ -179,7 +191,7 @@ function buildItemHTML(item) {
         ${itemActions}
       </div>
 
-      <div class="order-line-price">£${line.toFixed(2)}</div>
+      <div class="order-line-price">${fmtOrder(line)}</div>
     </div>
   `;
 }
@@ -236,6 +248,9 @@ async function loadOrderDetails() {
 
     const order = await res.json();
     loading.style.display = 'none';
+
+    orderCurrencySymbol = order.displayCurrencySymbol || '£';
+    orderCurrencyRate = Number(order.displayCurrencyRate) || 1;
 
     const id        = order.id || order._id;
     const displayId = order.shortId || `S4L-${id.slice(0, 10).toUpperCase()}`;
@@ -296,7 +311,7 @@ async function loadOrderDetails() {
         })()}
       </div>
 
-      <div class="order-total"><h3>£${Number(order.total ?? 0).toFixed(2)}</h3></div>
+      <div class="order-total"><h3>${fmtOrder(order.total ?? 0)}</h3></div>
     `;
 
     setupButtons(order, id);

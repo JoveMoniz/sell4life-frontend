@@ -56,6 +56,16 @@ async function initOrders() {
 // RENDER ORDER CARD
 // =====================================================
 
+// Each order card uses its OWN order's displayCurrency* — unlike the
+// single-order details page, this list can show orders placed in
+// different currencies side by side (e.g. a GBP order and a converted US
+// order for the same buyer), so this can't be a single shared variable.
+function fmtOrderTotal(o) {
+  const symbol = o.displayCurrencySymbol || '£';
+  const rate = Number(o.displayCurrencyRate) || 1;
+  return `${symbol}${(Number(o.total) * rate).toFixed(2)}`;
+}
+
 function renderOrderCard(o) {
   const date = o.createdAt ? new Date(o.createdAt).toLocaleString() : '—';
 
@@ -77,7 +87,7 @@ function renderOrderCard(o) {
 
       <div class="order-header">
         <span class="order-id">${displayId}</span>
-        <span class="order-total">£${Number(o.total).toFixed(2)}</span>
+        <span class="order-total">${fmtOrderTotal(o)}</span>
       </div>
 
       <div class="order-meta">
