@@ -11,7 +11,7 @@
 
     <!-- 🔐 Stripe -->
     <script src="https://js.stripe.com/v3/"></script>
-    <link rel="stylesheet" href="/assets/css/quick-add.css?v=20260622b" />
+    <link rel="stylesheet" href="/assets/css/quick-add.css?v=20260914a" />
     <style id="s4l-fouc">html{visibility:hidden}</style>
   </head>
 
@@ -33,6 +33,7 @@
             <h2>Contact Information</h2>
             <label>Email</label>
             <input type="email" id="checkout-email" placeholder="your@email.com" />
+            <button type="button" id="checkout-change-email" hidden style="margin-top:6px;background:none;border:none;padding:0;color:#0b6b6a;font-size:0.82rem;text-decoration:underline;cursor:pointer">Wrong email? Change it</button>
           </div>
 
           <!-- Shipping -->
@@ -40,7 +41,7 @@
             <h2>Shipping Address</h2>
 
             <label>Full Name</label>
-            <input type="text" id="checkout-name" placeholder="John Doe" />
+            <input type="text" id="checkout-name" placeholder="John Doe" autocomplete="off" />
 
             <label>Phone</label>
             <input type="tel" id="checkout-phone" placeholder="07…" />
@@ -54,10 +55,12 @@
             <label>City</label>
             <input type="text" id="checkout-city" />
 
-            <label>County</label>
-            <input type="text" id="checkout-county" />
+            <div id="checkout-county-row">
+              <label id="checkout-county-label">County</label>
+              <input type="text" id="checkout-county" />
+            </div>
 
-            <label>Postcode</label>
+            <label id="checkout-postcode-label">Postcode</label>
             <input type="text" id="checkout-postcode" />
 
             <label>Country</label>
@@ -140,7 +143,7 @@
 
     <!-- Checkout logic -->
     <script>
-      window.__pageScripts = ['/assets/js/countries.js', '/assets/js/checkout.js?v=20260912a'];
+      window.__pageScripts = ['/assets/js/countries.js', '/assets/js/checkout.js?v=20260920a'];
     </script>
 
     <!-- Prevent back navigation after completed checkout —

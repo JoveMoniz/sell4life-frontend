@@ -37,6 +37,45 @@ if (shippingFields.country && Array.isArray(window.S4L_COUNTRIES)) {
   shippingFields.country.value = 'GB';
 }
 
+// ======================================================
+// ADDRESS FORMAT BY COUNTRY
+// The form used to hardcode UK-style "County"/"Postcode" labels for every
+// buyer regardless of the country selected — a US address has no county
+// (it needs a required State instead) and a German address has no county
+// field at all. GB stays the default/fallback shape since that's still
+// the primary market; anything not explicitly listed gets a generic
+// "State / Region" (optional) + "Postal Code" shape rather than the
+// UK-specific wording.
+// ======================================================
+const ADDRESS_FORMATS = {
+  GB: { regionLabel: 'County', regionRequired: false, showRegion: true, postalLabel: 'Postcode', postalPlaceholder: '', phonePlaceholder: '07…' },
+  US: { regionLabel: 'State', regionRequired: true, showRegion: true, postalLabel: 'ZIP Code', postalPlaceholder: '90210', phonePlaceholder: '(555) 123-4567' },
+  DE: { regionLabel: '', regionRequired: false, showRegion: false, postalLabel: 'Postal Code', postalPlaceholder: '10115', phonePlaceholder: '030 12345678' },
+};
+const DEFAULT_ADDRESS_FORMAT = { regionLabel: 'State / Region', regionRequired: false, showRegion: true, postalLabel: 'Postal Code', postalPlaceholder: '', phonePlaceholder: 'Phone number' };
+
+const countyRow = document.getElementById('checkout-county-row');
+const countyLabel = document.getElementById('checkout-county-label');
+const postcodeLabel = document.getElementById('checkout-postcode-label');
+
+function applyAddressFormat(countryCode) {
+  const fmt = ADDRESS_FORMATS[countryCode] || DEFAULT_ADDRESS_FORMAT;
+
+  if (countyRow) countyRow.style.display = fmt.showRegion ? '' : 'none';
+  if (countyLabel) {
+    countyLabel.textContent = fmt.regionRequired ? fmt.regionLabel : `${fmt.regionLabel} (optional)`;
+  }
+  if (!fmt.showRegion && shippingFields.county) shippingFields.county.value = '';
+
+  if (postcodeLabel) postcodeLabel.textContent = fmt.postalLabel;
+  if (shippingFields.postcode) shippingFields.postcode.placeholder = fmt.postalPlaceholder;
+
+  if (shippingFields.phone) shippingFields.phone.placeholder = fmt.phonePlaceholder;
+}
+
+applyAddressFormat(shippingFields.country?.value || 'GB');
+shippingFields.country?.addEventListener('change', () => applyAddressFormat(shippingFields.country.value));
+
 const saveAddressEl = document.getElementById('checkout-save-address');
 const shippingEl = document.getElementById('checkout-shipping');
 const totalEl = document.getElementById('checkout-total');
@@ -261,7 +300,10 @@ const changeEmailBtn = document.getElementById('checkout-change-email');
     if (shippingFields.city && addr.city) shippingFields.city.value = addr.city;
     if (shippingFields.county && addr.county) shippingFields.county.value = addr.county;
     if (shippingFields.postcode && addr.postcode) shippingFields.postcode.value = addr.postcode;
-    if (shippingFields.country && addr.country) shippingFields.country.value = addr.country;
+    if (shippingFields.country && addr.country) {
+      shippingFields.country.value = addr.country;
+      applyAddressFormat(addr.country);
+    }
   } catch (_) {
     // Non-fatal — buyer can just type their address in
   }
@@ -357,6 +399,13 @@ async function initPayment() {
       analyticsSessionId = sessionStorage.getItem('s4l_session_id') || '';
     } catch { /* best-effort only */ }
 
+    // The currency/rate/symbol this buyer was actually shown on-screen
+    // (currency.js, GeoIP-based) — stored on the order so the confirmation
+    // email and thank-you page can show the SAME figure the buyer saw here,
+    // instead of always showing GBP regardless of what was displayed during
+    // checkout (the real Stripe charge itself is still always GBP).
+    const displayCurrency = window.s4lCurrencyInfo ? window.s4lCurrencyInfo() : { currency: 'GBP', rate: 1, symbol: '£' };
+
     if (token) {
       res = await fetch(`${API_BASE}/orders/create-payment-intent?t=${Date.now()}`, {
         method: 'POST',
@@ -364,7 +413,7 @@ async function initPayment() {
           'Content-Type': 'application/json',
           Authorization: 'Bearer ' + token,
         },
-        body: JSON.stringify({ items: buildOrderItemsPayload(), analyticsSessionId }),
+        body: JSON.stringify({ items: buildOrderItemsPayload(), analyticsSessionId, displayCurrency }),
       });
     } else {
       // --------------------------------------------------
@@ -388,7 +437,7 @@ async function initPayment() {
       res = await fetch(`${API_BASE}/orders/guest-checkout?t=${Date.now()}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailField.value.trim(), items: buildOrderItemsPayload(), utm, referrer, analyticsSessionId }),
+        body: JSON.stringify({ email: emailField.value.trim(), items: buildOrderItemsPayload(), utm, referrer, analyticsSessionId, displayCurrency }),
       });
     }
 
@@ -542,6 +591,12 @@ orderBtn?.addEventListener('click', async () => {
 
   if (!shippingAddress.name || !shippingAddress.address1 || !shippingAddress.city || !shippingAddress.postcode) {
     setMessage('Please fill in your name, address, city and postcode.');
+    return;
+  }
+
+  const addressFormat = ADDRESS_FORMATS[shippingAddress.country] || DEFAULT_ADDRESS_FORMAT;
+  if (addressFormat.regionRequired && !shippingAddress.county) {
+    setMessage(`Please fill in your ${addressFormat.regionLabel.toLowerCase()}.`);
     return;
   }
 

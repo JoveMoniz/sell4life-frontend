@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const params = new URLSearchParams(window.location.search);
   const paymentIntentId = params.get('payment_intent');
+  const clientSecret = params.get('payment_intent_client_secret');
 
   // 🔥 STORE PAYMENT INTENT FOR GLOBAL CLEANUP
   localStorage.setItem('last_payment_intent', paymentIntentId);
@@ -93,10 +94,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const token = localStorage.getItem('s4l_token');
 
+  // No token means guest checkout used an email that already belongs to an
+  // existing account — by design, we never auto-log into someone else's
+  // account (see project memory on the guest-checkout security fix). The
+  // order details can still be fetched and shown here (not just a bare
+  // confirmation): /orders/by-payment accepts the PaymentIntent's own
+  // clientSecret as proof of ownership, same pattern already used by
+  // /orders/shipping-address — Stripe only ever reveals that secret to the
+  // browser that created this specific checkout.
   if (!token) {
-    localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
-    window.location.href = '/account/signin.html';
-    return;
+    document.getElementById('ty-existing-account-panel')?.removeAttribute('hidden');
+  }
+
+  // Every /orders/by-payment call below uses this instead of a bare fetch —
+  // Bearer token when logged in, clientSecret query param otherwise.
+  function orderFetch() {
+    if (token) {
+      return fetch(`${API}/orders/by-payment/${paymentIntentId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    }
+    return fetch(`${API}/orders/by-payment/${paymentIntentId}?clientSecret=${encodeURIComponent(clientSecret || '')}`);
   }
 
   // Card stays hidden — spinner is visible via #ty-loading until data arrives
@@ -112,9 +130,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     while (Date.now() - started < maxMs) {
       try {
-        const res = await fetch(`${API}/orders/by-payment/${paymentIntentId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await orderFetch();
 
         if (res.ok) {
           const order = await res.json();
@@ -160,9 +176,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (idEl) idEl.textContent = displayId;
 
+    // Pre-fill the sign-in link's email so a guest whose checkout matched
+    // an existing account doesn't have to retype it, and send them straight
+    // to this order's own details page after logging in (reusing the same
+    // postLoginRedirect mechanism orders-details.html's own auth guard
+    // already honours) instead of bouncing back to this now-stale page.
+    if (!token) {
+      if (order.id) {
+        localStorage.setItem('postLoginRedirect', `/account/orders-details.html?id=${order.id}`);
+      }
+      if (order.email) {
+        const signInLink = document.getElementById('ty-existing-signin-link');
+        if (signInLink) signInLink.href = `/account/signin.html?email=${encodeURIComponent(order.email)}`;
+      }
+    }
+
     if (dateEl) {
       dateEl.textContent = order.createdAt ? new Date(order.createdAt).toLocaleString() : '-';
     }
+
+    // Show the same currency the buyer saw at checkout (order.displayCurrency*,
+    // captured there) instead of always hardcoding £ — the real Stripe charge
+    // is always GBP regardless, this is purely a display consistency fix.
+    const displaySymbol = order.displayCurrencySymbol || '£';
+    const displayRate = Number(order.displayCurrencyRate) || 1;
+    const fmtDisplay = (gbpAmount) => `${displaySymbol}${(Number(gbpAmount) * displayRate).toFixed(2)}`;
 
     if (itemsEl) {
       itemsEl.innerHTML = (order.items || [])
@@ -178,7 +216,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <span class="ty-item-qty">×${qty}</span>
               </div>
               <span class="ty-item-subtotal">
-                £${total.toFixed(2)}
+                ${fmtDisplay(total)}
               </span>
             </div>
           `;
@@ -187,7 +225,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (totalEl) {
-      totalEl.textContent = `£${Number(order.total || 0).toFixed(2)}`;
+      totalEl.textContent = fmtDisplay(order.total || 0);
     }
 
     // =====================================================
@@ -212,9 +250,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // fast attempt
     try {
-      const res = await fetch(`${API}/orders/by-payment/${paymentIntentId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await orderFetch();
 
       if (res.ok) {
         order = await res.json();

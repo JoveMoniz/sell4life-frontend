@@ -56,6 +56,15 @@
           <p class="ty-track-message" id="ty-track-message"></p>
         </div>
 
+        <!-- Only shown when the checkout email already belongs to an existing
+             account — no session was auto-created, so order details can't be
+             shown here, but the purchase itself still went through fine. -->
+        <div class="ty-track-panel" id="ty-existing-account-panel" hidden>
+          <h3>Already have an account with us</h3>
+          <p>Your order's been placed successfully. Since this email already has a Sell4Life account, sign in any time to see the full order and track your delivery.</p>
+          <a href="/account/signin.html" class="ty-btn" id="ty-existing-signin-link">Sign In</a>
+        </div>
+
         <a href="/" class="ty-btn">Back to Home</a>
       </div>
     </div>
@@ -68,6 +77,6 @@
     <script src="/assets/js/config-global.js"></script>
     <script src="/assets/js/icons.js"></script>
     <script src="/assets/js/client-info.js"></script>
-    <script src="/assets/js/thankyou.js?v=20260902a"></script>
+    <script src="/assets/js/thankyou.js?v=20260920a"></script>
   </body>
 </html>
