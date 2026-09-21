@@ -55,6 +55,20 @@ function gbp(value) {
   const chargeAmount = (gbpAmount * chargeRate).toFixed(2);
   return `<span title="Charged ${chargeSymbol}${chargeAmount} ${currentOrder.chargeCurrency}" style="cursor:help;border-bottom:1px dotted #9ca3af">${text}</span>`;
 }
+
+// Plain-text counterpart for native confirm()/alert() dialogs, which can't
+// render the hover span above — spells the charge-currency amount out
+// inline instead since a hover tooltip isn't possible there.
+function gbpText(value) {
+  const gbpAmount = Number(value) || 0;
+  const text = '£' + gbpAmount.toFixed(2);
+  const isInternational = currentOrder?.chargeCurrency && currentOrder.chargeCurrency !== 'GBP';
+  if (!isInternational) return text;
+  const chargeRate   = Number(currentOrder.chargeToGbpRate) || 1;
+  const chargeSymbol = currentOrder.displayCurrencySymbol || '$';
+  const chargeAmount = (gbpAmount * chargeRate).toFixed(2);
+  return `${text} (${chargeSymbol}${chargeAmount} ${currentOrder.chargeCurrency})`;
+}
 let _refundTarget = { itemId: null, maxQty: 0, price: 0 };
 
 /* ================================
@@ -181,7 +195,7 @@ function updateModalAmount() {
     const deduction = _refundTarget.postageDeduction || 0;
     const amt = Math.max(0, qty * _refundTarget.price - deduction).toFixed(2);
     el.textContent = qty > 0
-      ? `Refund amount: £${amt}` + (deduction > 0 ? ` (return postage of £${deduction.toFixed(2)} deducted — change of mind, no free returns)` : '')
+      ? `Refund amount: ${gbpText(amt)}` + (deduction > 0 ? ` (return postage of ${gbpText(deduction)} deducted — change of mind, no free returns)` : '')
       : '';
   }
 }
@@ -832,7 +846,7 @@ document.addEventListener('click', async (e) => {
     const willRefund = adminCancelBtn.dataset.willRefund === '1';
 
     const msg = willRefund
-      ? `Cancel "${name}"?\n\nThis will refund £${amt} to the customer immediately and cannot be undone.`
+      ? `Cancel "${name}"?\n\nThis will refund ${gbpText(amt)} to the customer immediately and cannot be undone.`
       : `Cancel "${name}"?\n\nThis cannot be undone.`;
 
     const confirmed = await showConfirm(msg);
@@ -941,7 +955,7 @@ document.addEventListener('click', async (e) => {
     const reason = form?.querySelector('.admin-goodwill-reason-inp')?.value.trim();
 
     if (!Number.isFinite(amount) || amount <= 0 || amount > max + 0.001) {
-      await showAlert(`Enter an amount between £0.01 and £${max.toFixed(2)}`);
+      await showAlert(`Enter an amount between £0.01 and ${gbpText(max)}`);
       return;
     }
     if (!reason) {
@@ -950,7 +964,7 @@ document.addEventListener('click', async (e) => {
     }
 
     const payerLabel = paidBy === 'vendor' ? "the vendor's payout" : 'Sell4Life (the platform)';
-    const confirmed = await showConfirm(`Schedule a £${amount.toFixed(2)} goodwill refund, paid by ${payerLabel}? No item return required. Executes in 24h unless cancelled.`);
+    const confirmed = await showConfirm(`Schedule a ${gbpText(amount)} goodwill refund, paid by ${payerLabel}? No item return required. Executes in 24h unless cancelled.`);
     if (!confirmed) return;
 
     submitGoodwillBtn.disabled = true;
@@ -1057,7 +1071,7 @@ document.addEventListener('click', async (e) => {
       }
 
       document.getElementById('itemRefundModal').style.display = 'none';
-      await showAlert(`Refund of £${Number(data.refundedAmount || 0).toFixed(2)} processed successfully.`);
+      await showAlert(`Refund of ${gbpText(data.refundedAmount || 0)} processed successfully.`);
       loadOrder();
     } catch (err) {
       console.error(err);
@@ -1095,7 +1109,7 @@ updateBtn.addEventListener('click', async () => {
     const willRefund = currentOrder?.paymentStatus === 'paid' && !alreadyScheduled && !alreadyRefunded;
 
     const msg = willRefund
-      ? `Force cancel this order?\n\nThis schedules a full refund of £${Number(currentOrder.total || 0).toFixed(2)} for the ENTIRE order (all items/vendors) and cannot be undone.`
+      ? `Force cancel this order?\n\nThis schedules a full refund of ${gbpText(currentOrder.total || 0)} for the ENTIRE order (all items/vendors) and cannot be undone.`
       : 'Force cancel this order?\n\nThis cannot be undone.';
 
     const confirmed = await showConfirm(msg);

@@ -358,11 +358,15 @@ document.getElementById('ordersTable').addEventListener('click', async (e) => {
       : `<strong style="font-family:monospace;font-size:0.78rem">${shortVId}</strong>`;
     const status = vo.status || 'Pending';
     const total  = Number(vo.total || 0).toFixed(2);
+    const isIntl = order.chargeCurrency && order.chargeCurrency !== 'GBP';
+    const totalHtml = isIntl
+      ? `<span title="Charged ${order.displayCurrencySymbol || '$'}${(total * (Number(order.chargeToGbpRate) || 1)).toFixed(2)} ${order.chargeCurrency}" style="cursor:help;border-bottom:1px dotted #9ca3af">£${total}</span>`
+      : `£${total}`;
     return `
       <div style="display:inline-flex;align-items:center;gap:6px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:4px 10px;font-size:0.78rem;margin:2px 4px 2px 0">
         ${nameHtml}
         ${window.s4lStatusBadge ? window.s4lStatusBadge(status) : status}
-        <span style="color:#6b7280">£${total}</span>
+        <span style="color:#6b7280">${totalHtml}</span>
       </div>`;
   }).join('');
 
