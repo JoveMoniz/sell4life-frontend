@@ -523,6 +523,7 @@ async function loadOrder() {
               data-item-name="${(item.name || '').replace(/"/g, '&quot;')}"
               data-refund-preview="${cancelPreview}"
               data-will-refund="${willRefundOnCancel ? '1' : '0'}"
+              data-cj-status="${item.cjOrderId ? (item.cjOrderStatus || 'unknown') : ''}"
               style="padding:3px 8px;background:#fff;color:#b91c1c;border:1px solid #b91c1c;border-radius:4px;cursor:pointer;font-size:0.75rem;margin-right:4px;margin-top:2px">
               Cancel Item
             </button>`
@@ -848,10 +849,18 @@ document.addEventListener('click', async (e) => {
     const name    = adminCancelBtn.dataset.itemName;
     const amt     = adminCancelBtn.dataset.refundPreview;
     const willRefund = adminCancelBtn.dataset.willRefund === '1';
+    const cjStatus = adminCancelBtn.dataset.cjStatus;
+    // Surfaces the item's cached cjOrderStatus so the confirm dialog doesn't
+    // read as if CJ is being ignored — the actual cancel attempt always
+    // re-checks live with CJ regardless of what's shown here, this is just
+    // visibility into what we already know going in.
+    const cjLine = cjStatus
+      ? `\n\nLast known CJ status: ${cjStatus}. We'll confirm live with CJ before refunding — an already-dispatched item goes to manual review instead of an instant refund.`
+      : '';
 
     const msg = willRefund
-      ? `Cancel "${name}"?\n\nThis will refund ${gbpText(amt)} to the customer immediately and cannot be undone.`
-      : `Cancel "${name}"?\n\nThis cannot be undone.`;
+      ? `Cancel "${name}"?\n\nThis will refund ${gbpText(amt)} to the customer and cannot be undone.${cjLine}`
+      : `Cancel "${name}"?\n\nThis cannot be undone.${cjLine}`;
 
     const confirmed = await showConfirm(msg);
     if (!confirmed) return;

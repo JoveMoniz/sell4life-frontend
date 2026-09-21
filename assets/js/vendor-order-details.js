@@ -167,6 +167,7 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
   const cancelRefundPreview = Math.max(0,
     (Number(item.price || 0) * cancelQty) + Number(item.shippingCost || 0) - Number(item.discountAmount || 0)
   ).toFixed(2);
+  const cjStatusAttr = item.cjOrderId ? ` data-cj-status="${item.cjOrderStatus || 'unknown'}"` : '';
 
   const actionsHTML = itemActions.map(a => {
     // ── Fulfillment ──────────────────────────────────────
@@ -198,7 +199,7 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
     if (a.type === 'Vendor Cancel') {
       return `
         <button class="vendor-item-btn vendor-cancel-btn"
-          data-type="Vendor Cancel" data-order-id="${id}" data-item-id="${a.itemId}" data-refund-preview="${cancelRefundPreview}"
+          data-type="Vendor Cancel" data-order-id="${id}" data-item-id="${a.itemId}" data-refund-preview="${cancelRefundPreview}"${cjStatusAttr}
           style="margin-top:6px;padding:5px 12px;background:#fff;color:#b91c1c;border:1px solid #b91c1c;border-radius:4px;cursor:pointer;font-size:0.82rem">
           Cancel Item
         </button>`;
@@ -207,7 +208,7 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
     if (a.type === 'Cancel Approved') {
       return `
         <button class="vendor-item-btn"
-          data-type="Cancel Approved" data-order-id="${id}" data-item-id="${a.itemId}" data-refund-preview="${cancelRefundPreview}"
+          data-type="Cancel Approved" data-order-id="${id}" data-item-id="${a.itemId}" data-refund-preview="${cancelRefundPreview}"${cjStatusAttr}
           style="margin-top:6px;padding:5px 12px;background:#b91c1c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.82rem">
           Approve Cancellation
         </button>`;
@@ -836,15 +837,24 @@ document.addEventListener('click', async (e) => {
     const itemId = itemBtn.dataset.itemId;
     const qty    = Number(itemBtn.dataset.qty || 1);
 
+    // Surfaces the item's cached cjOrderStatus so the confirm dialog doesn't
+    // read as if CJ is being ignored — the actual cancel attempt always
+    // re-checks live with CJ regardless of what's shown here, this is just
+    // visibility into what we already know going in.
+    const cjStatus = itemBtn.dataset.cjStatus;
+    const cjLine = cjStatus
+      ? `\n\nLast known CJ status: ${cjStatus}. We'll confirm live with CJ before refunding — an already-dispatched item goes to manual review instead of an instant refund.`
+      : '';
+
     if (type === 'Vendor Cancel') {
       const amt = itemBtn.dataset.refundPreview;
-      const confirmed = await showConfirm(`Cancel this item?\n\nThis will refund ${gbpText(amt)} to the customer immediately and cannot be undone.\n\nOnly proceed if you are certain you cannot fulfil this item.`);
+      const confirmed = await showConfirm(`Cancel this item?\n\nThis will refund ${gbpText(amt)} to the customer and cannot be undone.\n\nOnly proceed if you are certain you cannot fulfil this item.${cjLine}`);
       if (!confirmed) return;
     }
 
     if (type === 'Cancel Approved') {
       const amt = itemBtn.dataset.refundPreview;
-      const confirmed = await showConfirm(`Approve this cancellation?\n\nThis will refund ${gbpText(amt)} to the customer immediately and cannot be undone.`);
+      const confirmed = await showConfirm(`Approve this cancellation?\n\nThis will refund ${gbpText(amt)} to the customer and cannot be undone.${cjLine}`);
       if (!confirmed) return;
     }
 
