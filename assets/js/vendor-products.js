@@ -6,6 +6,10 @@ const IMAGE_BASE = '/assets/images/products/';
 const TIER_RANK_VP = { casual: 1, refurbished: 2, professional: 3, enterprise: 4 };
 const _isPro = (TIER_RANK_VP[localStorage.getItem('s4l_vendorType')] || 1) >= 3;
 
+// Styled confirm()/alert() (window.s4lConfirm/s4lAlert) come from the
+// shared assets/js/s4l-dialog.js, injected on every vendor/admin page by
+// config-global.js — no per-page setup needed here.
+
 // Bulk price/stock edits require professional tier server-side (bulk
 // archive/delete/coming-soon don't — those stay available to everyone).
 // Non-pro sellers see the £ Price / ± Adjust / Stock buttons but get an
@@ -43,6 +47,10 @@ let _searchQuery = '';
 // markup% per price band in a few clicks instead of picking products by hand.
 let _costMin = null;
 let _costMax = null;
+// '' = all. A product with no shippingOriginCountry recorded (never CJ
+// synced) falls back to 'CN', matching the schema default and product.js's
+// own treatment of that field.
+let _shipFrom = '';
 const _selected = new Set();
 let _bulkShipOverride = null; // null = use DB value; true/false = user's manual choice
 let _bulkLastEdited   = 'markup'; // 'markup' | 'price' — whichever the vendor typed into most recently
@@ -81,6 +89,22 @@ function stockMeta(stock) {
   if (stock === 0) return { cls: 'vp-stock-zero', label: `${warn} Out of stock` };
   if (stock <= 5)  return { cls: 'vp-stock-low',  label: `${warn} Low: ${stock}` };
   return { cls: '', label: `Stock: ${stock}` };
+}
+
+// Only shown when a vendor has restricted where a product ships — the
+// 'worldwide' default is the common case and would just be noise here.
+function scopeBadge(p) {
+  const labels = { uk: 'Ships to UK only', uk_eu: 'Ships to UK + Europe' };
+  if (p.shippingScope === 'custom') {
+    const codes = p.shippingCountries || [];
+    const names = new Map((window.S4L_COUNTRIES || []).map(c => [c.code, c.name]));
+    const text = codes.map(c => names.get(c) || c).join(', ');
+    return `<span class="vp-scope-badge">Ships to ${text || '0 countries'}</span>`;
+  }
+  if (labels[p.shippingScope]) {
+    return `<span class="vp-scope-badge">${labels[p.shippingScope]}</span>`;
+  }
+  return '';
 }
 
 function moveTargets(p) {
@@ -149,6 +173,7 @@ function renderCard(p) {
         </div>
 
         <div class="stock ${cls}">${label}</div>
+        ${scopeBadge(p)}
       </div>
 
       <div class="vendor-product-actions">
@@ -199,6 +224,7 @@ function renderListRow(p) {
       </div>
 
       <div class="stock ${cls}">${label}</div>
+      ${scopeBadge(p)}
       ${p.shippingUnavailableUK ? `<div class="vp-shipping-warn" title="CJ currently has no shipping route to the UK for this product — check the vendor's CJ API connection or this product's CJ listing"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M6.5 6.5l11 11"/></svg> No UK shipping</div>` : ''}
 
       <div class="vp-list-actions">
@@ -357,6 +383,10 @@ function renderProducts() {
     });
   }
 
+  if (_shipFrom) {
+    items = items.filter(p => (p.shippingOriginCountry || 'CN') === _shipFrom);
+  }
+
   switch (_currentSort) {
     case 'name':
       items.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -397,7 +427,7 @@ function renderProducts() {
       return;
     }
 
-    const hasFilters = _searchQuery || _currentStatus !== 'all' || _costMin != null || _costMax != null;
+    const hasFilters = _searchQuery || _currentStatus !== 'all' || _costMin != null || _costMax != null || _shipFrom;
     const msg = hasFilters ? 'No products match your filters.' : 'No products yet.';
     container.innerHTML = `
       <div class="vp-empty">
@@ -422,10 +452,34 @@ function renderProducts() {
 
 function updateClearFiltersBtn() {
   const btn = document.getElementById('btn-clear-filters');
-  if (btn) btn.hidden = !(_searchQuery || _costMin != null || _costMax != null);
+  if (btn) btn.hidden = !(_searchQuery || _costMin != null || _costMax != null || _shipFrom);
+
+  // Dot on the (mobile/tablet-only) "Filters" toggle — so an active cost or
+  // shipping-origin filter is still visible even while that panel is collapsed.
+  const dot = document.getElementById('vp-filters-dot');
+  if (dot) dot.hidden = !(_costMin != null || _costMax != null || _shipFrom);
+}
+
+// Only lists countries actually present in this vendor's own catalog,
+// rather than every possible country — a fixed, mostly-empty dropdown
+// would be far less useful than one scoped to what they actually stock.
+function populateShipFilterOptions() {
+  const sel = document.getElementById('vp-ship-filter');
+  if (!sel) return;
+  const codes = new Set(
+    [..._allProducts, ..._archivedProducts].map(p => p.shippingOriginCountry || 'CN')
+  );
+  const names = new Map((window.S4L_COUNTRIES || []).map(c => [c.code, c.name]));
+  const options = [...codes].sort((a, b) => (names.get(a) || a).localeCompare(names.get(b) || b));
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All</option>' +
+    options.map(code => `<option value="${code}">${names.get(code) || code}</option>`).join('');
+  if (options.includes(current)) sel.value = current;
 }
 
 function bindToolbar() {
+  populateShipFilterOptions();
+
   const costMin = document.getElementById('vp-cost-min');
   const costMax = document.getElementById('vp-cost-max');
   if (costMin) {
@@ -454,13 +508,33 @@ function bindToolbar() {
     });
   }
 
+  const shipFilter = document.getElementById('vp-ship-filter');
+  if (shipFilter) {
+    shipFilter.addEventListener('change', e => {
+      _shipFrom = e.target.value;
+      updateClearFiltersBtn();
+      renderProducts();
+    });
+  }
+
+  const filtersToggle = document.getElementById('vp-filters-toggle');
+  const filtersRow = document.getElementById('vp-filters-row');
+  if (filtersToggle && filtersRow) {
+    filtersToggle.addEventListener('click', () => {
+      const open = filtersRow.classList.toggle('vp-filters-open');
+      filtersToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
+
   document.getElementById('btn-clear-filters')?.addEventListener('click', () => {
     _searchQuery = '';
     _costMin = null;
     _costMax = null;
+    _shipFrom = '';
     if (search) search.value = '';
     if (costMin) costMin.value = '';
     if (costMax) costMax.value = '';
+    if (shipFilter) shipFilter.value = '';
     updateClearFiltersBtn();
     renderProducts();
   });
@@ -535,6 +609,7 @@ async function refreshMainLists() {
     const activeIds = new Set(_allProducts.map(p => p._id || p.id));
     _archivedProducts = [...merged.values()].filter(p => !activeIds.has(p._id || p.id));
     _saveArchivedCache();
+    populateShipFilterOptions();
   } catch {}
 }
 
@@ -775,6 +850,15 @@ document.getElementById('btn-multi-select')?.addEventListener('click', () => {
     });
     _selectAnchorId = null;
   } else {
+    // Selection matches exactly what's currently visible — not a union
+    // with whatever was already selected under a different filter. Without
+    // this, items hidden by a filter change (e.g. switching Shipping From)
+    // stayed silently selected forever, so the count (and any bulk action)
+    // included products the vendor could no longer even see.
+    _selected.clear();
+    document.querySelectorAll('.vp-selected').forEach(el => el.classList.remove('vp-selected'));
+    document.querySelectorAll('.vp-select-cb:checked').forEach(cb => { cb.checked = false; });
+
     vids.forEach(id => {
       _selected.add(id);
       const card = document.querySelector(`[data-id="${id}"]`);
@@ -987,13 +1071,24 @@ document.addEventListener('change', (e) => {
 });
 
 // Ctrl+A / Cmd+A — select everything currently visible/filtered, same set
-// the "Select All" button uses. Ignored while typing in a text field so the
-// browser's normal text-select-all still works there.
+// the "Select All" button uses. Skipped only for genuine free-text fields
+// (the search box, and textareas) where select-all-to-overwrite is a real
+// use case. Number inputs (the cost min/max filters) and <select> are
+// deliberately NOT skipped — for a <select>, letting the browser's native
+// Ctrl+A run instead selects the whole page's visible text, not just the
+// dropdown, which is the bug this replaces; for the cost filters, users
+// expect Ctrl+A there to bulk-select the filtered products, same as
+// anywhere else on the page.
 document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
-    if (document.activeElement?.matches('input, textarea, select')) return;
+    if (document.activeElement?.matches('input:not([type="number"]), textarea')) return;
     e.preventDefault();
     const vids = visibleIds();
+    // Same fix as the Select All button — replace the selection with
+    // exactly what's visible, don't union onto a stale selection from a
+    // different filter state.
+    _selected.forEach(id => { if (!vids.includes(id)) _syncCardSelected(id, false); });
+    _selected.clear();
     vids.forEach(id => { _selected.add(id); _syncCardSelected(id, true); });
     _selectAnchorId = vids[vids.length - 1] ?? null;
     updateBulkBar();
@@ -1446,6 +1541,26 @@ function refillBulkPanel() {
     maxInput.value       = maxSame ? maxs[0] : '';
     maxInput.placeholder = maxSame ? '' : (maxs.length ? 'varies' : 'max');
   }
+
+  if (mode === 'shipping-scope') {
+    const scopeSelect = document.getElementById('vp-bulk-shipping-scope-select');
+    const countriesEl = document.getElementById('vp-bulk-shipping-countries');
+    if (!scopeSelect) return;
+    const selectedProducts = [..._selected]
+      .map(id => _allProducts.find(x => (x._id || x.id) === id)).filter(Boolean);
+    const scopes = selectedProducts.map(p => p.shippingScope || 'worldwide');
+    const allSame = scopes.length > 0 && scopes.every(s => s === scopes[0]);
+    scopeSelect.value = allSame ? scopes[0] : 'worldwide';
+    if (countriesEl) {
+      countriesEl.style.display = scopeSelect.value === 'custom' ? '' : 'none';
+      if (allSame && scopes[0] === 'custom') {
+        const common = selectedProducts[0]?.shippingCountries || [];
+        Array.from(countriesEl.options).forEach(o => { o.selected = common.includes(o.value); });
+      } else {
+        Array.from(countriesEl.options).forEach(o => { o.selected = false; });
+      }
+    }
+  }
 }
 
 document.getElementById('btn-bulk-price')?.addEventListener('click', () => {
@@ -1456,12 +1571,14 @@ document.getElementById('btn-bulk-price')?.addEventListener('click', () => {
   const markupWrap = document.getElementById('vp-bulk-markup-wrap');
   const adjustWrap = document.getElementById('vp-bulk-adjust-wrap');
   const deliveryWrap = document.getElementById('vp-bulk-delivery-wrap');
+  const scopeWrap = document.getElementById('vp-bulk-scope-wrap');
   const markupInput = document.getElementById('vp-bulk-markup');
   if (label) label.style.display = 'none';
   if (flatInput) flatInput.style.display = 'none';
   if (markupWrap) markupWrap.style.display = 'flex';
   if (adjustWrap) adjustWrap.style.display = 'none';
   if (deliveryWrap) deliveryWrap.style.display = 'none';
+  if (scopeWrap) scopeWrap.style.display = 'none';
   if (panel) { panel.hidden = false; panel.dataset.mode = 'markup'; }
   _bulkLastEdited = 'markup';
   refillBulkPanel();
@@ -1477,12 +1594,14 @@ document.getElementById('btn-bulk-adjust')?.addEventListener('click', () => {
   const markupWrap  = document.getElementById('vp-bulk-markup-wrap');
   const adjustWrap  = document.getElementById('vp-bulk-adjust-wrap');
   const deliveryWrap = document.getElementById('vp-bulk-delivery-wrap');
+  const scopeWrap = document.getElementById('vp-bulk-scope-wrap');
   const amountInput = document.getElementById('vp-bulk-adjust-amount');
   if (label) label.style.display = 'none';
   if (flatInput) flatInput.style.display = 'none';
   if (markupWrap) markupWrap.style.display = 'none';
   if (adjustWrap) adjustWrap.style.display = 'flex';
   if (deliveryWrap) deliveryWrap.style.display = 'none';
+  if (scopeWrap) scopeWrap.style.display = 'none';
   if (panel) { panel.hidden = false; panel.dataset.mode = 'adjust'; }
   updateAdjustPreview();
   amountInput?.focus();
@@ -1497,10 +1616,12 @@ document.getElementById('btn-bulk-stock')?.addEventListener('click', () => {
   const markupWrap = document.getElementById('vp-bulk-markup-wrap');
   const adjustWrap = document.getElementById('vp-bulk-adjust-wrap');
   const deliveryWrap = document.getElementById('vp-bulk-delivery-wrap');
+  const scopeWrap = document.getElementById('vp-bulk-scope-wrap');
   if (label) { label.textContent = 'Set stock (qty)'; label.style.display = ''; }
   if (markupWrap) markupWrap.style.display = 'none';
   if (adjustWrap) adjustWrap.style.display = 'none';
   if (deliveryWrap) deliveryWrap.style.display = 'none';
+  if (scopeWrap) scopeWrap.style.display = 'none';
   if (flatInput) { flatInput.type = 'number'; flatInput.step = '1'; flatInput.style.display = ''; }
   if (panel) { panel.hidden = false; panel.dataset.mode = 'stock'; }
   refillBulkPanel();
@@ -1516,16 +1637,48 @@ document.getElementById('btn-bulk-delivery')?.addEventListener('click', () => {
   const markupWrap  = document.getElementById('vp-bulk-markup-wrap');
   const adjustWrap  = document.getElementById('vp-bulk-adjust-wrap');
   const deliveryWrap = document.getElementById('vp-bulk-delivery-wrap');
+  const scopeWrap = document.getElementById('vp-bulk-scope-wrap');
   const minInput    = document.getElementById('vp-bulk-delivery-min');
   if (label) label.style.display = 'none';
   if (flatInput) flatInput.style.display = 'none';
   if (markupWrap) markupWrap.style.display = 'none';
   if (adjustWrap) adjustWrap.style.display = 'none';
   if (deliveryWrap) deliveryWrap.style.display = 'flex';
+  if (scopeWrap) scopeWrap.style.display = 'none';
   if (panel) { panel.hidden = false; panel.dataset.mode = 'delivery'; }
   refillBulkPanel();
   minInput?.focus();
   minInput?.select();
+});
+
+document.getElementById('btn-bulk-shipping-scope')?.addEventListener('click', () => {
+  if (!_isPro) { showProUpsell(); return; }
+  const panel       = document.getElementById('vp-bulk-edit-panel');
+  const label       = document.getElementById('vp-bulk-edit-label');
+  const flatInput   = document.getElementById('vp-bulk-edit-value');
+  const markupWrap  = document.getElementById('vp-bulk-markup-wrap');
+  const adjustWrap  = document.getElementById('vp-bulk-adjust-wrap');
+  const deliveryWrap = document.getElementById('vp-bulk-delivery-wrap');
+  const scopeWrap = document.getElementById('vp-bulk-scope-wrap');
+  const scopeSelect = document.getElementById('vp-bulk-shipping-scope-select');
+  if (label) label.style.display = 'none';
+  if (flatInput) flatInput.style.display = 'none';
+  if (markupWrap) markupWrap.style.display = 'none';
+  if (adjustWrap) adjustWrap.style.display = 'none';
+  if (deliveryWrap) deliveryWrap.style.display = 'none';
+  if (scopeWrap) scopeWrap.style.display = 'flex';
+  if (panel) { panel.hidden = false; panel.dataset.mode = 'shipping-scope'; }
+  const countriesEl = document.getElementById('vp-bulk-shipping-countries');
+  if (countriesEl && !countriesEl.options.length && Array.isArray(window.S4L_COUNTRIES)) {
+    countriesEl.innerHTML = window.S4L_COUNTRIES.map(c => `<option value="${c.code}">${c.name}</option>`).join('');
+  }
+  refillBulkPanel();
+  scopeSelect?.focus();
+});
+
+document.getElementById('vp-bulk-shipping-scope-select')?.addEventListener('change', function () {
+  const countriesEl = document.getElementById('vp-bulk-shipping-countries');
+  if (countriesEl) countriesEl.style.display = this.value === 'custom' ? '' : 'none';
 });
 
 function calcRetailPrice(costPrice, shippingCost, markupPct, inclShip) {
@@ -1645,11 +1798,13 @@ document.getElementById('btn-bulk-edit-cancel')?.addEventListener('click', () =>
   const markupWrap = document.getElementById('vp-bulk-markup-wrap');
   const adjustWrap = document.getElementById('vp-bulk-adjust-wrap');
   const deliveryWrap = document.getElementById('vp-bulk-delivery-wrap');
+  const scopeWrap = document.getElementById('vp-bulk-scope-wrap');
   if (label) label.style.display = '';
   if (flatInput) flatInput.style.display = '';
   if (markupWrap) markupWrap.style.display = 'none';
   if (adjustWrap) adjustWrap.style.display = 'none';
   if (deliveryWrap) deliveryWrap.style.display = 'none';
+  if (scopeWrap) scopeWrap.style.display = 'none';
   if (panel) { panel.hidden = true; delete panel.dataset.mode; }
 });
 
@@ -1905,6 +2060,63 @@ document.getElementById('btn-bulk-edit-apply')?.addEventListener('click', async 
         if (!ids.includes(pid)) return;
         if (body.estDeliveryMinDays !== undefined) p.estDeliveryMinDays = body.estDeliveryMinDays;
         if (body.estDeliveryMaxDays !== undefined) p.estDeliveryMaxDays = body.estDeliveryMaxDays;
+      });
+
+      _selected.clear();
+      renderProducts();
+      updateBulkBar();
+      if (panel) { panel.hidden = true; delete panel.dataset.mode; }
+      window.showToast?.(`Updated ${updated} product${updated !== 1 ? 's' : ''}`);
+    } catch (err) {
+      console.error(err);
+      window.showToast?.(err.message || 'Update failed', 'error');
+    } finally {
+      if (actBtn) { actBtn.disabled = false; actBtn.textContent = 'Apply to selected'; }
+    }
+    return;
+  }
+
+  // ── Shipping scope mode (Ships to) ──────────────────────────────────────
+  if (mode === 'shipping-scope') {
+    const scopeSelect = document.getElementById('vp-bulk-shipping-scope-select');
+    const countriesEl = document.getElementById('vp-bulk-shipping-countries');
+    const shippingScope = scopeSelect?.value || 'worldwide';
+    const shippingCountries = shippingScope === 'custom'
+      ? Array.from(countriesEl?.selectedOptions || []).map(o => o.value)
+      : [];
+
+    if (shippingScope === 'custom' && !shippingCountries.length) {
+      window.showToast?.('Select at least one country', 'error');
+      return;
+    }
+
+    const scopeLabels = { worldwide: 'Worldwide', uk: 'UK only', uk_eu: 'UK + Europe', custom: `${shippingCountries.length} selected countries` };
+    const msg = `Set "Ships to: ${scopeLabels[shippingScope]}" for ${n} product${n !== 1 ? 's' : ''}?`;
+    const confirmed = await window.confirmAction?.(msg);
+    if (!confirmed) return;
+
+    if (actBtn) { actBtn.disabled = true; actBtn.textContent = 'Applying…'; }
+
+    try {
+      const res = await fetch(`${window.API_BASE}/products/bulk`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ids, shippingScope, shippingCountries }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const updated = data.updated || ids.length;
+
+      _allProducts.forEach(p => {
+        const pid = p._id || p.id;
+        if (!ids.includes(pid)) return;
+        p.shippingScope = shippingScope;
+        p.shippingCountries = shippingCountries;
       });
 
       _selected.clear();
@@ -2356,7 +2568,7 @@ if (csvBtn && csvInput) {
     // option, unlike the Tools page's "Import to Products" flow. A
     // confirmation here is the only thing standing between a vendor and
     // accidentally re-flattening their pricing with this quieter path.
-    const proceed = confirm(
+    const proceed = await window.s4lConfirm(
       'This will overwrite price, stock, and shipping cost on any matching products.\n\n' +
       'If you only want to update the shipping warehouse without touching pricing, ' +
       'cancel this and use Tools → CSV Converter → "Update shipping origin only" instead.\n\n' +
@@ -2440,6 +2652,7 @@ async function runPendingCsvImport() {
 (function initBulkCjImages() {
   const btn     = document.getElementById('btn-bulk-cj-images');
   const overlay = document.getElementById('cj-bulk-overlay');
+  const title   = document.getElementById('cj-bulk-title');
   const bar     = document.getElementById('cj-bulk-bar');
   const status  = document.getElementById('cj-bulk-status');
   const counts  = document.getElementById('cj-bulk-counts');
@@ -2480,6 +2693,7 @@ async function runPendingCsvImport() {
     if (_selected.size === 0) return; // selection required — button should be disabled anyway
 
     btn.disabled = true;
+    if (title) title.textContent = 'Syncing from CJ';
     overlay.classList.add('active');
     bar.style.width = '0%';
     status.textContent = 'Starting…';
@@ -2615,6 +2829,7 @@ async function runPendingCsvImport() {
   // tier, unlike the CJ-specific bulk actions above.
   const btn     = document.getElementById('btn-bulk-rematch-category');
   const overlay = document.getElementById('cj-bulk-overlay');
+  const title   = document.getElementById('cj-bulk-title');
   const bar     = document.getElementById('cj-bulk-bar');
   const status  = document.getElementById('cj-bulk-status');
   const counts  = document.getElementById('cj-bulk-counts');
@@ -2633,9 +2848,10 @@ async function runPendingCsvImport() {
     const token = localStorage.getItem('s4l_token');
     if (!token) return;
     if (_selected.size === 0) return;
-    if (!confirm(`Re-derive category/subcategory for ${_selected.size} selected product${_selected.size !== 1 ? 's' : ''} and OVERWRITE what's set now? This cannot be undone.`)) return;
+    if (!(await window.s4lConfirm(`Re-derive category/subcategory for ${_selected.size} selected product${_selected.size !== 1 ? 's' : ''} and OVERWRITE what's set now? This cannot be undone.`))) return;
 
     btn.disabled = true;
+    if (title) title.textContent = 'Re-matching Category (AI)';
     overlay.classList.add('active');
     bar.style.width = '0%';
     status.textContent = 'Starting…';
@@ -2749,6 +2965,7 @@ async function runPendingCsvImport() {
   // credentials required.
   const btn     = document.getElementById('btn-bulk-generate-listing');
   const overlay = document.getElementById('cj-bulk-overlay');
+  const title   = document.getElementById('cj-bulk-title');
   const bar     = document.getElementById('cj-bulk-bar');
   const status  = document.getElementById('cj-bulk-status');
   const counts  = document.getElementById('cj-bulk-counts');
@@ -2771,9 +2988,10 @@ async function runPendingCsvImport() {
     const selectedIds = Array.from(_selected);
     const activeCount = _allProducts.filter(p => _selected.has(p._id || p.id) && p.active).length;
     const activeWarning = activeCount > 0 ? ` (${activeCount} of which ${activeCount === 1 ? 'is' : 'are'} already live)` : '';
-    if (!confirm(`Use AI to write title, descriptions, bullet points and category for ${selectedIds.length} selected product${selectedIds.length !== 1 ? 's' : ''}${activeWarning} and OVERWRITE what's set now? This cannot be undone.`)) return;
+    if (!(await window.s4lConfirm(`Use AI to write title, descriptions, bullet points and category for ${selectedIds.length} selected product${selectedIds.length !== 1 ? 's' : ''}${activeWarning} and OVERWRITE what's set now? This cannot be undone.`))) return;
 
     btn.disabled = true;
+    if (title) title.textContent = 'Generating Listing (AI)';
     overlay.classList.add('active');
     bar.style.width = '0%';
     status.textContent = 'Starting…';
@@ -2839,16 +3057,25 @@ async function runPendingCsvImport() {
             status.textContent = `[${msg.n}/${total}] ${label}`;
             if (msg.status === 'updated') {
               updated++;
-              changes.push(`${msg.name}`);
+              changes.push({ text: `${msg.name}`, failed: false });
             }
-            if (msg.status === 'failed')  failed++;
+            if (msg.status === 'failed') {
+              failed++;
+              // Reason only ever lived in this one progress message — without
+              // recording it here it's gone the moment the next message
+              // overwrites status.textContent, leaving the final summary
+              // saying "8 failed" with no way to see why any of them did.
+              changes.push({ text: `${msg.name} — ${msg.reason || 'unknown error'}`, failed: true });
+            }
             if (msg.status === 'skipped') skipped++;
             counts.textContent = `Updated: ${updated}  Failed: ${failed}  Skipped: ${skipped}`;
 
           } else if (msg.type === 'done') {
             bar.style.width = '100%';
             status.textContent = `Done — ${msg.updated} updated, ${msg.failed} failed, ${msg.skipped} skipped`;
-            counts.innerHTML = changes.length ? changes.map(c => c.replace(/</g, '&lt;')).join('<br>') : '';
+            counts.innerHTML = changes.length
+              ? changes.map(c => `<span style="color:${c.failed ? '#b91c1c' : 'inherit'}">${c.text.replace(/</g, '&lt;')}</span>`).join('<br>')
+              : '';
             _selected.clear();
             if (msg.updated > 0) await loadVendorProducts(); else renderProducts();
             updateBulkBar();
