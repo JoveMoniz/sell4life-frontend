@@ -271,9 +271,13 @@ function renderStatusHistory(order) {
     label.textContent = 'Order Activity';
     wrap.appendChild(label);
 
+    // Oldest-first — matches the per-vendor item history below, and reads
+    // in cause-then-effect order (e.g. Cancelled before the Refunded it
+    // triggers), even though those two land a few ms apart so a pure
+    // newest-first sort would otherwise put Refunded above Cancelled.
     globalHistory.slice()
       .sort((a, b) => {
-        const diff = new Date(b.date) - new Date(a.date);
+        const diff = new Date(a.date) - new Date(b.date);
         if (diff !== 0) return diff;
         const rank = { Cancelled: 0, Refunded: 1, Refund: 2 };
         const ra = Object.keys(rank).find(k => String(a.status).includes(k));
