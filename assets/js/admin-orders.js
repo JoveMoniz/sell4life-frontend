@@ -160,7 +160,11 @@ async function loadOrders(page = 1, q = '', status = 'all') {
   }
 </td>
 
-<td>£${Number(order.total || 0).toFixed(2)}</td>
+<td>£${Number(order.total || 0).toFixed(2)}${
+  order.chargeCurrency && order.chargeCurrency !== 'GBP'
+    ? ` <span title="Charged ${order.displayCurrencySymbol || '$'}${Number(order.chargeAmount || 0).toFixed(2)} ${order.chargeCurrency}" style="cursor:help">🌍</span>`
+    : ''
+}</td>
 
 <td>
   ${window.s4lStatusBadge ? window.s4lStatusBadge(order.status) : order.status}
@@ -249,7 +253,7 @@ function renderPagination(current, total) {
 /* =================================
    TABLE CLICK HANDLER (FINAL CLEAN)
 ================================= */
-document.getElementById('ordersTable').addEventListener('click', (e) => {
+document.getElementById('ordersTable').addEventListener('click', async (e) => {
   // ===============================
   // LET LINKS WORK
   // ===============================
@@ -264,6 +268,13 @@ document.getElementById('ordersTable').addEventListener('click', (e) => {
   if (statusBtn) {
     const orderId = statusBtn.dataset.id;
     const newStatus = statusBtn.dataset.status;
+
+    if (newStatus === 'Cancelled') {
+      const confirmed = await window.showConfirm(
+        'Force cancel this order?\n\nThis schedules a refund if the order was paid and cannot be undone.'
+      );
+      if (!confirmed) return;
+    }
 
     updateOrderStatus(orderId, newStatus);
     return;
@@ -362,6 +373,9 @@ document.getElementById('ordersTable').addEventListener('click', (e) => {
     <div class="inline-status-line">
       <strong>Status</strong>
       ${window.s4lStatusBadge ? window.s4lStatusBadge(backendStatus) : backendStatus}
+      ${order.paymentStatus === 'refund_scheduled' && order.refundScheduledAt
+        ? `<span class="refund-timer" data-time="${order.refundScheduledAt}"></span>`
+        : ''}
     </div>
 
     ${vendorChips ? `<div style="margin:6px 0 4px"><strong style="font-size:0.8rem;color:#6b7280">Sellers</strong><div style="margin-top:4px">${vendorChips}</div></div>` : ''}
@@ -393,6 +407,7 @@ document.getElementById('ordersTable').addEventListener('click', (e) => {
 
   detailsRow.appendChild(cell);
   row.after(detailsRow);
+  initRefundTimer(detailsRow);
 
   // ===============================
   // OPEN (SMOOTH + FULL HEIGHT)
@@ -412,6 +427,29 @@ document.getElementById('ordersTable').addEventListener('click', (e) => {
     wrapper.style.height = fullHeight;
   });
 });
+
+/* ======================================================
+   REFUND TIMER — inline row, self-clearing when the row closes
+   (the details row is removed on close/re-open rather than reused,
+   so checking isConnected each tick is simpler than hooking every
+   close path individually).
+====================================================== */
+function initRefundTimer(scopeEl) {
+  const el = scopeEl.querySelector('.refund-timer');
+  if (!el) return;
+
+  const target = new Date(el.dataset.time).getTime();
+
+  const interval = setInterval(() => {
+    if (!el.isConnected) { clearInterval(interval); return; }
+    const diff = target - Date.now();
+    if (diff <= 0) { el.textContent = ' • processing...'; clearInterval(interval); return; }
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    el.textContent = ` • ${h}h ${m}m ${s}s`;
+  }, 1000);
+}
 
 async function updateOrderStatus(orderId, status) {
   try {

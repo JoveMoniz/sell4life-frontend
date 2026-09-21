@@ -333,11 +333,25 @@ async function loadOrder() {
     const id = order.id || order._id;
 
     /* ========= SUMMARY ========= */
-    document.getElementById('orderId').textContent =
-      order.shortId || `S4L-${id.slice(0, 10).toUpperCase()}`;
+    // A converted (non-GBP-charged) order is otherwise invisible here —
+    // order.total is always GBP by design (matches vendor payouts/fees/
+    // HMRC), but that means nothing on this page would otherwise show
+    // that Stripe actually processed this one in a different currency,
+    // which matters when reconciling against Stripe or issuing a refund.
+    const isInternational = order.chargeCurrency && order.chargeCurrency !== 'GBP';
+
+    document.getElementById('orderId').innerHTML =
+      `${order.shortId || `S4L-${id.slice(0, 10).toUpperCase()}`}` +
+      (isInternational
+        ? ` <span style="display:inline-block;margin-left:6px;padding:2px 8px;background:#eff6ff;border:1px solid #93c5fd;color:#1d4ed8;border-radius:12px;font-size:0.72rem;font-weight:600;vertical-align:middle">🌍 International (${order.chargeCurrency})</span>`
+        : '');
     document.getElementById('orderUser').textContent  = order.user?.email || '-';
     document.getElementById('orderDate').textContent  = new Date(order.createdAt).toLocaleString();
-    document.getElementById('orderTotal').textContent = '£' + Number(order.total).toFixed(2);
+    document.getElementById('orderTotal').innerHTML =
+      '£' + Number(order.total).toFixed(2) +
+      (isInternational
+        ? ` <span style="color:#6b7280;font-size:0.85em">(charged ${order.displayCurrencySymbol || '$'}${Number(order.chargeAmount).toFixed(2)} ${order.chargeCurrency})</span>`
+        : '');
 
     /* ========= STATUS + TIMER ========= */
     orderStatusEl.innerHTML = window.s4lStatusBadge ? window.s4lStatusBadge(order.status) : order.status;
