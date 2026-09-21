@@ -38,6 +38,23 @@ const orderStatusEl  = document.getElementById('orderStatus');
    STATE
 ================================ */
 let currentOrder = null;
+
+// Every £ figure on admin pages for a converted order gets the same
+// hover-only charge-currency equivalent, rather than a permanently visible
+// parenthetical — keeps the page GBP-first (matches vendor payouts/HMRC)
+// while still letting an admin reconcile against Stripe. Reads currentOrder
+// so both loadOrder's own rendering and renderSellers (called from it) share
+// one conversion, rather than each computing chargeRate/symbol separately.
+function gbp(value) {
+  const gbpAmount = Number(value) || 0;
+  const text = '£' + gbpAmount.toFixed(2);
+  const isInternational = currentOrder?.chargeCurrency && currentOrder.chargeCurrency !== 'GBP';
+  if (!isInternational) return text;
+  const chargeRate   = Number(currentOrder.chargeToGbpRate) || 1;
+  const chargeSymbol = currentOrder.displayCurrencySymbol || '$';
+  const chargeAmount = (gbpAmount * chargeRate).toFixed(2);
+  return `<span title="Charged ${chargeSymbol}${chargeAmount} ${currentOrder.chargeCurrency}" style="cursor:help;border-bottom:1px dotted #9ca3af">${text}</span>`;
+}
 let _refundTarget = { itemId: null, maxQty: 0, price: 0 };
 
 /* ================================
@@ -217,7 +234,7 @@ function renderSellers(vendorOrders) {
           </div>
           <div style="min-width:80px;text-align:right">
             <div style="font-size:0.75rem;color:#6b7280;margin-bottom:2px">Subtotal</div>
-            <strong>£${total}</strong>
+            <strong>${gbp(total)}</strong>
           </div>
         </div>`;
   }).join('');
@@ -339,19 +356,16 @@ async function loadOrder() {
     // that Stripe actually processed this one in a different currency,
     // which matters when reconciling against Stripe or issuing a refund.
     const isInternational = order.chargeCurrency && order.chargeCurrency !== 'GBP';
+    const chargeSymbol = order.displayCurrencySymbol || '$';
 
     document.getElementById('orderId').innerHTML =
       `${order.shortId || `S4L-${id.slice(0, 10).toUpperCase()}`}` +
       (isInternational
-        ? ` <span style="display:inline-block;margin-left:6px;padding:2px 8px;background:#eff6ff;border:1px solid #93c5fd;color:#1d4ed8;border-radius:12px;font-size:0.72rem;font-weight:600;vertical-align:middle">🌍 International (${order.chargeCurrency})</span>`
+        ? ` <span title="Charged ${chargeSymbol}${Number(order.chargeAmount).toFixed(2)} ${order.chargeCurrency}" style="cursor:help;display:inline-block;margin-left:6px;padding:2px 8px;background:#eff6ff;border:1px solid #93c5fd;color:#1d4ed8;border-radius:12px;font-size:0.72rem;font-weight:600;vertical-align:middle">🌍 International</span>`
         : '');
     document.getElementById('orderUser').textContent  = order.user?.email || '-';
     document.getElementById('orderDate').textContent  = new Date(order.createdAt).toLocaleString();
-    document.getElementById('orderTotal').innerHTML =
-      '£' + Number(order.total).toFixed(2) +
-      (isInternational
-        ? ` <span style="color:#6b7280;font-size:0.85em">(charged ${order.displayCurrencySymbol || '$'}${Number(order.chargeAmount).toFixed(2)} ${order.chargeCurrency})</span>`
-        : '');
+    document.getElementById('orderTotal').innerHTML = gbp(order.total);
 
     /* ========= STATUS + TIMER ========= */
     orderStatusEl.innerHTML = window.s4lStatusBadge ? window.s4lStatusBadge(order.status) : order.status;
@@ -647,7 +661,7 @@ async function loadOrder() {
         if (item.goodwillRefund && item.refundStatus === 'scheduled') {
           actionBtns.push(`
             <div style="margin-top:4px;padding:6px;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;font-size:0.72rem;color:#92400e;min-width:200px">
-              Goodwill £${Number(item.goodwillRefundAmount || 0).toFixed(2)} (${item.goodwillPaidBy || 'vendor'}) scheduled —
+              Goodwill ${gbp(item.goodwillRefundAmount || 0)} (${item.goodwillPaidBy || 'vendor'}) scheduled —
               <strong class="goodwill-countdown" data-time="${item.refundScheduledAt}"></strong>
               <div style="font-size:0.68rem;color:#a16207;margin-top:2px">Executes ${new Date(item.refundScheduledAt).toLocaleString()}</div>
               <button class="btn-cancel-admin-goodwill" data-item-id="${item._id}"
@@ -677,8 +691,8 @@ async function loadOrder() {
         tr.innerHTML = `
           <td>${nameCell}</td>
           <td>${qty}</td>
-          <td>£${price.toFixed(2)}</td>
-          <td>£${(qty * price).toFixed(2)}</td>
+          <td>${gbp(price)}</td>
+          <td>${gbp(qty * price)}</td>
           <td>${badge('return', item.returnStatus)}</td>
           <td>${badge('refund', item.refundStatus)}</td>
           <td style="white-space:nowrap">

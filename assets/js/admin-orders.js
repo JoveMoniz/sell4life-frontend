@@ -160,10 +160,10 @@ async function loadOrders(page = 1, q = '', status = 'all') {
   }
 </td>
 
-<td>£${Number(order.total || 0).toFixed(2)}${
+<td>${
   order.chargeCurrency && order.chargeCurrency !== 'GBP'
-    ? ` <span title="Charged ${order.displayCurrencySymbol || '$'}${Number(order.chargeAmount || 0).toFixed(2)} ${order.chargeCurrency}" style="cursor:help">🌍</span>`
-    : ''
+    ? `<span title="Charged ${order.displayCurrencySymbol || '$'}${Number(order.chargeAmount || 0).toFixed(2)} ${order.chargeCurrency}" style="cursor:help;border-bottom:1px dotted #9ca3af">£${Number(order.total || 0).toFixed(2)}</span> 🌍`
+    : `£${Number(order.total || 0).toFixed(2)}`
 }</td>
 
 <td>
