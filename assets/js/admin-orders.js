@@ -162,7 +162,7 @@ async function loadOrders(page = 1, q = '', status = 'all') {
 
 <td>${
   order.chargeCurrency && order.chargeCurrency !== 'GBP'
-    ? `<span title="Charged ${order.displayCurrencySymbol || '$'}${Number(order.chargeAmount || 0).toFixed(2)} ${order.chargeCurrency}" style="cursor:help;border-bottom:1px dotted #9ca3af">£${Number(order.total || 0).toFixed(2)}</span> 🌍`
+    ? `${order.displayCurrencySymbol || '$'}${Number(order.chargeAmount || 0).toFixed(2)} ${order.chargeCurrency} <span style="color:#6b7280;font-size:0.85em">(£${Number(order.total || 0).toFixed(2)})</span>`
     : `£${Number(order.total || 0).toFixed(2)}`
 }</td>
 

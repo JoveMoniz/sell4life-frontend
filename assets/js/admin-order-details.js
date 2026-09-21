@@ -365,7 +365,13 @@ async function loadOrder() {
         : '');
     document.getElementById('orderUser').textContent  = order.user?.email || '-';
     document.getElementById('orderDate').textContent  = new Date(order.createdAt).toLocaleString();
-    document.getElementById('orderTotal').innerHTML = gbp(order.total);
+    // The main Total line is the one figure worth surfacing without a
+    // hover — it's what an admin checks first when a buyer asks about a
+    // charge — so it gets the real charge amount visible up front, unlike
+    // every other GBP figure on this page which stays hover-only via gbp().
+    document.getElementById('orderTotal').innerHTML = isInternational
+      ? `${chargeSymbol}${Number(order.chargeAmount).toFixed(2)} ${order.chargeCurrency} <span style="color:#6b7280;font-size:0.85em">(${gbp(order.total)})</span>`
+      : gbp(order.total);
 
     /* ========= STATUS + TIMER ========= */
     orderStatusEl.innerHTML = window.s4lStatusBadge ? window.s4lStatusBadge(order.status) : order.status;
