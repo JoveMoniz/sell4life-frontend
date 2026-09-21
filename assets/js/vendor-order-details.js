@@ -381,6 +381,10 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
               <button class="btn-retry-cj-cancel" data-item-id="${item._id}"
                 style="display:block;margin-top:4px;padding:3px 8px;background:#fff;border:1px solid #92400e;color:#92400e;border-radius:4px;cursor:pointer;font-size:0.72rem">
                 Retry CJ cancel
+              </button>
+              <button class="btn-abandon-cj-cancel" data-item-id="${item._id}"
+                style="display:block;margin-top:4px;padding:3px 8px;background:#fff;border:1px solid #6b7280;color:#374151;border-radius:4px;cursor:pointer;font-size:0.72rem">
+                Keep item — stop trying to cancel
               </button>` : ''}
           </div>` : ''}
         ${item.cjOrderId && item.cjOrderStatus !== 'failed' && item.cjOrderStatus !== 'cancelled' && (item.status === 'Cancelled' || item.returnStatus === 'returned') ? `
@@ -825,6 +829,37 @@ document.addEventListener('click', async (e) => {
       window.showToast?.('Something went wrong', 'error');
       retryCjBtn.disabled = false;
       retryCjBtn.textContent = 'Retry CJ cancel';
+    }
+    return;
+  }
+
+  // Give up on the cancellation and let the shipment proceed — no refund
+  // has fired yet at this point, this just clears the hold/retry state.
+  const abandonCjBtn = e.target.closest('.btn-abandon-cj-cancel');
+  if (abandonCjBtn) {
+    const itemId = abandonCjBtn.dataset.itemId;
+    const confirmed = await showConfirm('Keep this item?\n\nThis stops the automatic cancellation retries — no refund will be issued and the order continues as normal.');
+    if (!confirmed) return;
+
+    abandonCjBtn.disabled = true;
+    abandonCjBtn.textContent = 'Updating…';
+    try {
+      const res = await authFetch(`${API_BASE}/vendor/orders/${orderId}/items/${itemId}/abandon-cj-cancel`, {
+        method: 'PATCH',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        window.showToast?.(data.error || 'Failed to update', 'error');
+        abandonCjBtn.disabled = false;
+        abandonCjBtn.textContent = 'Keep item — stop trying to cancel';
+        return;
+      }
+      window.showToast?.('Item kept — cancellation abandoned');
+      loadOrder();
+    } catch (err) {
+      window.showToast?.('Something went wrong', 'error');
+      abandonCjBtn.disabled = false;
+      abandonCjBtn.textContent = 'Keep item — stop trying to cancel';
     }
     return;
   }
