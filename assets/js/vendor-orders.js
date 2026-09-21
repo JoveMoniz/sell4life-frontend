@@ -9,6 +9,20 @@ function authFetch(url, opts = {}) {
   return fetch(url, { ...opts, credentials: 'include', headers });
 }
 
+// Vendor payouts are always GBP regardless of what the buyer was charged —
+// this is purely informational, so it's a hover tooltip rather than a
+// visible figure (mirrors the same pattern on admin order pages).
+function gbp(value, order) {
+  const gbpAmount = Number(value) || 0;
+  const text = '£' + gbpAmount.toFixed(2);
+  const isInternational = order?.chargeCurrency && order.chargeCurrency !== 'GBP';
+  if (!isInternational) return text;
+  const chargeRate   = Number(order.chargeToGbpRate) || 1;
+  const chargeSymbol = order.displayCurrencySymbol || '$';
+  const chargeAmount = (gbpAmount * chargeRate).toFixed(2);
+  return `<span title="Buyer charged ${chargeSymbol}${chargeAmount} ${order.chargeCurrency}" style="cursor:help;border-bottom:1px dotted #9ca3af">${text}</span>`;
+}
+
 let currentStatus = 'all';
 let currentQuery = '';
 let timerInterval;
@@ -128,7 +142,7 @@ function renderOrderCard(o, vendorId) {
     </a>
   </div>
 
-  <span class="order-price">£${vendorTotal.toFixed(2)}</span>
+  <span class="order-price">${gbp(vendorTotal, o)}</span>
 
 </div>
 `;

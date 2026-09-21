@@ -13,6 +13,35 @@ function authFetch(url, opts = {}) {
 
 let timerInterval;
 
+// Vendor payouts are always GBP regardless of what the buyer was charged —
+// this is purely informational, so it's a hover tooltip on the visible £
+// figures, and a plain-text parenthetical inside showConfirm/showAlert
+// dialogs (which can't render HTML). Mirrors the same pair of helpers on
+// admin order pages.
+function gbp(value) {
+  const order = window._currentOrder;
+  const gbpAmount = Number(value) || 0;
+  const text = '£' + gbpAmount.toFixed(2);
+  const isInternational = order?.chargeCurrency && order.chargeCurrency !== 'GBP';
+  if (!isInternational) return text;
+  const chargeRate   = Number(order.chargeToGbpRate) || 1;
+  const chargeSymbol = order.displayCurrencySymbol || '$';
+  const chargeAmount = (gbpAmount * chargeRate).toFixed(2);
+  return `<span title="Buyer charged ${chargeSymbol}${chargeAmount} ${order.chargeCurrency}" style="cursor:help;border-bottom:1px dotted #9ca3af">${text}</span>`;
+}
+
+function gbpText(value) {
+  const order = window._currentOrder;
+  const gbpAmount = Number(value) || 0;
+  const text = '£' + gbpAmount.toFixed(2);
+  const isInternational = order?.chargeCurrency && order.chargeCurrency !== 'GBP';
+  if (!isInternational) return text;
+  const chargeRate   = Number(order.chargeToGbpRate) || 1;
+  const chargeSymbol = order.displayCurrencySymbol || '$';
+  const chargeAmount = (gbpAmount * chargeRate).toFixed(2);
+  return `${text} (buyer charged ${chargeSymbol}${chargeAmount} ${order.chargeCurrency})`;
+}
+
 const params = new URLSearchParams(window.location.search);
 const orderId = params.get('id');
 const container = document.getElementById('vendor-order-details');
@@ -275,7 +304,7 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
 
   const goodwillScheduledHTML = (item.goodwillRefund && item.refundStatus === 'scheduled') ? `
     <div style="margin-top:8px;padding:8px;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;font-size:0.8rem;color:#92400e">
-      Goodwill refund of £${Number(item.goodwillRefundAmount || 0).toFixed(2)} scheduled —
+      Goodwill refund of ${gbp(item.goodwillRefundAmount || 0)} scheduled —
       <strong class="goodwill-countdown" data-time="${item.refundScheduledAt}"></strong>
       <div style="font-size:0.72rem;color:#a16207;margin-top:2px">Executes ${new Date(item.refundScheduledAt).toLocaleString()}</div>
       <button class="btn-cancel-goodwill" data-item-id="${item._id}" data-order-id="${id}"
@@ -319,7 +348,7 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
         ${window.s4lVariantLabel && window.s4lVariantLabel(item.attributes)
           ? `<div style="font-size:0.8rem;color:#0b6b6a;font-weight:600;margin-top:2px">${window.s4lVariantLabel(item.attributes)}</div>`
           : ''}
-        <div style="font-size:0.85rem;color:#6b7280">Qty: ${qty} × £${price.toFixed(2)}</div>
+        <div style="font-size:0.85rem;color:#6b7280">Qty: ${qty} × ${gbp(price)}</div>
         ${item.supplierUrl ? `
           <a href="${item.supplierUrl}" target="_blank" rel="noopener"
             style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;padding:3px 10px;background:#f0f9f8;border:1px solid #0b6b6a;color:#0b6b6a;border-radius:4px;font-size:0.75rem;font-weight:600;text-decoration:none">
@@ -384,7 +413,7 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
           </div>
         </div>
       </div>
-      <div class="order-price">£${(qty * price).toFixed(2)}</div>
+      <div class="order-price">${gbp(qty * price)}</div>
     </div>`;
 }
 
@@ -525,8 +554,8 @@ async function loadOrder() {
         </div>
 
         <div class="order-total">
-          ${vendorShipping > 0 ? `<div style="font-size:0.88rem;color:#6b7280;font-weight:400;text-align:right;margin-bottom:4px">Items: £${vendorSubtotal.toFixed(2)} + Shipping: £${vendorShipping.toFixed(2)}</div>` : ''}
-          Total: £${vendorTotal.toFixed(2)}
+          ${vendorShipping > 0 ? `<div style="font-size:0.88rem;color:#6b7280;font-weight:400;text-align:right;margin-bottom:4px">Items: ${gbp(vendorSubtotal)} + Shipping: ${gbp(vendorShipping)}</div>` : ''}
+          Total: ${gbp(vendorTotal)}
         </div>
 
         <div class="tracking-card">
@@ -809,13 +838,13 @@ document.addEventListener('click', async (e) => {
 
     if (type === 'Vendor Cancel') {
       const amt = itemBtn.dataset.refundPreview;
-      const confirmed = await showConfirm(`Cancel this item?\n\nThis will refund £${amt} to the customer immediately and cannot be undone.\n\nOnly proceed if you are certain you cannot fulfil this item.`);
+      const confirmed = await showConfirm(`Cancel this item?\n\nThis will refund ${gbpText(amt)} to the customer immediately and cannot be undone.\n\nOnly proceed if you are certain you cannot fulfil this item.`);
       if (!confirmed) return;
     }
 
     if (type === 'Cancel Approved') {
       const amt = itemBtn.dataset.refundPreview;
-      const confirmed = await showConfirm(`Approve this cancellation?\n\nThis will refund £${amt} to the customer immediately and cannot be undone.`);
+      const confirmed = await showConfirm(`Approve this cancellation?\n\nThis will refund ${gbpText(amt)} to the customer immediately and cannot be undone.`);
       if (!confirmed) return;
     }
 
@@ -894,7 +923,7 @@ document.addEventListener('click', async (e) => {
       return;
     }
 
-    const confirmed = await showConfirm(`Schedule a £${amount.toFixed(2)} goodwill refund? No item return is required. It will execute in 24 hours unless you cancel it before then.`);
+    const confirmed = await showConfirm(`Schedule a ${gbpText(amount)} goodwill refund? No item return is required. It will execute in 24 hours unless you cancel it before then.`);
     if (!confirmed) return;
 
     submitGoodwillBtn.disabled = true;
