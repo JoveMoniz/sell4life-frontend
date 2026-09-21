@@ -160,6 +160,30 @@ console.log('product.js loaded');
     }
   }
 
+  // ── Ships from ────────────────────────────────────────────
+  // shippingOriginCountry defaults to 'CN' both for a genuine China
+  // warehouse AND for a product that was simply never synced — the field
+  // alone can't tell those apart, so 'CN' isn't shown as if it were a
+  // confirmed fact. A non-CN value only ever gets set by a real sync that
+  // found closer stock, so that case is always worth surfacing.
+  const shipsFromEl = document.getElementById('pd-ships-from');
+  if (shipsFromEl) {
+    const code = String(product.shippingOriginCountry || '').toUpperCase();
+    const country = code && code !== 'CN' && Array.isArray(window.S4L_COUNTRIES)
+      ? window.S4L_COUNTRIES.find((c) => c.code === code)
+      : null;
+    if (country) {
+      // No flag emoji here — Windows Chrome/Edge frequently fails to
+      // compose the two regional-indicator characters into an actual flag
+      // glyph and shows the raw letter fallback instead (e.g. "us"),
+      // which reads as a bug. Plain text renders correctly everywhere.
+      shipsFromEl.textContent = `Ships from ${country.name}`;
+      shipsFromEl.style.display = 'block';
+    } else {
+      shipsFromEl.style.display = 'none';
+    }
+  }
+
   // ── Returns postage note ───────────────────────────────────
   // Product-level freeReturns wins if explicitly set; otherwise inherit
   // the vendor's store-wide default.
@@ -443,6 +467,15 @@ console.log('product.js loaded');
   const variantDivider = document.getElementById('pd-divider-variants');
   const priceEl = $('.product-price');
 
+  // Declared here (rather than down in the Stock/out-of-stock section below)
+  // because applyVariant() — called synchronously further down for products
+  // with no real variant choice to make — reads these; referencing a later
+  // `const` before its own declaration line runs throws a temporal-dead-zone
+  // ReferenceError that silently aborts the rest of this script, including
+  // the real Add to Basket click handlers.
+  const addBtns = document.querySelectorAll('.btn-add');
+  const buyBtn = $('.btn-buy');
+
   // Reassigned below once attrNames/selections exist — lets addToCart/Buy Now
   // (defined much further down) name exactly which attribute is still unpicked.
   let getMissingVariantAttrs = () => [];
@@ -484,8 +517,18 @@ console.log('product.js loaded');
         });
       });
 
+      const selections = {};
+      // An attribute with only one real value isn't a choice — pre-select it
+      // silently instead of forcing the buyer to click a single option.
+      let hasChoosableAttr = false;
+
       const html = attrNames.map((attrName, attrIdx) => {
         const values = [...new Set(product.variants.map((v) => v.attributes[attrName]).filter(Boolean))];
+        if (values.length <= 1) {
+          if (values[0]) selections[attrName] = values[0];
+          return '';
+        }
+        hasChoosableAttr = true;
         let hasSwatch = false;
         const buttons = values.map((val) => {
           const v = product.variants.find(v2 => v2.attributes[attrName] === val);
@@ -515,9 +558,8 @@ console.log('product.js loaded');
       }).join('');
 
       variantsEl.innerHTML = html;
-      if (variantDivider) variantDivider.style.display = '';
+      if (variantDivider) variantDivider.style.display = hasChoosableAttr ? '' : 'none';
 
-      const selections = {};
       getMissingVariantAttrs = () => attrNames.filter((name) => !selections[name]);
 
       function findMatchingVariant() {
@@ -540,11 +582,18 @@ console.log('product.js loaded');
         const v = findMatchingVariant();
         currentVariant = v;
         const price = (v && v.price != null) ? v.price : product.price;
-        const stockVal = (v && v.stock != null) ? v.stock : product.stock;
         if (priceEl) priceEl.textContent = fmtPrice(price);
         // Don't change buttons if product is Coming Soon
         if (!product.comingSoon) {
-          const oos = stockVal !== undefined && stockVal <= 0;
+          // Out of stock if EITHER the variant or the product itself says so
+          // — a variant's own number never overrides a product-level "out of
+          // stock" back into "available". They should normally agree; when
+          // they don't (e.g. stale/duplicate listing data), the safer,
+          // more restrictive reading wins so the site never shows
+          // contradictory stock status across pages.
+          const variantOos = v && v.stock != null && v.stock <= 0;
+          const productOos = product.stock !== undefined && product.stock <= 0;
+          const oos = variantOos || productOos;
           addBtns.forEach((btn) => {
             btn.disabled = oos;
             btn.textContent = oos ? _oosLabel : 'Add to Basket';
@@ -579,6 +628,8 @@ console.log('product.js loaded');
         selections[attr] = target.dataset.val;
         applyVariant();
       });
+
+      if (!hasChoosableAttr) applyVariant();
     }
   }
 
@@ -625,8 +676,6 @@ console.log('product.js loaded');
   }
 
   // ── Stock / out-of-stock ───────────────────────────────────
-  const addBtns = document.querySelectorAll('.btn-add');
-  const buyBtn = $('.btn-buy');
   const isOos = product.stock !== undefined && product.stock <= 0 && (!product.variants || product.variants.length === 0);
 
   if (isOos) {
@@ -784,6 +833,16 @@ console.log('product.js loaded');
       return { added: false };
     }
 
+    // Defense in depth: don't rely solely on the Add button already being
+    // disabled — check the same either-signal-wins stock rule directly
+    // before actually writing to the basket.
+    const variantOos = currentVariant && currentVariant.stock != null && currentVariant.stock <= 0;
+    const productOos = product.stock !== undefined && product.stock <= 0;
+    if (variantOos || productOos) {
+      window.showToast?.('Out of stock');
+      return { added: false };
+    }
+
     let cart = JSON.parse(localStorage.getItem('cart') || '[]')
       .filter((i) => i && (i.productId || i.id));
 
@@ -832,6 +891,7 @@ console.log('product.js loaded');
     btn.addEventListener('click', () => {
       if (isOos) { window.showToast?.('Out of stock'); return; }
       const result = addToCart();
+      if (!result.added) return;
       const badge = document.querySelector('.basket-qty');
       if (badge) {
         const total = result.cart.reduce((s, i) => s + (i.quantity || 0), 0);
@@ -855,6 +915,12 @@ console.log('product.js loaded');
       const hasVariants = product.variants && product.variants.length > 0;
       if (hasVariants && !currentVariant) {
         promptSelectVariant();
+        return;
+      }
+      const _variantOos = currentVariant && currentVariant.stock != null && currentVariant.stock <= 0;
+      const _productOos = product.stock !== undefined && product.stock <= 0;
+      if (_variantOos || _productOos) {
+        window.showToast?.('Out of stock');
         return;
       }
       const buyAddOnTotal = selectedAddOns.reduce((s, ao) => s + ao.price, 0);
