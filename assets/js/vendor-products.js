@@ -872,6 +872,38 @@ document.getElementById('btn-multi-select')?.addEventListener('click', () => {
   refillBulkPanel();
 });
 
+// Selects only products that have never had a successful AI listing
+// generation (supplierTitle only ever gets set on the first successful
+// run — see routes/vendor.js bulk-generate-listing). Lets a vendor re-run
+// generation on just the ones that failed, instead of re-running (and
+// re-paying for) the whole batch to catch a handful of failures.
+document.getElementById('btn-select-needs-ai-listing')?.addEventListener('click', () => {
+  const vids = visibleIds().filter(id => {
+    const p = _allProducts.find(p => (p._id || p.id) === id);
+    return p && !p.supplierTitle;
+  });
+
+  _selected.clear();
+  document.querySelectorAll('.vp-selected').forEach(el => el.classList.remove('vp-selected'));
+  document.querySelectorAll('.vp-select-cb:checked').forEach(cb => { cb.checked = false; });
+
+  vids.forEach(id => {
+    _selected.add(id);
+    const card = document.querySelector(`[data-id="${id}"]`);
+    card?.classList.add('vp-selected');
+    const cb = card?.querySelector('.vp-select-cb');
+    if (cb) cb.checked = true;
+  });
+  _selectAnchorId = vids[vids.length - 1] ?? null;
+
+  updateBulkBar();
+  refillBulkPanel();
+
+  if (vids.length === 0) {
+    window.showToast?.('Every visible product already has an AI-generated listing');
+  }
+});
+
 function updateBulkBar() {
   const bar   = document.getElementById('vp-bulk-bar');
   const count = document.getElementById('vp-bulk-count');
