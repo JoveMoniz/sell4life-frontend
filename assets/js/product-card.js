@@ -51,15 +51,35 @@ window.s4lProductCardHTML = function (p, opts = {}) {
 
   const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
   const stockNum = p.stock !== undefined && p.stock !== null ? Number(p.stock) : null;
-  const isOutOfStock = !hasVariants && stockNum !== null && stockNum <= 0;
+  const productOos = stockNum !== null && stockNum <= 0;
+  // A product-level "out of stock" is always authoritative and is never
+  // overridden by a variant's own (possibly stale/inconsistent) number —
+  // otherwise a broken/duplicate listing can show contradictory stock
+  // status on different pages. Separately, a variant product also counts
+  // as out of stock once EVERY variant individually reports 0 — a variant
+  // with genuinely unknown stock is treated as available, never as
+  // confirmed zero (mirrors the CJ sync inventory rule).
+  const allVariantsOos = hasVariants && p.variants.every(
+    (v) => v.stock !== undefined && v.stock !== null && Number(v.stock) <= 0
+  );
+  const isOutOfStock = productOos || (hasVariants && allVariantsOos);
+  // Seller-set shipping scope vs. this browser's GeoIP-detected country —
+  // same field product.js reads for the single-product page. Unlike
+  // own-listing/out-of-stock, this one stays a real (non-disabled) button:
+  // quick-add.js shows a toast explaining why instead of adding, so a
+  // buyer clicking it from a card gets the same answer they'd get on the
+  // product page rather than a button that just silently does nothing.
+  const notShippable = p.shippableToBuyer === false;
 
   const disabled = isOwnListing || isOutOfStock;
   const disabledTitle = isOwnListing ? 'Your listing' : 'Out of stock';
 
   const basketBtn = (opts.showBasketButton && !p.comingSoon) ? `
-    <button class="sp-quick-add-btn" data-id="${id}" title="${disabled ? disabledTitle : 'Add to basket'}"
-      ${disabled ? `disabled style="opacity:0.35;cursor:not-allowed"` : ''}
-      ${isOutOfStock ? 'data-oos="1"' : ''}>
+    <button class="sp-quick-add-btn" data-id="${id}"
+      title="${disabled ? disabledTitle : notShippable ? 'Not shipped to your location' : 'Add to basket'}"
+      ${disabled ? `disabled style="opacity:0.35;cursor:not-allowed"` : notShippable ? `style="opacity:0.35"` : ''}
+      ${isOutOfStock ? 'data-oos="1"' : ''}
+      ${notShippable ? 'data-not-shippable="1"' : ''}>
       <svg width="21" height="24" viewBox="0 0 24 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M7 13C7 5 17 5 17 13"/>
         <path d="M1 12H23V23Q23 27 19 27H5Q1 27 1 23V12Z"/>
@@ -74,11 +94,12 @@ window.s4lProductCardHTML = function (p, opts = {}) {
 
   return `
     <div class="sp-card-wrap">
-      <a href="${href}" class="sp-card${p.comingSoon ? ' sp-card-coming-soon' : ''}">
+      <a href="${href}" class="sp-card${p.comingSoon ? ' sp-card-coming-soon' : ''}${!p.comingSoon && isOutOfStock ? ' sp-card-oos' : ''}">
         <div class="sp-img-wrap">
           <img src="${img}" alt="${p.name}" loading="lazy"
             onerror="this.src='/assets/images/products/sell4life-placeholder.png'" />
           ${p.comingSoon ? '<div class="sp-coming-soon-badge"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg> Coming Soon</div>' : ''}
+          ${!p.comingSoon && isOutOfStock ? '<div class="sp-oos-badge">Out of Stock</div>' : ''}
         </div>
         <div class="sp-info">
           <p class="sp-name">${p.name}</p>

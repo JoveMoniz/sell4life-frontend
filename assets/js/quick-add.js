@@ -56,6 +56,16 @@ window.__quickAddLoaded = true;
   let _attrNames     = [];
   let _sourceBtn     = null;
 
+  // A product-level "out of stock" is always authoritative and is never
+  // overridden by a variant's own (possibly stale/inconsistent) number —
+  // otherwise a broken/duplicate listing can show contradictory stock
+  // status on different pages (mirrors product.js's applyVariant()).
+  function isVariantOos(v, product) {
+    const variantStock = v && v.stock !== undefined && v.stock !== null ? Number(v.stock) : null;
+    const productStock = product && product.stock !== undefined && product.stock !== null ? Number(product.stock) : null;
+    return (variantStock !== null && variantStock <= 0) || (productStock !== null && productStock <= 0);
+  }
+
   // ── Try to find a matching variant from current selections ─
   function tryResolveVariant() {
     const confirm = modal.querySelector('.qa-confirm');
@@ -77,7 +87,7 @@ window.__quickAddLoaded = true;
       _variant = match;
       const price = Number(match.price || _product.price || 0);
       setPrice(price);
-      const soldOut = match.stock !== undefined && Number(match.stock) <= 0;
+      const soldOut = isVariantOos(match, _product);
       confirm.disabled    = soldOut;
       confirm.textContent = soldOut ? 'Out of stock' : 'Add to Basket';
     } else {
@@ -99,7 +109,7 @@ window.__quickAddLoaded = true;
       return `<div class="qa-attr-group"><div class="qa-attr-btns">${
         variants.map((v, i) => {
           const label = Object.values(v.attributes || {}).join(' / ') || v.color || `Option ${i + 1}`;
-          const soldOut = v.stock !== undefined && Number(v.stock) <= 0;
+          const soldOut = isVariantOos(v, product);
           return `<button class="qa-v${soldOut ? ' qa-v-out' : ''}" data-attr="_variant" data-val="${i}" ${soldOut ? 'disabled' : ''}>${label}</button>`;
         }).join('')
       }</div></div>`;
@@ -114,16 +124,27 @@ window.__quickAddLoaded = true;
         if (val && !seen.has(val)) { seen.add(val); uniqueVals.push({ val, v }); }
       });
 
+      // An attribute with only one real value isn't a choice — pre-select it
+      // silently instead of showing a picker with a single, pointless
+      // option (which also silently blocked matching for any OTHER, real
+      // choice on the same product, since this one was never picked).
+      if (uniqueVals.length <= 1) {
+        if (uniqueVals[0]) _selectedAttrs[attrName] = uniqueVals[0].val;
+        return '';
+      }
+
       const btns = uniqueVals.map(({ val, v }) => {
         // A colour is sold out only if ALL model variants for it are sold out
         const soldOut = isFirst
-          ? variants.filter(x => x.attributes?.[attrName] === val).every(x => x.stock !== undefined && Number(x.stock) <= 0)
+          ? variants.filter(x => x.attributes?.[attrName] === val).every(x => isVariantOos(x, product))
           : false;
         const dis = soldOut ? ' disabled' : '';
         const cls = `qa-v${soldOut ? ' qa-v-out' : ''}`;
 
         if (isFirst) {
-          // First attribute: swatch only (no label text)
+          // First attribute: swatch buttons (colour dot / image thumbnail),
+          // but still labelled above like every other attribute — a plain
+          // dot with no text isn't self-explanatory on its own.
           if (v.displayMode === 'image' && v.image) {
             return `<button class="${cls} qa-v-img" data-attr="${attrName}" data-val="${val}" title="${val}"${dis}><img src="${v.image}" alt="${val}" /></button>`;
           }
@@ -135,7 +156,7 @@ window.__quickAddLoaded = true;
       }).join('');
 
       return `<div class="qa-attr-group">
-        ${!isFirst ? `<div class="qa-attr-label">${attrName}</div>` : ''}
+        <div class="qa-attr-label">${attrName}</div>
         <div class="qa-attr-btns">${btns}</div>
       </div>`;
     }).join('');
@@ -158,6 +179,21 @@ window.__quickAddLoaded = true;
       return;
     }
 
+    // No real choice to make (e.g. a single "Colour: Default" placeholder
+    // variant, or every attribute has only one possible value) — add it
+    // straight away instead of popping up a picker with nothing to pick.
+    const attrNamesUnion = [...new Set(realVariants.flatMap(v => Object.keys(v.attributes || {})))];
+    const hasRealChoice = attrNamesUnion.some((n) => {
+      const vals = new Set(realVariants.map((v) => v.attributes?.[n]).filter(Boolean));
+      return vals.size > 1;
+    });
+    if (!hasRealChoice) {
+      _product = { ...product, variants: realVariants };
+      _variant = realVariants[0];
+      addToCart();
+      return;
+    }
+
     _product = { ...product, variants: realVariants };
 
     const variantsEl = modal.querySelector('.qa-variants');
@@ -168,6 +204,11 @@ window.__quickAddLoaded = true;
 
     confirmBtn.disabled    = true;
     confirmBtn.textContent = 'Select an option';
+    // buildVariantsUI() may have just pre-filled one or more singleton
+    // attributes into _selectedAttrs above — reflect that immediately
+    // (correct prompt text, and the confirm button enables outright if
+    // that was the only attribute) instead of showing a stale default.
+    tryResolveVariant();
 
     const prices = realVariants.map(v => Number(v.price || product.price || 0));
     const hasDiffPrices = prices.some(p => p !== prices[0]);
@@ -197,6 +238,14 @@ window.__quickAddLoaded = true;
 
   // ── Add to localStorage cart ──────────────────────────────
   function addToCart() {
+    // Defense in depth: don't rely solely on the confirm button already
+    // being disabled — re-check the same either-signal-wins stock rule
+    // directly before actually writing to the basket.
+    if (isVariantOos(_variant, _product)) {
+      window.showToast?.('Out of stock');
+      return;
+    }
+
     let cart = [];
     try { cart = JSON.parse(localStorage.getItem('cart') || '[]'); } catch {}
 
@@ -268,6 +317,11 @@ window.__quickAddLoaded = true;
 
   // ── Direct add (no variants) ──────────────────────────────
   function directAddToCart(product) {
+    if (isVariantOos(null, product)) {
+      window.showToast?.('Out of stock');
+      return;
+    }
+
     let cart = [];
     try { cart = JSON.parse(localStorage.getItem('cart') || '[]'); } catch {}
 
@@ -418,6 +472,15 @@ window.__quickAddLoaded = true;
     _sourceBtn = btn;
     const product = (window._qaProducts || {})[btn.dataset.id];
     if (!product) return;
+
+    // Unlike own-listing/out-of-stock (which disable the button so a click
+    // never reaches here at all), this one is a real button on purpose —
+    // show why instead of silently doing nothing, same message the
+    // single-product page gives for the same field.
+    if (product.shippableToBuyer === false) {
+      window.showToast?.('This item is not shipped to your location', 'error');
+      return;
+    }
 
     const _myVid = localStorage.getItem('s4l_vendorId');
     const _pvid  = typeof product.vendor === 'object'
