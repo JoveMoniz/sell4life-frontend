@@ -269,6 +269,17 @@ function renderBrowseMode() {
       track.scrollBy({ left: -600, behavior: 'smooth' }));
     row.querySelector('.arrow-right')?.addEventListener('click', () =>
       track.scrollBy({ left: 600, behavior: 'smooth' }));
+
+    // A plain vertical mouse-wheel over the row otherwise just scrolls the
+    // page past it — redirect that into horizontal scroll instead, same
+    // as the category-pills row already does. Only when there's actually
+    // horizontal overflow to use, so a short row that fits on screen
+    // doesn't block normal page scrolling.
+    track.addEventListener('wheel', (e) => {
+      if (track.scrollWidth <= track.clientWidth) return;
+      e.preventDefault();
+      track.scrollLeft += e.deltaX || e.deltaY;
+    }, { passive: false });
   });
 }
 

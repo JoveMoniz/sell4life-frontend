@@ -275,7 +275,12 @@
   display: flex;
   gap: 14px;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
+  /* proximity, not mandatory — mandatory fights wheel/trackpad scrolling
+     mid-gesture (keeps forcing a snap to the nearest card while the user
+     is still scrolling), which reads as laggy/unnatural. proximity only
+     snaps once the scroll settles near a card, so free scrolling stays
+     free. */
+  scroll-snap-type: x proximity;
   padding: 4px 2px 12px;
   scrollbar-width: none;
 }
