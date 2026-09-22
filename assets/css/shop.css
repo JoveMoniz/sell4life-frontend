@@ -370,7 +370,6 @@
   .shop-row         { margin-bottom: 24px; }
   .shop-row-track .sp-card-wrap,
   .shop-row-skel-card { min-width: 155px; max-width: 155px; }
-  .shop-row-arrow   { display: none; }
   .shop-cat-pills-arrow { display: none; }
 }
 
