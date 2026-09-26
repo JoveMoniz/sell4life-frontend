@@ -22,15 +22,27 @@ console.log('product.js loaded');
     if (res.ok) product = await res.json();
   } catch (e) {}
 
-  if (!product && productId) {
-    try {
-      const res = await fetch('/data/products.json', { cache: 'no-store' });
-      const all = await res.json();
-      product = all.find((p) => p.id === productId);
-    } catch (e) {}
+  if (!product) {
+    console.error('Product not found:', productId || productSlug);
+    // No fallback to a real-looking product page here anymore — this used
+    // to fall back to /data/products.json, a leftover static demo catalog
+    // from early development (placeholder items like "Men's Classic
+    // Suit"). Any old/bad product ID (an old bookmark, a stale search-
+    // engine link, someone probing IDs) silently rendered one of those as
+    // if it were a real listing, complete with a genuine analytics
+    // "product view" event — confusing for buyers and for us.
+    const page = $('.product-page');
+    if (page) {
+      page.innerHTML = `
+        <div style="max-width:480px;margin:80px auto;text-align:center;padding:0 20px">
+          <h1 style="font-size:1.4rem;margin-bottom:8px">Product not found</h1>
+          <p style="color:#6b7280;margin-bottom:20px">This listing may have been removed or the link may be out of date.</p>
+          <a href="/shop/index.html" style="color:#0b6b6a;font-weight:600">Browse the shop →</a>
+        </div>`;
+    }
+    document.documentElement.style.visibility = 'visible';
+    return;
   }
-
-  if (!product) { console.error('Product not found:', productId || productSlug); return; }
 
   // Currency detection runs in parallel with the product fetch above (both
   // kick off as soon as their scripts load) — this just waits for whichever
