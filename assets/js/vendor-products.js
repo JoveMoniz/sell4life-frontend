@@ -6,23 +6,6 @@ const IMAGE_BASE = '/assets/images/products/';
 const TIER_RANK_VP = { casual: 1, refurbished: 2, professional: 3, enterprise: 4 };
 const _isPro = (TIER_RANK_VP[localStorage.getItem('s4l_vendorType')] || 1) >= 3;
 
-// USD-equivalent shown alongside every £ figure on this page — unlike
-// currency.js (GeoIP-based, for the buyer's own checkout display), this
-// vendor is UK-based and always wants to see the USD side of things
-// regardless of where they themselves happen to be browsing from, so it
-// uses the explicit-currency endpoint instead.
-let _usdRate = null;
-(async function loadUsdRate() {
-  try {
-    const res = await fetch(`${window.API_BASE}/currency/rate/USD`);
-    if (res.ok) _usdRate = (await res.json()).rate;
-  } catch (_) { /* USD figures just won't show if this fails */ }
-})();
-function usdEquiv(gbpAmount) {
-  if (!_usdRate) return '';
-  return ` <span class="vp-usd-equiv">$${(Number(gbpAmount || 0) * _usdRate).toFixed(2)}</span>`;
-}
-
 // Styled confirm()/alert() (window.s4lConfirm/s4lAlert) come from the
 // shared assets/js/s4l-dialog.js, injected on every vendor/admin page by
 // config-global.js — no per-page setup needed here.
@@ -149,10 +132,10 @@ function videoBadge(p) {
 // only — the /products/bulk PATCH it saves through is tier-gated server-side.
 function priceCell(p, id) {
   const val = Number(p.price || 0).toFixed(2);
-  if (!_isPro) return `<span class="price">£${val}</span>${usdEquiv(val)}`;
+  if (!_isPro) return `<span class="price">£${val}</span>`;
   return `<span class="vp-price-edit-wrap" title="Click to edit price">
     <span class="vp-price-currency">£</span><input type="number" class="vp-price-edit" data-id="${id}" data-orig="${val}" value="${val}" step="0.01" min="0.01" draggable="false" />
-  </span>${usdEquiv(val)}`;
+  </span>`;
 }
 
 /* ── Render: grid card ───────────────────────────── */
@@ -3235,7 +3218,7 @@ function ensureMarginPanel() {
 }
 
 function marginPanelHTML(p) {
-  const fmt = (n) => `£${Number(n || 0).toFixed(2)}${usdEquiv(n)}`;
+  const fmt = (n) => `£${Number(n || 0).toFixed(2)}`;
   const price = Number(p.price) || 0;
   const cost = Number(p.costPrice) || 0;
   const ship = Number(p.shippingCost) || 0;
