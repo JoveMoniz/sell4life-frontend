@@ -25,7 +25,7 @@ function usdEquiv(gbpAmount, p) {
   if (!_usdRate || !isUsProduct(p)) return '';
   const num = Number(gbpAmount || 0) * _usdRate;
   const sign = num < 0 ? '-' : '';
-  return `<span class="vp-usd-equiv">${sign}$${Math.abs(num).toFixed(2)}</span>`;
+  return ` <span class="vp-usd-equiv">/ ${sign}$${Math.abs(num).toFixed(2)}</span>`;
 }
 // £ + $ formatter that keeps the sign consistent across both currencies —
 // callers pass the real signed number (e.g. fmtSigned(-fees, p)) rather

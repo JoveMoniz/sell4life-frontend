@@ -3901,6 +3901,7 @@ body.vp-marquee-active {
   font-size: 0.78rem;
   color: #9ca3af;
   font-weight: 400;
+  margin-left: 4px;
 }
 .vp-margin-row b .vp-usd-equiv {
   font-size: 9px;
