@@ -6,35 +6,61 @@ const IMAGE_BASE = '/assets/images/products/';
 const TIER_RANK_VP = { casual: 1, refurbished: 2, professional: 3, enterprise: 4 };
 const _isPro = (TIER_RANK_VP[localStorage.getItem('s4l_vendorType')] || 1) >= 3;
 
-// USD-equivalent shown alongside every £ figure — but ONLY on US-warehouse
-// products (shippingOriginCountry/shippingCountries includes 'US'). A
-// plain UK-origin product has nothing to do with USD, so showing a dollar
-// conversion there is just noise, not useful reference info.
+// Foreign-currency equivalent(s) shown alongside every £ figure — but ONLY
+// for a product actually scoped to that market (shippingOriginCountry/
+// shippingCountries), same reasoning either way: a plain UK-only product
+// has nothing to do with USD or EUR, so showing a conversion there is
+// just noise, not useful reference info. Matches utils/shippingScope.js's
+// own EU_CODES list (kept in sync manually — small, rarely changes).
+const EU_CODES = [
+  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR',
+  'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK',
+  'SI', 'ES', 'SE',
+];
 let _usdRate = null;
-(async function loadUsdRate() {
+let _eurRate = null;
+(async function loadForeignRates() {
   try {
-    const res = await fetch(`${window.API_BASE}/currency/rate/USD`);
-    if (res.ok) _usdRate = (await res.json()).rate;
-  } catch (_) { /* USD figures just won't show if this fails */ }
+    const [usdRes, eurRes] = await Promise.all([
+      fetch(`${window.API_BASE}/currency/rate/USD`),
+      fetch(`${window.API_BASE}/currency/rate/EUR`),
+    ]);
+    if (usdRes.ok) _usdRate = (await usdRes.json()).rate;
+    if (eurRes.ok) _eurRate = (await eurRes.json()).rate;
+  } catch (_) { /* foreign-currency figures just won't show if this fails */ }
 })();
+function matchesMarket(p, code) {
+  return p?.shippingOriginCountry === code
+    || (Array.isArray(p?.shippingCountries) && p.shippingCountries.includes(code));
+}
 function isUsProduct(p) {
-  return p?.shippingOriginCountry === 'US'
-    || (Array.isArray(p?.shippingCountries) && p.shippingCountries.includes('US'));
+  return matchesMarket(p, 'US');
+}
+function isEuProduct(p) {
+  return EU_CODES.some((code) => matchesMarket(p, code));
+}
+function currencyEquiv(gbpAmount, rate, symbol, cls) {
+  const num = Number(gbpAmount || 0) * rate;
+  const sign = num < 0 ? '-' : '';
+  return ` <span class="${cls}">/ ${sign}${symbol}${Math.abs(num).toFixed(2)}</span>`;
 }
 function usdEquiv(gbpAmount, p) {
   if (!_usdRate || !isUsProduct(p)) return '';
-  const num = Number(gbpAmount || 0) * _usdRate;
-  const sign = num < 0 ? '-' : '';
-  return ` <span class="vp-usd-equiv">/ ${sign}$${Math.abs(num).toFixed(2)}</span>`;
+  return currencyEquiv(gbpAmount, _usdRate, '$', 'vp-usd-equiv');
 }
-// £ + $ formatter that keeps the sign consistent across both currencies —
-// callers pass the real signed number (e.g. fmtSigned(-fees, p)) rather
-// than prepending "-" themselves only in front of the £ side, which would
-// leave the $ figure looking positive even when the £ figure is negative.
+function eurEquiv(gbpAmount, p) {
+  if (!_eurRate || !isEuProduct(p)) return '';
+  return currencyEquiv(gbpAmount, _eurRate, '€', 'vp-usd-equiv');
+}
+// £ + $/€ formatter that keeps the sign consistent across every currency
+// shown — callers pass the real signed number (e.g. fmtSigned(-fees, p))
+// rather than prepending "-" themselves only in front of the £ side,
+// which would leave the other figure(s) looking positive even when the £
+// figure is negative.
 function fmtSigned(n, p) {
   const num = Number(n || 0);
   const sign = num < 0 ? '-' : '';
-  return `${sign}£${Math.abs(num).toFixed(2)}${usdEquiv(num, p)}`;
+  return `${sign}£${Math.abs(num).toFixed(2)}${usdEquiv(num, p)}${eurEquiv(num, p)}`;
 }
 
 // Styled confirm()/alert() (window.s4lConfirm/s4lAlert) come from the
@@ -163,10 +189,11 @@ function videoBadge(p) {
 // only — the /products/bulk PATCH it saves through is tier-gated server-side.
 function priceCell(p, id) {
   const val = Number(p.price || 0).toFixed(2);
-  if (!_isPro) return `<span class="price">£${val}</span>${usdEquiv(val, p)}`;
+  const foreign = `${usdEquiv(val, p)}${eurEquiv(val, p)}`;
+  if (!_isPro) return `<span class="price">£${val}</span>${foreign}`;
   return `<span class="vp-price-edit-wrap" title="Click to edit price">
     <span class="vp-price-currency">£</span><input type="number" class="vp-price-edit" data-id="${id}" data-orig="${val}" value="${val}" step="0.01" min="0.01" draggable="false" />
-  </span>${usdEquiv(val, p)}`;
+  </span>${foreign}`;
 }
 
 /* ── Render: grid card ───────────────────────────── */
