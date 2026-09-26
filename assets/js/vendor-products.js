@@ -6,6 +6,37 @@ const IMAGE_BASE = '/assets/images/products/';
 const TIER_RANK_VP = { casual: 1, refurbished: 2, professional: 3, enterprise: 4 };
 const _isPro = (TIER_RANK_VP[localStorage.getItem('s4l_vendorType')] || 1) >= 3;
 
+// USD-equivalent shown alongside every £ figure — but ONLY on US-warehouse
+// products (shippingOriginCountry/shippingCountries includes 'US'). A
+// plain UK-origin product has nothing to do with USD, so showing a dollar
+// conversion there is just noise, not useful reference info.
+let _usdRate = null;
+(async function loadUsdRate() {
+  try {
+    const res = await fetch(`${window.API_BASE}/currency/rate/USD`);
+    if (res.ok) _usdRate = (await res.json()).rate;
+  } catch (_) { /* USD figures just won't show if this fails */ }
+})();
+function isUsProduct(p) {
+  return p?.shippingOriginCountry === 'US'
+    || (Array.isArray(p?.shippingCountries) && p.shippingCountries.includes('US'));
+}
+function usdEquiv(gbpAmount, p) {
+  if (!_usdRate || !isUsProduct(p)) return '';
+  const num = Number(gbpAmount || 0) * _usdRate;
+  const sign = num < 0 ? '-' : '';
+  return `<span class="vp-usd-equiv">${sign}$${Math.abs(num).toFixed(2)}</span>`;
+}
+// £ + $ formatter that keeps the sign consistent across both currencies —
+// callers pass the real signed number (e.g. fmtSigned(-fees, p)) rather
+// than prepending "-" themselves only in front of the £ side, which would
+// leave the $ figure looking positive even when the £ figure is negative.
+function fmtSigned(n, p) {
+  const num = Number(n || 0);
+  const sign = num < 0 ? '-' : '';
+  return `${sign}£${Math.abs(num).toFixed(2)}${usdEquiv(num, p)}`;
+}
+
 // Styled confirm()/alert() (window.s4lConfirm/s4lAlert) come from the
 // shared assets/js/s4l-dialog.js, injected on every vendor/admin page by
 // config-global.js — no per-page setup needed here.
@@ -132,10 +163,10 @@ function videoBadge(p) {
 // only — the /products/bulk PATCH it saves through is tier-gated server-side.
 function priceCell(p, id) {
   const val = Number(p.price || 0).toFixed(2);
-  if (!_isPro) return `<span class="price">£${val}</span>`;
+  if (!_isPro) return `<span class="price">£${val}</span>${usdEquiv(val, p)}`;
   return `<span class="vp-price-edit-wrap" title="Click to edit price">
     <span class="vp-price-currency">£</span><input type="number" class="vp-price-edit" data-id="${id}" data-orig="${val}" value="${val}" step="0.01" min="0.01" draggable="false" />
-  </span>`;
+  </span>${usdEquiv(val, p)}`;
 }
 
 /* ── Render: grid card ───────────────────────────── */
@@ -3218,7 +3249,7 @@ function ensureMarginPanel() {
 }
 
 function marginPanelHTML(p) {
-  const fmt = (n) => `£${Number(n || 0).toFixed(2)}`;
+  const fmt = (n) => fmtSigned(n, p);
   const price = Number(p.price) || 0;
   const cost = Number(p.costPrice) || 0;
   const ship = Number(p.shippingCost) || 0;
@@ -3254,8 +3285,8 @@ function marginPanelHTML(p) {
     <div class="vp-margin-row"><span>Buyer pays</span><b>${fmt(buyerPays)}</b></div>
     <div class="vp-margin-row"><span>${profitLabel} before fees</span><b>${fmt(profitBefore)}</b></div>
     ${rate.foundingSeller?.active
-      ? `<div class="vp-margin-row"><span>Est. fees</span><b>-${fmt(fees)} <span style="color:#fbbf24">(<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="8" r="5"/><path d="M9 12.5L7 21l5-3 5 3-2-8.5"/></svg> ${(rate.commissionRate * 100).toFixed(1)}% founding rate)</span></b></div>`
-      : `<div class="vp-margin-row"><span>Est. fees (${(rate.commissionRate * 100).toFixed(1)}%+${(rate.stripePct * 100).toFixed(1)}%+£${rate.stripeFixed.toFixed(2)})</span><b>-${fmt(fees)}</b></div>`}
+      ? `<div class="vp-margin-row"><span>Est. fees</span><b>${fmt(-fees)} <span style="color:#fbbf24">(<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="8" r="5"/><path d="M9 12.5L7 21l5-3 5 3-2-8.5"/></svg> ${(rate.commissionRate * 100).toFixed(1)}% founding rate)</span></b></div>`
+      : `<div class="vp-margin-row"><span>Est. fees (${(rate.commissionRate * 100).toFixed(1)}%+${(rate.stripePct * 100).toFixed(1)}%+£${rate.stripeFixed.toFixed(2)})</span><b>${fmt(-fees)}</b></div>`}
     <div class="vp-margin-row vp-margin-total"><span>${profitLabel} after fees</span><b class="${profitAfter < 0 ? 'vp-margin-neg' : ''}">${fmt(profitAfter)}</b></div>
     <div class="vp-margin-row"><span>Margin</span><b class="${marginPct < 0 ? 'vp-margin-neg' : ''}">${marginPct.toFixed(1)}%</b></div>
     <div class="vp-margin-divider"></div>

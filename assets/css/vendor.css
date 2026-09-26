@@ -3890,6 +3890,23 @@ body.vp-marquee-active {
   text-decoration: line-through;
 }
 
+/* USD-equivalent shown alongside a £ figure — US-warehouse products only
+   (see isUsProduct() in vendor-products.js). Always secondary/muted to
+   the real GBP figure. Inside the margin hover panel specifically, it
+   stacks onto its own line — that panel is narrow (224px) and some rows'
+   labels are already long (e.g. "Est. fees (8.0%+1.4%+£0.20)"), so
+   sharing one line with both currencies wrapped unpredictably there. */
+.vp-usd-equiv {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  font-weight: 400;
+}
+.vp-margin-row b .vp-usd-equiv {
+  display: block;
+  font-size: 9px;
+  color: #6b7280;
+}
+
 /* Inline-editable price on the card/list (Professional+ only) */
 .vp-price-edit-wrap {
   display: inline-flex;
