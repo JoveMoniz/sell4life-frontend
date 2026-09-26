@@ -3890,6 +3890,14 @@ body.vp-marquee-active {
   text-decoration: line-through;
 }
 
+/* USD-equivalent shown alongside every £ figure (price cell + margin
+   hover panel) — always secondary to the real GBP figure. */
+.vp-usd-equiv {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  font-weight: 400;
+}
+
 /* Inline-editable price on the card/list (Professional+ only) */
 .vp-price-edit-wrap {
   display: inline-flex;
