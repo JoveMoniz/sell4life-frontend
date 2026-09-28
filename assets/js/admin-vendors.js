@@ -242,7 +242,7 @@ document.getElementById('vendorsTable').addEventListener('click', async (e) => {
   if (resetBtn) {
     const id = resetBtn.dataset.id;
     const msg = document.querySelector(`.reset-stripe-msg[data-id="${id}"]`);
-    if (!confirm('Reset this vendor\'s Stripe connection? They\'ll need to reconnect a bank account from scratch.')) return;
+    if (!(await window.s4lConfirm('Reset this vendor\'s Stripe connection? They\'ll need to reconnect a bank account from scratch.'))) return;
     resetBtn.disabled = true;
     try {
       const res = await authFetch(`${API}/admin/vendors/${id}/reset-stripe`, { method: 'POST' });
@@ -265,7 +265,7 @@ document.getElementById('vendorsTable').addEventListener('click', async (e) => {
   if (actionBtn) {
     const id = actionBtn.dataset.id;
     const action = actionBtn.dataset.action;
-    if (action === 'reject' && !confirm('Reject this vendor application? They will be notified by email.')) return;
+    if (action === 'reject' && !(await window.s4lConfirm('Reject this vendor application? They will be notified by email.'))) return;
     try {
       const res = await authFetch(`${API}/admin/vendors/${id}/${action}`, { method: 'PATCH' });
       if (!res.ok) {
@@ -662,7 +662,7 @@ async function loadEuSellingToggle() {
     const label = enabled
       ? 'Turn ON real sales from non-UK sellers? Only do this once DAC7 registration is actually complete.'
       : 'Turn OFF real sales from non-UK sellers?';
-    if (!confirm(label)) {
+    if (!(await window.s4lConfirm(label))) {
       toggle.checked = !enabled;
       toggle.disabled = false;
       return;
@@ -687,3 +687,52 @@ async function loadEuSellingToggle() {
   });
 }
 loadEuSellingToggle();
+
+/* =========================================
+   US SELLING GATE
+========================================= */
+async function loadUsSellingToggle() {
+  const toggle = document.getElementById('us-selling-toggle');
+  const statusTxt = document.getElementById('us-selling-status-text');
+  if (!toggle) return;
+  try {
+    const res = await authFetch(`${API}/admin/config/us-selling`);
+    const data = await res.json();
+    toggle.checked = !!data.usSellingEnabled;
+    statusTxt.textContent = toggle.checked ? 'On' : 'Off';
+    statusTxt.className = `arv-status-text ${toggle.checked ? 'on' : ''}`;
+  } catch (err) {
+    console.error('Load US selling config failed:', err);
+  }
+
+  toggle.addEventListener('change', async () => {
+    const enabled = toggle.checked;
+    toggle.disabled = true;
+    const label = enabled
+      ? 'Turn ON real sales from US sellers?'
+      : 'Turn OFF real sales from US sellers?';
+    if (!(await window.s4lConfirm(label))) {
+      toggle.checked = !enabled;
+      toggle.disabled = false;
+      return;
+    }
+    try {
+      const res = await authFetch(`${API}/admin/config/us-selling`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usSellingEnabled: enabled }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Save failed');
+      statusTxt.textContent = data.usSellingEnabled ? 'On' : 'Off';
+      statusTxt.className = `arv-status-text ${data.usSellingEnabled ? 'on' : ''}`;
+    } catch (err) {
+      console.error(err);
+      toggle.checked = !enabled;
+      showAlert('Could not save — please try again.');
+    } finally {
+      toggle.disabled = false;
+    }
+  });
+}
+loadUsSellingToggle();
