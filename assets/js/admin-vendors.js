@@ -498,9 +498,15 @@ async function loadPayoutRequests() {
         const transferBadge = autoTransfer
           ? '<div style="margin-top:3px"><span style="background:#f0fdf4;color:#15803d;padding:1px 7px;border-radius:10px;font-size:0.7rem;font-weight:600"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M13 3L4 14h6l-1 7 9-11h-6l1-7z"/></svg> Auto via Stripe</span></div>'
           : '<div style="margin-top:3px"><span style="color:#9ca3af;font-size:0.72rem">No Stripe account — pay manually</span></div>';
+        const countryBadge = vendor.country && vendor.country !== 'GB'
+          ? `<div style="margin-top:3px"><span style="background:#eff6ff;color:#1d4ed8;padding:1px 7px;border-radius:10px;font-size:0.7rem;font-weight:600">${vendor.country}</span></div>`
+          : '';
+        const estimate = p.payoutEstimate
+          ? ` <span style="color:#6b7280;font-weight:500;font-size:0.85em">(≈ ${p.payoutEstimate.symbol || '$'}${Number(p.payoutEstimate.amount || 0).toFixed(2)})</span>`
+          : '';
         return `<tr data-payout-id="${p._id}">
-  <td><strong>${storeName}</strong><br><small style="color:#6b7280">${email}</small>${transferBadge}</td>
-  <td><strong>£${Number(p.amount).toFixed(2)}</strong></td>
+  <td><strong>${storeName}</strong><br><small style="color:#6b7280">${email}</small>${transferBadge}${countryBadge}</td>
+  <td><strong>£${Number(p.amount).toFixed(2)}</strong>${estimate}</td>
   <td>${date}</td>
   <td>
     <div class="payout-actions">

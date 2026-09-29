@@ -19,6 +19,15 @@ function fmt(n) {
   return '£' + Number(n || 0).toFixed(2);
 }
 
+// Display-only estimate of a GBP figure in the vendor's real payout
+// currency — the actual Stripe transfer always moves in GBP and converts
+// on arrival, this is just a heads-up shown ahead of time.
+function fmtEstimate(est) {
+  if (!est || !est.currency || est.currency === 'GBP') return '';
+  const symbol = est.symbol || '$';
+  return ` <span style="color:#6b7280;font-weight:500;font-size:0.85em">(≈ ${symbol}${Number(est.amount || 0).toFixed(2)})</span>`;
+}
+
 /* ======================================================
    INIT — read vendor ID from URL
 ====================================================== */
@@ -90,6 +99,7 @@ function renderInfoBar(v) {
     <span style="${statusCls};padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;text-transform:capitalize">${v.status}</span>
     <span style="background:${_tierBg[_tier]||'#f3f4f6'};color:${_tierColors[_tier]||'#6b7280'};padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;text-transform:capitalize">${_tier}</span>
     ${v.vatRegistered ? '<span style="background:#dbeafe;color:#1d4ed8;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700">VAT</span>' : ''}
+    ${v.country && v.country !== 'GB' ? `<span style="background:#eff6ff;color:#1d4ed8;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700">${v.country}</span>` : ''}
     <span class="vl-email">${v.email}</span>
   `;
   bar.style.display = 'flex';
@@ -120,7 +130,7 @@ function renderCards(s, v, b) {
   const reserveCard = b ? `
     <div class="vl-card">
       <div class="vl-card-label">Available Payout ${trustedLabel}</div>
-      <div class="vl-card-value positive">${fmt(b.pendingBalance)}</div>
+      <div class="vl-card-value positive">${fmt(b.pendingBalance)}${fmtEstimate(b.payoutEstimate)}</div>
       <div class="vl-card-sub">cleared &amp; requestable</div>
     </div>
     <div class="vl-card">

@@ -22,6 +22,16 @@ function authFetch(url, opts = {}) {
 
 function fmt(n) { return '£' + Number(n || 0).toFixed(2); }
 
+// Display-only estimate of a GBP figure in the vendor's real payout
+// currency (e.g. USD) — the actual Stripe transfer always moves in GBP and
+// converts on arrival, this is just a heads-up shown ahead of time.
+function fmtEstimate(est) {
+  if (!est || !est.currency || est.currency === 'GBP') return '';
+  const symbol = est.symbol || CURRENCY_SYMBOLS[est.currency] || '$';
+  return ` <span style="color:#6b7280;font-weight:500">(≈ ${symbol}${Number(est.amount || 0).toFixed(2)})</span>`;
+}
+const CURRENCY_SYMBOLS = { USD: '$', EUR: '€', GBP: '£' };
+
 async function load(period = 'all') {
   const wrap = document.getElementById('payouts-wrap');
   if (!wrap) return;
@@ -111,7 +121,7 @@ function render(data, wrap) {
     : `<div class="payout-request-box">
         <h3>Request a Payout</h3>
         <p style="font-size:13px;color:#374151;margin:0 0 12px">
-          Available balance: <strong>${fmt(b.pendingBalance)}</strong>
+          Available balance: <strong>${fmt(b.pendingBalance)}${fmtEstimate(data.payoutEstimate)}</strong>
           ${b.pendingBalance > 0 && b.pendingBalance < data.minimumPayout
             ? `<span style="color:#9ca3af;margin-left:6px">(minimum ${fmt(data.minimumPayout)})</span>`
             : ''}
@@ -128,9 +138,12 @@ function render(data, wrap) {
     ? payouts.map(p => {
         const date = new Date(p.requestedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         const paidDate = p.paidAt ? new Date(p.paidAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+        const paidEstimate = p.status === 'paid' && p.payoutCurrency && p.payoutCurrency !== 'GBP'
+          ? ` <span style="color:#6b7280;font-weight:500">(paid as ${CURRENCY_SYMBOLS[p.payoutCurrency] || '$'}${Number(p.payoutAmount || 0).toFixed(2)})</span>`
+          : '';
         return `<tr>
           <td>${date}</td>
-          <td><strong>${fmt(p.amount)}</strong></td>
+          <td><strong>${fmt(p.amount)}</strong>${paidEstimate}</td>
           <td><span class="payout-status ${p.status}">${p.status}</span></td>
           <td>${paidDate}</td>
           <td style="font-size:11px;color:#6b7280">${p.reference || '—'}</td>
@@ -158,7 +171,7 @@ function render(data, wrap) {
     <div class="payout-cards">
       <div class="payout-card">
         <div class="payout-card-label">Available</div>
-        <div class="payout-card-value highlight">${fmt(b.pendingBalance)}</div>
+        <div class="payout-card-value highlight">${fmt(b.pendingBalance)}${fmtEstimate(data.payoutEstimate)}</div>
         <div class="payout-card-sub">ready to request</div>
       </div>
       <div class="payout-card">
