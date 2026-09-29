@@ -9,12 +9,15 @@ function authFetch(url, opts = {}) {
   return fetch(url, { ...opts, credentials: 'include', headers });
 }
 
-// Vendor payouts are always GBP regardless of what the buyer was charged —
-// this is purely informational, so it's a hover tooltip rather than a
-// visible figure (mirrors the same pattern on admin order pages).
+// The vendor's own figure shows in their real payout currency (dollar-only
+// for a US vendor, pound-only otherwise — see vendor-currency-display.js).
+// The hover tooltip is separate: what the BUYER was actually charged, which
+// can be a different currency again (e.g. a US vendor selling to a UK
+// buyer) — purely informational context, unrelated to the vendor's own
+// currency preference.
 function gbp(value, order) {
   const gbpAmount = Number(value) || 0;
-  const text = '£' + gbpAmount.toFixed(2);
+  const text = fmtVendorMoney(gbpAmount, vendorDisplayCurrency);
   const isInternational = order?.chargeCurrency && order.chargeCurrency !== 'GBP';
   if (!isInternational) return text;
   const chargeRate   = Number(order.chargeToGbpRate) || 1;
@@ -22,6 +25,7 @@ function gbp(value, order) {
   const chargeAmount = (gbpAmount * chargeRate).toFixed(2);
   return `<span title="Buyer charged ${chargeSymbol}${chargeAmount} ${order.chargeCurrency}" style="cursor:help;border-bottom:1px dotted #9ca3af">${text}</span>`;
 }
+let vendorDisplayCurrency = null;
 
 let currentStatus = 'all';
 let currentQuery = '';
@@ -270,6 +274,7 @@ async function loadVendorOrders(status = 'all', q = '') {
 
     const data = await res.json();
     lastOrders = data.orders || [];
+    vendorDisplayCurrency = data.displayCurrency;
     ordersPage = 1;
     renderOrdersPage(1);
 

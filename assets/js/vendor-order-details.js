@@ -13,15 +13,15 @@ function authFetch(url, opts = {}) {
 
 let timerInterval;
 
-// Vendor payouts are always GBP regardless of what the buyer was charged —
-// this is purely informational, so it's a hover tooltip on the visible £
-// figures, and a plain-text parenthetical inside showConfirm/showAlert
-// dialogs (which can't render HTML). Mirrors the same pair of helpers on
-// admin order pages.
+// The vendor's own figure shows in their real payout currency (dollar-only
+// for a US vendor, pound-only otherwise — see vendor-currency-display.js).
+// The hover tooltip / parenthetical is separate: what the BUYER was
+// actually charged, which can be a different currency again — purely
+// informational context, unrelated to the vendor's own currency preference.
 function gbp(value) {
   const order = window._currentOrder;
   const gbpAmount = Number(value) || 0;
-  const text = '£' + gbpAmount.toFixed(2);
+  const text = fmtVendorMoney(gbpAmount, order?.displayCurrency);
   const isInternational = order?.chargeCurrency && order.chargeCurrency !== 'GBP';
   if (!isInternational) return text;
   const chargeRate   = Number(order.chargeToGbpRate) || 1;
@@ -33,7 +33,7 @@ function gbp(value) {
 function gbpText(value) {
   const order = window._currentOrder;
   const gbpAmount = Number(value) || 0;
-  const text = '£' + gbpAmount.toFixed(2);
+  const text = fmtVendorMoney(gbpAmount, order?.displayCurrency);
   const isInternational = order?.chargeCurrency && order.chargeCurrency !== 'GBP';
   if (!isInternational) return text;
   const chargeRate   = Number(order.chargeToGbpRate) || 1;

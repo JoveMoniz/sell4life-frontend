@@ -36,6 +36,15 @@ function matchesMarket(p, code) {
 function isUsProduct(p) {
   return matchesMarket(p, 'US');
 }
+// Exclusively for American buyers — a custom scope restricted to ONLY 'US'.
+// (worldwide / uk_eu / a custom list including other countries alongside
+// US are all "also US", not "US-only" — see isUsProduct above for that.)
+function isUsExclusive(p) {
+  return p?.shippingScope === 'custom'
+    && Array.isArray(p?.shippingCountries)
+    && p.shippingCountries.length === 1
+    && p.shippingCountries[0] === 'US';
+}
 function isEuProduct(p) {
   return EU_CODES.some((code) => matchesMarket(p, code));
 }
@@ -57,10 +66,25 @@ function eurEquiv(gbpAmount, p) {
 // rather than prepending "-" themselves only in front of the £ side,
 // which would leave the other figure(s) looking positive even when the £
 // figure is negative.
+//
+// A product exclusively for American buyers (isUsExclusive) shows dollar
+// ONLY — a UK buyer will never see this listing, so pound is irrelevant
+// noise. A product that also serves the US market alongside others shows
+// dollar first, pound second (flipped from pound-first, to match how the
+// same product now reads on a US vendor's own earnings pages).
 function fmtSigned(n, p) {
   const num = Number(n || 0);
   const sign = num < 0 ? '-' : '';
-  return `${sign}£${Math.abs(num).toFixed(2)}${usdEquiv(num, p)}${eurEquiv(num, p)}`;
+  const gbpText = `${sign}£${Math.abs(num).toFixed(2)}`;
+  if (isUsExclusive(p) && _usdRate) {
+    const usd = Math.abs(num) * _usdRate;
+    return `${sign}$${usd.toFixed(2)}`;
+  }
+  if (isUsProduct(p) && _usdRate) {
+    const usd = Math.abs(num) * _usdRate;
+    return `${sign}$${usd.toFixed(2)} <span class="vp-usd-equiv">(${gbpText})</span>${eurEquiv(num, p)}`;
+  }
+  return `${gbpText}${usdEquiv(num, p)}${eurEquiv(num, p)}`;
 }
 
 // Styled confirm()/alert() (window.s4lConfirm/s4lAlert) come from the
@@ -187,9 +211,18 @@ function videoBadge(p) {
 
 // Inline-editable price, shown on both card and list views. Professional+
 // only — the /products/bulk PATCH it saves through is tier-gated server-side.
+// NOTE: the editable input always stays £ — every product's real price is
+// stored/entered in GBP platform-wide (that's what the PATCH endpoint
+// expects), regardless of vendor or product market. Only the read-only
+// foreign-currency suffix reflects the US-primary/US-exclusive display
+// rules (see fmtSigned above) — a fully dollar-only INPUT would need
+// converting the typed value back to GBP on save, which is a separate,
+// bigger change not made here.
 function priceCell(p, id) {
   const val = Number(p.price || 0).toFixed(2);
-  const foreign = `${usdEquiv(val, p)}${eurEquiv(val, p)}`;
+  const foreign = isUsExclusive(p) && _usdRate
+    ? ` <span class="vp-usd-equiv">(${'$' + (Number(val) * _usdRate).toFixed(2)} to US buyers)</span>`
+    : `${usdEquiv(val, p)}${eurEquiv(val, p)}`;
   if (!_isPro) return `<span class="price">£${val}</span>${foreign}`;
   return `<span class="vp-price-edit-wrap" title="Click to edit price">
     <span class="vp-price-currency">£</span><input type="number" class="vp-price-edit" data-id="${id}" data-orig="${val}" value="${val}" step="0.01" min="0.01" draggable="false" />

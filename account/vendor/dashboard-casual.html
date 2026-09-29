@@ -227,6 +227,7 @@
     <script src="/assets/js/config-global.js"></script>
     <script src="/assets/js/icons.js"></script>
     <script src="/assets/js/client-info.js"></script>
+    <script src="/assets/js/vendor-currency-display.js?v=20260930a"></script>
     <script>
       const _token = localStorage.getItem('s4l_token');
       if (!_token) window.location.replace('/account/signin.html');
@@ -257,7 +258,7 @@
             const d = await statsRes.json();
             document.getElementById('c-products').textContent = d.products ?? 0;
             document.getElementById('c-orders').textContent   = d.totalOrders ?? 0;
-            document.getElementById('c-revenue').textContent  = '£' + Number(d.grossRevenue || 0).toFixed(2);
+            document.getElementById('c-revenue').textContent  = fmtVendorMoney(d.grossRevenue || 0, d.displayCurrency);
 
             if ((d.products ?? 0) === 0) {
               document.getElementById('empty-state').style.display = '';
@@ -270,13 +271,14 @@
           if (ordersRes.ok) {
             const od = await ordersRes.json();
             const orders = od.orders || [];
+            const orderDc = od.displayCurrency;
             if (!orders.length) {
               orderList.innerHTML = '<p class="no-orders">No orders yet.</p>';
             } else {
               orderList.innerHTML = orders.map(o => {
                 const item = o.vendorItems?.[0];
                 const name = item?.name || 'Order';
-                const price = item ? '£' + Number(item.price || 0).toFixed(2) : '';
+                const price = item ? fmtVendorMoney(item.price || 0, orderDc) : '';
                 const status = (item?.status || o.status || 'pending').toLowerCase();
                 const cls = STATUS_CLASS[status] || 'status-pending';
                 const shortId = String(o._id).slice(-6).toUpperCase();

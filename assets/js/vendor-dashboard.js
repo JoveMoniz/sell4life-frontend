@@ -52,10 +52,10 @@ async function loadVendorDashboard(period = currentPeriod) {
     document.getElementById('stat-products').textContent = data.products || 0;
     document.getElementById('stat-orders').textContent = data.totalOrders || 0;
     document.getElementById('stat-revenue').textContent =
-      '£' + Number(data.grossRevenue || 0).toFixed(2);
+      fmtVendorMoney(data.grossRevenue || 0, data.displayCurrency);
     document.getElementById('stat-loss').textContent =
-      '£' + Number(data.revenueLoss || 0).toFixed(2);
-    document.getElementById('stat-net').textContent = '£' + Number(data.netRevenue || 0).toFixed(2);
+      fmtVendorMoney(data.revenueLoss || 0, data.displayCurrency);
+    document.getElementById('stat-net').textContent = fmtVendorMoney(data.netRevenue || 0, data.displayCurrency);
     document.getElementById('stat-active').textContent = data.activeOrders || 0;
     document.getElementById('stat-completed').textContent = data.completedOrders || 0;
     document.getElementById('stat-refunded').textContent = data.refundedItems || 0;
@@ -128,6 +128,7 @@ async function loadRecentOrders() {
 
     const data = await res.json();
     const orders = data.orders || [];
+    const dc = data.displayCurrency;
 
     if (!orders.length) {
       container.innerHTML = '<p>No orders yet</p>';
@@ -172,7 +173,7 @@ async function loadRecentOrders() {
   <a class="btn-view-order${hasPendingActions ? ' btn-view-order--action' : ''}" href="/account/vendor/order-details.html?id=${id}">
     ${hasPendingActions ? 'Action needed →' : 'View →'}
   </a>
-  <span class="order-price">£${vendorTotal.toFixed(2)}</span>
+  <span class="order-price">${fmtVendorMoney(vendorTotal, dc)}</span>
 </div>`;
       })
       .join('');

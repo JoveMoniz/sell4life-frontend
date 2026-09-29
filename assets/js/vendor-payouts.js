@@ -20,17 +20,8 @@ function authFetch(url, opts = {}) {
   return fetch(url, { ...opts, credentials: 'include', headers });
 }
 
-function fmt(n) { return '£' + Number(n || 0).toFixed(2); }
-
-// Display-only estimate of a GBP figure in the vendor's real payout
-// currency (e.g. USD) — the actual Stripe transfer always moves in GBP and
-// converts on arrival, this is just a heads-up shown ahead of time.
-function fmtEstimate(est) {
-  if (!est || !est.currency || est.currency === 'GBP') return '';
-  const symbol = est.symbol || CURRENCY_SYMBOLS[est.currency] || '$';
-  return ` <span style="color:#6b7280;font-weight:500">(≈ ${symbol}${Number(est.amount || 0).toFixed(2)})</span>`;
-}
-const CURRENCY_SYMBOLS = { USD: '$', EUR: '€', GBP: '£' };
+// fmtVendorMoney (from vendor-currency-display.js) shows dollar-only for a
+// US vendor, pound-only for everyone else — no plain fmt() left here.
 
 async function load(period = 'all') {
   const wrap = document.getElementById('payouts-wrap');
@@ -58,13 +49,13 @@ async function load(period = 'all') {
   }
 }
 
-function buildScheduleSection(schedule) {
+function buildScheduleSection(schedule, dc) {
   if (!schedule || !schedule.length) return '';
   const rows = schedule.map(r => {
     const label = new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#fff;border-radius:6px;border:1px solid #fef3c7;font-size:0.88rem;margin-bottom:4px">'
       + '<span style="color:#374151;font-weight:500">' + label + '</span>'
-      + '<span style="color:#059669;font-weight:700">+' + fmt(r.amount) + '</span>'
+      + '<span style="color:#059669;font-weight:700">+' + fmtVendorMoney(r.amount, dc) + '</span>'
       + '</div>';
   }).join('');
   return '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:16px 20px;margin-bottom:24px">'
@@ -76,6 +67,7 @@ function buildScheduleSection(schedule) {
 
 function render(data, wrap) {
   const b = data;
+  const dc = data.displayCurrency;
   const payouts = data.payouts || [];
   const period = data.period || 'all';
   const ps = data.periodStats;
@@ -115,20 +107,20 @@ function render(data, wrap) {
           <a href="/account/vendor/settings.html" style="display:block;margin-top:6px;color:#7f1d1d;font-weight:600;text-decoration:underline">Submit tax information in Settings →</a>
         </div>
         <button type="button" class="payout-request-btn" disabled title="Submit your tax information to unlock payouts">
-          Request ${fmt(b.pendingBalance)}
+          Request ${fmtVendorMoney(b.pendingBalance, dc)}
         </button>
        </div>`
     : `<div class="payout-request-box">
         <h3>Request a Payout</h3>
         <p style="font-size:13px;color:#374151;margin:0 0 12px">
-          Available balance: <strong>${fmt(b.pendingBalance)}${fmtEstimate(data.payoutEstimate)}</strong>
+          Available balance: <strong>${fmtVendorMoney(b.pendingBalance, dc)}</strong>
           ${b.pendingBalance > 0 && b.pendingBalance < data.minimumPayout
-            ? `<span style="color:#9ca3af;margin-left:6px">(minimum ${fmt(data.minimumPayout)})</span>`
+            ? `<span style="color:#9ca3af;margin-left:6px">(minimum ${fmtVendorMoney(data.minimumPayout, dc)})</span>`
             : ''}
         </p>
         <button type="button" class="payout-request-btn" id="request-btn"
           ${b.pendingBalance < data.minimumPayout ? 'disabled' : ''}>
-          Request ${fmt(b.pendingBalance)}
+          Request ${fmtVendorMoney(b.pendingBalance, dc)}
         </button>
         ${holdNote}
         <div class="payout-msg" id="payout-msg"></div>
@@ -138,12 +130,14 @@ function render(data, wrap) {
     ? payouts.map(p => {
         const date = new Date(p.requestedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         const paidDate = p.paidAt ? new Date(p.paidAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-        const paidEstimate = p.status === 'paid' && p.payoutCurrency && p.payoutCurrency !== 'GBP'
-          ? ` <span style="color:#6b7280;font-weight:500">(paid as ${CURRENCY_SYMBOLS[p.payoutCurrency] || '$'}${Number(p.payoutAmount || 0).toFixed(2)})</span>`
-          : '';
+        // A 'paid' payout has its REAL transferred currency/amount stored —
+        // use that instead of re-estimating at today's (possibly different) rate.
+        const amountDisplay = p.status === 'paid' && p.payoutCurrency && p.payoutCurrency !== 'GBP'
+          ? fmtVendorMoney(p.amount, { currency: p.payoutCurrency, rate: p.payoutAmount / p.amount })
+          : fmtVendorMoney(p.amount, dc);
         return `<tr>
           <td>${date}</td>
-          <td><strong>${fmt(p.amount)}</strong>${paidEstimate}</td>
+          <td><strong>${amountDisplay}</strong></td>
           <td><span class="payout-status ${p.status}">${p.status}</span></td>
           <td>${paidDate}</td>
           <td style="font-size:11px;color:#6b7280">${p.reference || '—'}</td>
@@ -171,27 +165,27 @@ function render(data, wrap) {
     <div class="payout-cards">
       <div class="payout-card">
         <div class="payout-card-label">Available</div>
-        <div class="payout-card-value highlight">${fmt(b.pendingBalance)}${fmtEstimate(data.payoutEstimate)}</div>
+        <div class="payout-card-value highlight">${fmtVendorMoney(b.pendingBalance, dc)}</div>
         <div class="payout-card-sub">ready to request</div>
       </div>
       <div class="payout-card">
         <div class="payout-card-label">Net Sales</div>
-        <div class="payout-card-value">${fmt(netSalesVal)}</div>
+        <div class="payout-card-value">${fmtVendorMoney(netSalesVal, dc)}</div>
         <div class="payout-card-sub">${subLabel}, after commission</div>
       </div>
       <div class="payout-card">
         <div class="payout-card-label">Shipping Collected</div>
-        <div class="payout-card-value">${fmt(b.shippingAllTime || 0)}</div>
+        <div class="payout-card-value">${fmtVendorMoney(b.shippingAllTime || 0, dc)}</div>
         <div class="payout-card-sub">all time, passes through to you</div>
       </div>
       <div class="payout-card">
         <div class="payout-card-label">Total Paid Out</div>
-        <div class="payout-card-value">${fmt(b.totalPaidOut)}</div>
+        <div class="payout-card-value">${fmtVendorMoney(b.totalPaidOut, dc)}</div>
         <div class="payout-card-sub">received so far</div>
       </div>
       <div class="payout-card">
         <div class="payout-card-label">Commission Paid</div>
-        <div class="payout-card-value negative">${fmt(commissionVal)}</div>
+        <div class="payout-card-value negative">${fmtVendorMoney(commissionVal, dc)}</div>
         <div class="payout-card-sub">platform fee, ${subLabel}</div>
       </div>
       ${b.vendorType === 'casual' ? `
@@ -202,7 +196,7 @@ function render(data, wrap) {
       </div>` : ''}
       <div class="payout-card">
         <div class="payout-card-label">In Reserve</div>
-        <div class="payout-card-value" style="color:#f59e0b">${fmt(b.reservedBalance)}</div>
+        <div class="payout-card-value" style="color:#f59e0b">${fmtVendorMoney(b.reservedBalance, dc)}</div>
         <div class="payout-card-sub">current total · releases at 90 days</div>
       </div>
       ${b.vendorType === 'casual' ? `
@@ -215,7 +209,7 @@ function render(data, wrap) {
 
     ${requestSection}
 
-    ${buildScheduleSection(b.reserveSchedule)}
+    ${buildScheduleSection(b.reserveSchedule, dc)}
 
     <div class="payout-history-title">Payout History</div>
     <table class="payout-table">
@@ -235,7 +229,7 @@ function render(data, wrap) {
   const btn = document.getElementById('request-btn');
   if (btn) {
     btn.addEventListener('click', async () => {
-      if (!await showConfirm(`Request a payout of ${fmt(b.pendingBalance)}?`)) return;
+      if (!await showConfirm(`Request a payout of ${fmtVendorMoney(b.pendingBalance, dc)}?`)) return;
       btn.disabled = true;
       btn.textContent = 'Requesting…';
       const msgEl = document.getElementById('payout-msg');
@@ -246,7 +240,7 @@ function render(data, wrap) {
           msgEl.textContent = json.error || 'Request failed.';
           msgEl.className = 'payout-msg error';
           btn.disabled = false;
-          btn.textContent = `Request ${fmt(b.pendingBalance)}`;
+          btn.textContent = `Request ${fmtVendorMoney(b.pendingBalance, dc)}`;
         } else {
           msgEl.textContent = 'Payout request submitted. Admin will process it shortly.';
           msgEl.className = 'payout-msg success';
@@ -257,7 +251,7 @@ function render(data, wrap) {
         msgEl.textContent = 'Network error.';
         msgEl.className = 'payout-msg error';
         btn.disabled = false;
-        btn.textContent = `Request ${fmt(b.pendingBalance)}`;
+        btn.textContent = `Request ${fmtVendorMoney(b.pendingBalance, dc)}`;
       }
     });
   }
