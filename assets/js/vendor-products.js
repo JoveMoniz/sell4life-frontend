@@ -29,6 +29,22 @@ let _eurRate = null;
     if (eurRes.ok) _eurRate = (await eurRes.json()).rate;
   } catch (_) { /* foreign-currency figures just won't show if this fails */ }
 })();
+
+// The VENDOR's own currency (dollar for a US vendor, null for GB/everyone
+// else) — distinct from usdEquiv/eurEquiv above, which key off the
+// PRODUCT's own target market instead. A US vendor sees dollar as the only
+// currency everywhere they touch money on this page, regardless of which
+// market any given product ships to (their own earnings pages work the
+// same way) — the product-market indicator only applies as a fallback for
+// a GB (or other non-US) vendor, same as before this existed.
+let _vendorDisplayCurrency = null;
+(async function loadVendorDisplayCurrency() {
+  try {
+    const token = localStorage.getItem('s4l_token');
+    const res = await fetch(`${window.API_BASE}/vendor/me`, { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) _vendorDisplayCurrency = (await res.json()).displayCurrency || null;
+  } catch (_) { /* falls back to GBP + product-market indicator */ }
+})();
 function matchesMarket(p, code) {
   return p?.shippingOriginCountry === code
     || (Array.isArray(p?.shippingCountries) && p.shippingCountries.includes(code));
@@ -67,15 +83,23 @@ function eurEquiv(gbpAmount, p) {
 // which would leave the other figure(s) looking positive even when the £
 // figure is negative.
 //
-// A product exclusively for American buyers (isUsExclusive) shows dollar
-// ONLY — a UK buyer will never see this listing, so pound is irrelevant
-// noise. A product that also serves the US market alongside others shows
-// dollar first, pound second (flipped from pound-first, to match how the
-// same product now reads on a US vendor's own earnings pages).
+// A US vendor sees dollar ONLY, everywhere, regardless of which market a
+// given product ships to — same as their earnings pages. That takes
+// priority over the product-market indicator below, which only kicks in
+// as a fallback for a GB (or other non-US) vendor:
+// a product exclusively for American buyers (isUsExclusive) then shows
+// dollar ONLY — a UK buyer will never see that listing, so pound is
+// irrelevant noise. A product that also serves the US market alongside
+// others shows dollar first, pound second (flipped from pound-first).
 function fmtSigned(n, p) {
   const num = Number(n || 0);
   const sign = num < 0 ? '-' : '';
   const gbpText = `${sign}£${Math.abs(num).toFixed(2)}`;
+  if (_vendorDisplayCurrency) {
+    const symbol = _vendorDisplayCurrency.symbol || '$';
+    const converted = Math.abs(num) * _vendorDisplayCurrency.rate;
+    return `${sign}${symbol}${converted.toFixed(2)}`;
+  }
   if (isUsExclusive(p) && _usdRate) {
     const usd = Math.abs(num) * _usdRate;
     return `${sign}$${usd.toFixed(2)}`;
@@ -211,15 +235,22 @@ function videoBadge(p) {
 
 // Inline-editable price, shown on both card and list views. Professional+
 // only — the /products/bulk PATCH it saves through is tier-gated server-side.
-// NOTE: the editable input always stays £ — every product's real price is
-// stored/entered in GBP platform-wide (that's what the PATCH endpoint
-// expects), regardless of vendor or product market. Only the read-only
-// foreign-currency suffix reflects the US-primary/US-exclusive display
-// rules (see fmtSigned above) — a fully dollar-only INPUT would need
-// converting the typed value back to GBP on save, which is a separate,
-// bigger change not made here.
+// For a US vendor, the input itself shows and accepts a real dollar amount
+// (converted to/from the GBP value actually stored — see the 'change'
+// handler below, which converts back before PATCHing). For every other
+// vendor the input stays £ exactly as before, with the product-market
+// foreign-currency suffix as a secondary read-only annotation.
 function priceCell(p, id) {
-  const val = Number(p.price || 0).toFixed(2);
+  const gbp = Number(p.price || 0);
+  if (_vendorDisplayCurrency) {
+    const symbol = _vendorDisplayCurrency.symbol || '$';
+    const shown = (gbp * _vendorDisplayCurrency.rate).toFixed(2);
+    if (!_isPro) return `<span class="price">${symbol}${shown}</span>`;
+    return `<span class="vp-price-edit-wrap" title="Click to edit price">
+      <span class="vp-price-currency">${symbol}</span><input type="number" class="vp-price-edit" data-id="${id}" data-orig="${shown}" value="${shown}" step="0.01" min="0.01" draggable="false" />
+    </span>`;
+  }
+  const val = gbp.toFixed(2);
   const foreign = isUsExclusive(p) && _usdRate
     ? ` <span class="vp-usd-equiv">(${'$' + (Number(val) * _usdRate).toFixed(2)} to US buyers)</span>`
     : `${usdEquiv(val, p)}${eurEquiv(val, p)}`;
@@ -1403,6 +1434,11 @@ document.addEventListener('change', async (e) => {
   val = Math.round(val * 100) / 100;
   if (val === orig) { input.value = val.toFixed(2); return; }
 
+  // `val` is in the vendor's own display currency (dollar for a US vendor)
+  // — everything downstream (markup math, the PATCH body, the local cache)
+  // must be GBP, so convert once here before anything else touches it.
+  const gbpVal = _vendorDisplayCurrency ? val / _vendorDisplayCurrency.rate : val;
+
   const p     = _allProducts.find(x => (x._id || x.id) === id);
   const token = localStorage.getItem('s4l_token');
 
@@ -1413,7 +1449,7 @@ document.addEventListener('change', async (e) => {
     const ship = p.shipIncluded ? (parseFloat(p.shippingCost) || 0) : 0;
     const base = Number(p.costPrice) + ship;
     if (base > 0) {
-      const derived = Math.round((val / base - 1) * 1000) / 10;
+      const derived = Math.round((gbpVal / base - 1) * 1000) / 10;
       if (derived >= 0) markupPct = derived;
     }
   }
@@ -1423,14 +1459,14 @@ document.addEventListener('change', async (e) => {
     const res = await fetch(`${window.API_BASE}/products/bulk`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ ids: [id], price: val, ...(markupPct !== undefined ? { markupPct } : {}) }),
+      body: JSON.stringify({ ids: [id], price: gbpVal, ...(markupPct !== undefined ? { markupPct } : {}) }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error || `HTTP ${res.status}`);
     }
     if (p) {
-      p.price = val;
+      p.price = gbpVal;
       if (markupPct !== undefined) p.markupPct = markupPct;
     }
     input.dataset.orig = val.toFixed(2);

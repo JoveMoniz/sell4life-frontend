@@ -22,3 +22,36 @@ function fmtVendorMoney(gbpAmount, displayCurrency) {
   const sign = num < 0 ? '-' : '';
   return `${sign}£${Math.abs(num).toFixed(2)}`;
 }
+
+// Plain numeric conversion, no formatting — for editable fields (Add/Edit
+// Product prices) where a US vendor types a real dollar amount that must be
+// converted to GBP before it's sent to the API (every price is stored in
+// GBP platform-wide). Returns the input unchanged for a GBP vendor.
+function vendorAmountToGbp(displayAmount, displayCurrency) {
+  const num = Number(displayAmount || 0);
+  if (!displayCurrency || !displayCurrency.currency || displayCurrency.currency === 'GBP') return num;
+  return num / Number(displayCurrency.rate || 1);
+}
+
+// The reverse — GBP (stored) -> the vendor's display currency, for
+// prefilling an editable field when opening an existing product.
+function vendorAmountFromGbp(gbpAmount, displayCurrency) {
+  const num = Number(gbpAmount || 0);
+  if (!displayCurrency || !displayCurrency.currency || displayCurrency.currency === 'GBP') return num;
+  return num * Number(displayCurrency.rate || 1);
+}
+
+// Swaps every "(£)" label/placeholder inside `root` to the vendor's real
+// currency symbol, e.g. "Price (£)" -> "Price ($)". A no-op for a GBP
+// vendor. Call once, after the vendor's displayCurrency is known.
+function relabelVendorMoneyFields(root, displayCurrency) {
+  if (!displayCurrency || !displayCurrency.currency || displayCurrency.currency === 'GBP') return;
+  const symbol = displayCurrency.symbol || '$';
+  root.querySelectorAll('label, .ap-hint, span').forEach((el) => {
+    if (el.children.length) return; // only leaf text nodes — avoid mangling nested markup
+    if (el.textContent.includes('(£)')) el.textContent = el.textContent.replace(/\(£\)/g, `(${symbol})`);
+  });
+  root.querySelectorAll('input[placeholder]').forEach((el) => {
+    if (el.placeholder.includes('£')) el.placeholder = el.placeholder.replace(/£/g, symbol);
+  });
+}

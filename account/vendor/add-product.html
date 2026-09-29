@@ -81,7 +81,7 @@
                 <label class="ap-ship-checkbox-label" id="ship-checkbox-wrap" style="display:none">
                   <input type="checkbox" id="product-ship-charge-toggle" /> Charge for shipping
                 </label>
-                <input type="number" id="product-shipping-cost" step="0.01" min="0.01" placeholder="Shipping cost (£)" style="margin-top:8px" />
+                <input type="number" id="product-shipping-cost" step="0.01" min="0" placeholder="Shipping cost (£)" style="margin-top:8px" />
                 <span class="ap-hint" style="display:block;margin-top:4px">Also used as the reference cost for the markup calculator below, whether or not it's charged to the buyer</span>
               </div>
               <div class="form-group">
@@ -783,6 +783,7 @@
     <script src="/assets/js/config-global.js"></script>
     <script src="/assets/js/icons.js"></script>
     <script src="/assets/js/client-info.js"></script>
+    <script src="/assets/js/vendor-currency-display.js?v=20260930a"></script>
     <script src="/assets/js/markup-calc.js?v=20260902a"></script>
     <script>
       if (localStorage.getItem('s4l_vendorType') === 'casual') {
@@ -793,7 +794,7 @@
     <script src="/assets/js/tier-config.js"></script>
     <script src="/assets/js/layout.js?v=20260814b"></script>
     <script>
-      window.__pageScripts = ['/assets/js/countries.js', '/assets/js/vendor-add-product.js?v=20260902a'];
+      window.__pageScripts = ['/assets/js/countries.js', '/assets/js/vendor-add-product.js?v=20260930a'];
 
       // Section tier map: section key  minimum tier required
       const SECTION_TIER = {

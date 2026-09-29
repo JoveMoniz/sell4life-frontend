@@ -1496,10 +1496,10 @@ function bindImageUploads() {
       const allChecked = filledCbs.length > 0 && filledCbs.every(c => c.checked);
       filledCbs.forEach(c => c.checked = !allChecked);
     });
-    clearSelBtn.addEventListener('click', () => {
+    clearSelBtn.addEventListener('click', async () => {
       const checked = Array.from(document.querySelectorAll('.img-slot-check:checked'));
       if (!checked.length) { window.showToast?.('No images selected', 'error'); return; }
-      if (!confirm(`Clear ${checked.length} selected image(s)?`)) return;
+      if (!(await window.s4lConfirm(`Clear ${checked.length} selected image(s)?`))) return;
       checked.forEach(cb => clearSlot(parseInt(cb.dataset.slot)));
     });
     imgBtnRow.appendChild(selAllBtn);
@@ -1835,7 +1835,7 @@ function openGenModal() {
   overlay.querySelector('#_gen-ok').addEventListener('click', () => {
     const arrays = Array.from(box.querySelectorAll('textarea')).map(ta =>
       ta.value.split('\n').map(v => v.trim()).filter(Boolean));
-    if (arrays.some(a => !a.length)) { alert('Please enter at least one value for each attribute.'); return; }
+    if (arrays.some(a => !a.length)) { window.s4lAlert('Please enter at least one value for each attribute.'); return; }
     function combos(arrs) {
       if (!arrs.length) return [[]];
       return arrs[0].flatMap(v => combos(arrs.slice(1)).map(r => [v, ...r]));
@@ -1924,10 +1924,10 @@ function bindVariants() {
       const hdr = document.getElementById('vr-check-all-hdr');
       if (hdr) hdr.checked = !allChecked;
     });
-    removeSelBtn.addEventListener('click', () => {
+    removeSelBtn.addEventListener('click', async () => {
       const checked = Array.from(document.querySelectorAll('#variant-rows .vr-row-check:checked'));
       if (!checked.length) { window.showToast?.('No rows selected', 'error'); return; }
-      if (!confirm(`Remove ${checked.length} variant row(s)?`)) return;
+      if (!(await window.s4lConfirm(`Remove ${checked.length} variant row(s)?`))) return;
       checked.forEach(cb => cb.closest('tr')?.remove());
       const hdr = document.getElementById('vr-check-all-hdr');
       if (hdr) hdr.checked = false;
@@ -2329,14 +2329,21 @@ function numOrUndef(id) {
 // INIT
 // ======================================================
 
+// Set once the vendor's own displayCurrency is known — a US vendor types
+// dollar amounts on this form, which get converted to GBP before saving
+// (every price is stored in GBP platform-wide). Null for a GBP vendor.
+window.addProductDisplayCurrency = null;
+
 async function prefillFreeReturns() {
   const token = localStorage.getItem('s4l_token');
   if (!token) return;
   try {
     const res = await fetch(`${API_BASE}/vendor/me`, { headers: { Authorization: `Bearer ${token}` } });
-    const { vendor } = await res.json();
+    const { vendor, displayCurrency } = await res.json();
     const cb = document.getElementById('product-free-returns');
     if (cb && vendor?.freeReturns) cb.checked = true;
+    window.addProductDisplayCurrency = displayCurrency;
+    if (displayCurrency) relabelVendorMoneyFields(document, displayCurrency);
   } catch { /* leave unchecked on failure */ }
 }
 
@@ -2410,8 +2417,8 @@ if (form) {
     const seoDesc  = document.getElementById('product-seo-desc')?.value.trim()  || undefined;
 
     // Compare & cost price
-    const comparePrice  = numOrNull('product-compare-price');
-    const costPrice     = numOrUndef('product-cost-price');
+    let comparePrice  = numOrNull('product-compare-price');
+    let costPrice     = numOrUndef('product-cost-price');
     const shippingMode  = document.getElementById('product-shipping-mode')?.value || 'free';
     const collectionOnly = shippingMode === 'collection';
     // Always saved, whether or not it's charged to the buyer — also the
@@ -2420,7 +2427,18 @@ if (form) {
     // see markup-calc.js and vendor-edit-product.js for the full context
     // on why this used to be two independently-set fields that could
     // silently disagree with each other.
-    const shippingCost  = collectionOnly ? 0 : numOrNull('product-shipping-cost');
+    let shippingCost  = collectionOnly ? 0 : numOrNull('product-shipping-cost');
+
+    // The vendor typed these in their own currency (dollar for a US
+    // vendor) — convert to GBP before saving, since every price is stored
+    // in GBP platform-wide. No-op for a GBP vendor.
+    let productPrice = Number(document.getElementById('product-price')?.value);
+    if (window.addProductDisplayCurrency) {
+      productPrice = vendorAmountToGbp(productPrice, window.addProductDisplayCurrency);
+      if (comparePrice != null) comparePrice = vendorAmountToGbp(comparePrice, window.addProductDisplayCurrency);
+      if (costPrice != null) costPrice = vendorAmountToGbp(costPrice, window.addProductDisplayCurrency);
+      if (shippingCost != null) shippingCost = vendorAmountToGbp(shippingCost, window.addProductDisplayCurrency);
+    }
     const shipIncluded  = shippingMode !== 'charge';
     const shippingScope = document.getElementById('product-shipping-scope')?.value || 'worldwide';
     const shippingCountries = shippingScope === 'custom'
@@ -2437,7 +2455,7 @@ if (form) {
       shortDescription: document.getElementById('product-short-desc')?.value.trim() || undefined,
       bulletPoints:     document.getElementById('product-bullet-points')?.value.trim() || undefined,
       description:      document.getElementById('product-description')?.value.trim(),
-      price:            Number(document.getElementById('product-price')?.value),
+      price:            productPrice,
       comparePrice,
       costPrice,
       shippingCost,

@@ -74,9 +74,10 @@
           shipInput?.insertAdjacentElement('afterend', note);
         }
         const ship = parseFloat(shipInput?.value) || 0;
+        const sym = window.addProductDisplayCurrency?.symbol || '£';
         note.textContent = ship > 0
-          ? `£${ship.toFixed(2)} shipping included in retail price · checkout shipping: £0`
-          : 'Enter your supplier shipping cost above · checkout shipping: £0';
+          ? `${sym}${ship.toFixed(2)} shipping included in retail price · checkout shipping: ${sym}0`
+          : `Enter your supplier shipping cost above · checkout shipping: ${sym}0`;
       } else {
         note?.remove();
       }
@@ -113,7 +114,8 @@
     function updatePreview() {
       if (!preview) return;
       const p = getCalcPrice();
-      preview.textContent = p != null ? `→ £${p.toFixed(2)}` : '';
+      const sym = window.addProductDisplayCurrency?.symbol || '£';
+      preview.textContent = p != null ? `→ ${sym}${p.toFixed(2)}` : '';
     }
 
     function updateVisibility() {
@@ -196,7 +198,8 @@
       const variantNote = variantPriceInputs.length
         ? ` (+ ${variantPriceInputs.length} variant${variantPriceInputs.length === 1 ? '' : 's'})`
         : '';
-      preview.textContent = `Applied £${p.toFixed(2)}${variantNote}`;
+      const sym = window.addProductDisplayCurrency?.symbol || '£';
+      preview.textContent = `Applied ${sym}${p.toFixed(2)}${variantNote}`;
       preview.style.color = '#15803d';
       setTimeout(() => { preview.style.color = '#6b7280'; updatePreview(); }, 2000);
     });

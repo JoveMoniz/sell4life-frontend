@@ -1551,10 +1551,10 @@ function bindImageUploads() {
       const allChecked = filledCbs.length > 0 && filledCbs.every(c => c.checked);
       filledCbs.forEach(c => c.checked = !allChecked);
     });
-    clearSelBtn.addEventListener('click', () => {
+    clearSelBtn.addEventListener('click', async () => {
       const checked = Array.from(document.querySelectorAll('.img-slot-check:checked'));
       if (!checked.length) { window.showToast?.('No images selected', 'error'); return; }
-      if (!confirm(`Clear ${checked.length} selected image(s)?`)) return;
+      if (!(await window.s4lConfirm(`Clear ${checked.length} selected image(s)?`))) return;
       checked.forEach(cb => clearSlot(parseInt(cb.dataset.slot)));
     });
     imgBtnRow.appendChild(selAllBtn);
@@ -1654,7 +1654,7 @@ function bindImageUploads() {
         rematchBtn.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M3 11V5a2 2 0 012-2h6l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1.1" fill="currentColor" stroke="none"/></svg> Re-match Category';
         rematchBtn.style.cssText = 'font-size:0.82rem;padding:5px 12px;background:#f0f9f8;border:1px solid #0b6b6a;color:#0b6b6a;border-radius:6px;cursor:pointer;font-weight:600';
         rematchBtn.addEventListener('click', async () => {
-          if (!confirm('Re-derive category and subcategory from this product\'s title and overwrite what\'s set now?')) return;
+          if (!(await window.s4lConfirm('Re-derive category and subcategory from this product\'s title and overwrite what\'s set now?'))) return;
           if (rematchBtn.disabled) return;
           rematchBtn.disabled = true;
           const originalText = rematchBtn.textContent;
@@ -2079,7 +2079,7 @@ function openGenModal() {
   overlay.querySelector('#_gen-ok').addEventListener('click', () => {
     const arrays = Array.from(box.querySelectorAll('textarea')).map(ta =>
       ta.value.split('\n').map(v => v.trim()).filter(Boolean));
-    if (arrays.some(a => !a.length)) { alert('Please enter at least one value for each attribute.'); return; }
+    if (arrays.some(a => !a.length)) { window.s4lAlert('Please enter at least one value for each attribute.'); return; }
     function combos(arrs) {
       if (!arrs.length) return [[]];
       return arrs[0].flatMap(v => combos(arrs.slice(1)).map(r => [v, ...r]));
@@ -2169,10 +2169,10 @@ function bindVariants() {
       const hdr = document.getElementById('vr-check-all-hdr');
       if (hdr) hdr.checked = !allChecked;
     });
-    removeSelBtn.addEventListener('click', () => {
+    removeSelBtn.addEventListener('click', async () => {
       const checked = Array.from(document.querySelectorAll('#variant-rows .vr-row-check:checked'));
       if (!checked.length) { window.showToast?.('No rows selected', 'error'); return; }
-      if (!confirm(`Remove ${checked.length} variant row(s)?`)) return;
+      if (!(await window.s4lConfirm(`Remove ${checked.length} variant row(s)?`))) return;
       checked.forEach(cb => cb.closest('tr')?.remove());
       const hdr = document.getElementById('vr-check-all-hdr');
       if (hdr) hdr.checked = false;
@@ -2628,10 +2628,24 @@ function setVal(id, v) {
 // LOAD PRODUCT
 // ======================================================
 
+// Set once the vendor's own displayCurrency is known — a US vendor sees
+// and edits dollar amounts on this form, converted to/from the GBP value
+// actually stored (every price is GBP platform-wide). Null for a GBP vendor.
+window.editProductDisplayCurrency = null;
+
 async function loadProduct() {
   const loading = document.getElementById('ep-loading');
 
   try {
+    const meRes = await fetch(`${window.API_BASE}/vendor/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => null);
+    if (meRes?.ok) {
+      const me = await meRes.json();
+      window.editProductDisplayCurrency = me.displayCurrency;
+      if (me.displayCurrency) relabelVendorMoneyFields(document, me.displayCurrency);
+    }
+
     const res = await fetch(`${window.API_BASE}/vendor/products/${productId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -2657,10 +2671,13 @@ async function loadProduct() {
     setVal('product-bullet-points', p.bulletPoints);
     setVal('product-description', p.description);
 
-    // Pricing
-    if (p.price !== undefined)        setVal('product-price', p.price);
-    if (p.comparePrice !== undefined)  setVal('product-compare-price', p.comparePrice);
-    if (p.costPrice !== undefined)     setVal('product-cost-price', p.costPrice);
+    // Pricing — shown converted into the vendor's own currency (dollar for
+    // a US vendor); the raw stored value is always GBP, converted back on
+    // save (see the submit handler below).
+    const dc = window.editProductDisplayCurrency;
+    if (p.price !== undefined)        setVal('product-price', vendorAmountFromGbp(p.price, dc).toFixed(2));
+    if (p.comparePrice !== undefined)  setVal('product-compare-price', vendorAmountFromGbp(p.comparePrice, dc).toFixed(2));
+    if (p.costPrice !== undefined)     setVal('product-cost-price', vendorAmountFromGbp(p.costPrice, dc).toFixed(2));
     // shipIncluded (when explicitly set) takes priority over shippingCost
     // for deriving the mode shown here — it's what checkout actually
     // honours (shipIncluded:true means £0 at checkout regardless of
@@ -2673,7 +2690,7 @@ async function loadProduct() {
     setShippingMode(_shipMode);
     // Always populate — the field stays visible in every mode now, used as
     // the markup calculator's reference cost whether or not it's charged.
-    setVal('product-shipping-cost', p.shippingCost);
+    if (p.shippingCost !== undefined) setVal('product-shipping-cost', vendorAmountFromGbp(p.shippingCost, dc).toFixed(2));
     const _scopeEl = document.getElementById('product-shipping-scope');
     if (_scopeEl) {
       _scopeEl.value = p.shippingScope || 'worldwide';
@@ -2878,14 +2895,23 @@ if (form) {
 
     const active = document.querySelector('input[name="productStatus"]:checked')?.value !== 'draft';
 
+    // The vendor sees and typed these in their own currency (dollar for a
+    // US vendor) — convert back to GBP before saving, since every price is
+    // stored in GBP platform-wide. No-op for a GBP vendor.
+    const _dc = window.editProductDisplayCurrency;
+    const _rawPrice = Number(document.getElementById('product-price')?.value);
+    const _rawCompare = numOrNull('product-compare-price');
+    const _rawCost = numOrUndef('product-cost-price');
+    const _rawShip = document.getElementById('product-shipping-mode')?.value === 'collection' ? 0 : numOrUndef('product-shipping-cost');
+
     const product = {
       name:             val('product-name'),
       shortDescription: val('product-short-desc') || undefined,
       bulletPoints:     val('product-bullet-points') || undefined,
       description:      val('product-description'),
-      price:            Number(document.getElementById('product-price')?.value),
-      comparePrice:     numOrNull('product-compare-price'),
-      costPrice:        numOrUndef('product-cost-price'),
+      price:            vendorAmountToGbp(_rawPrice, _dc),
+      comparePrice:     _rawCompare != null ? vendorAmountToGbp(_rawCompare, _dc) : _rawCompare,
+      costPrice:        _rawCost != null ? vendorAmountToGbp(_rawCost, _dc) : _rawCost,
       condition:        val('product-condition') || undefined,
       acceptOffers:     !!(document.getElementById('product-accept-offers')?.checked),
       // Always saved, whether or not it's charged to the buyer — also the
@@ -2893,7 +2919,7 @@ if (form) {
       // is the single source of truth for whether the buyer actually pays
       // it; this used to be a second, independently-set checkbox
       // (#ap-include-ship) that could silently disagree with this mode.
-      shippingCost:     document.getElementById('product-shipping-mode')?.value === 'collection' ? 0 : numOrUndef('product-shipping-cost'),
+      shippingCost:     _rawShip != null ? vendorAmountToGbp(_rawShip, _dc) : _rawShip,
       collectionOnly:   document.getElementById('product-shipping-mode')?.value === 'collection',
       shippingScope:    document.getElementById('product-shipping-scope')?.value || 'worldwide',
       shippingCountries: document.getElementById('product-shipping-scope')?.value === 'custom'
