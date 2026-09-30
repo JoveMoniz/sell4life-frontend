@@ -44,12 +44,22 @@ function vendorAmountFromGbp(gbpAmount, displayCurrency) {
 // Swaps every "(£)" label/placeholder inside `root` to the vendor's real
 // currency symbol, e.g. "Price (£)" -> "Price ($)". A no-op for a GBP
 // vendor. Call once, after the vendor's displayCurrency is known.
+//
+// Only touches direct TEXT NODES of each label — many of these labels have
+// a child <span> (the "*" required marker, or a hint) sitting right after
+// the "(£)" text, so walking .textContent (or skipping any element that
+// has child elements at all) either mangles that child's own text or
+// skips the label entirely. Direct text nodes are the label's own words,
+// untouched by whatever child elements sit alongside them.
 function relabelVendorMoneyFields(root, displayCurrency) {
   if (!displayCurrency || !displayCurrency.currency || displayCurrency.currency === 'GBP') return;
   const symbol = displayCurrency.symbol || '$';
   root.querySelectorAll('label, .ap-hint, span').forEach((el) => {
-    if (el.children.length) return; // only leaf text nodes — avoid mangling nested markup
-    if (el.textContent.includes('(£)')) el.textContent = el.textContent.replace(/\(£\)/g, `(${symbol})`);
+    el.childNodes.forEach((node) => {
+      if (node.nodeType === 3 && node.textContent.includes('(£)')) {
+        node.textContent = node.textContent.replace(/\(£\)/g, `(${symbol})`);
+      }
+    });
   });
   root.querySelectorAll('input[placeholder]').forEach((el) => {
     if (el.placeholder.includes('£')) el.placeholder = el.placeholder.replace(/£/g, symbol);
