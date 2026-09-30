@@ -715,27 +715,36 @@ async function applyVendorNavDot() {
 // HEADER INTERACTIONS
 // =====================================================
 
-document.addEventListener('headerLoaded', () => {
+// Re-reads localStorage's cached user and repaints the header avatar —
+// called on initial header load, and again on a live 'userUpdated' event
+// (e.g. Account Settings saving a new name) so the avatar reflects the
+// change immediately instead of only after a full page reload.
+function updateAccountAvatar() {
   const userRaw = localStorage.getItem('s4l_user');
+  if (!userRaw) return;
 
-  if (userRaw) {
-    try {
-      const user = JSON.parse(userRaw);
-      const displayName = user.name ? user.name.split(' ')[0] : user.username;
-      const initial = (displayName || '?').charAt(0).toUpperCase();
+  try {
+    const user = JSON.parse(userRaw);
+    const displayName = user.name ? user.name.split(' ')[0] : user.username;
+    const initial = (displayName || '?').charAt(0).toUpperCase();
 
-      const desktopBtn = document.getElementById('accountBtnDesktop');
-      const mobileBtn = document.getElementById('accountBtnMobile');
+    const desktopBtn = document.getElementById('accountBtnDesktop');
+    const mobileBtn = document.getElementById('accountBtnMobile');
 
-      [desktopBtn, mobileBtn].forEach((btn) => {
-        if (!btn) return;
-        btn.classList.add('account-avatar-btn', 'logged-in');
-        btn.setAttribute('title', displayName);
-        btn.setAttribute('aria-label', `Account: ${displayName}`);
-        btn.textContent = initial;
-      });
-    } catch {}
-  }
+    [desktopBtn, mobileBtn].forEach((btn) => {
+      if (!btn) return;
+      btn.classList.add('account-avatar-btn', 'logged-in');
+      btn.setAttribute('title', displayName);
+      btn.setAttribute('aria-label', `Account: ${displayName}`);
+      btn.textContent = initial;
+    });
+  } catch {}
+}
+
+document.addEventListener('userUpdated', updateAccountAvatar);
+
+document.addEventListener('headerLoaded', () => {
+  updateAccountAvatar();
 
   // Logged-in vendors get a "Dashboard" link straight to their store instead of the generic "Sell" pitch
   if (localStorage.getItem('s4l_token') && localStorage.getItem('s4l_isVendor') === 'true') {
@@ -874,13 +883,14 @@ document.addEventListener('headerLoaded', () => {
     window.__coreLoaded = true;
     const _p = location.pathname;
     const _isBackoffice = _p.includes('/account/admin/') || _p.includes('/account/vendor/');
-    const _noStickyBar = _p.includes('/thankyou/')
-      || _p.includes('/account/orders.html')
-      || _p.includes('/account/orders-details.html')
-      || _p.includes('/account/register.html')
-      || _p.includes('/account/signin.html')
-      || _p.includes('/cart/cart.html')
-      || _p.includes('/cart/checkout.html');
+    // Reuses the SAME no-header page list as shouldInjectLayout above,
+    // instead of maintaining a second, separately-drifting list — this used
+    // to be its own hardcoded list that was missing forgot-password.html,
+    // reset-password.html and verify-email.html, so the sticky bar's
+    // account dropdown (Sign in/My Orders/My Messages/Account
+    // Settings/Logout) rendered raw and unstyled on those pages, which only
+    // load auth.css, not the site's main CSS.
+    const _noStickyBar = !shouldInjectLayout;
     // Buyer-facing scripts and cookie banner — skip on admin and vendor pages
     if (!_isBackoffice) {
       initCookieBanner();
