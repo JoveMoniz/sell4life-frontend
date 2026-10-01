@@ -60,10 +60,10 @@
                  here: ZIP (area) -> street address (exact) -> City/State
                  (auto-filled, just confirming) -> personal details last. -->
             <label id="checkout-postcode-label">Postcode</label>
-            <input type="text" id="checkout-postcode" />
+            <input type="text" id="checkout-postcode" required />
 
             <label>Address</label>
-            <input type="text" id="checkout-address" placeholder="123 Main Street" />
+            <input type="text" id="checkout-address" placeholder="123 Main Street" required />
 
             <label>Address line 2 <span style="font-weight:400;color:#9ca3af">(optional)</span></label>
             <input type="text" id="checkout-address2" placeholder="Apt, suite, etc." />
@@ -75,10 +75,10 @@
             </div>
 
             <label>City</label>
-            <input type="text" id="checkout-city" />
+            <input type="text" id="checkout-city" required />
 
             <label>Full Name</label>
-            <input type="text" id="checkout-name" placeholder="John Doe" autocomplete="off" />
+            <input type="text" id="checkout-name" placeholder="John Doe" autocomplete="off" required />
 
             <label>Phone</label>
             <input type="tel" id="checkout-phone" placeholder="07…" />

@@ -518,13 +518,21 @@ function readShippingAddress() {
     city: shippingFields.city?.value?.trim() || '',
     county: shippingFields.county?.value?.trim() || '',
     postcode: shippingFields.postcode?.value?.trim() || '',
-    country: shippingFields.country?.value?.trim() || 'GB',
+    // No `|| 'GB'` fallback — in normal use this hidden field is always
+    // pre-populated (GB on load, then GeoIP or the buyer's own typing), so
+    // a genuinely empty value here means something's actually wrong, and
+    // validateShippingAddress below needs to see that as empty, not as a
+    // silently-fabricated country the buyer never actually chose.
+    country: shippingFields.country?.value?.trim() || '',
   };
 }
 
 function validateShippingAddress(addr) {
   if (!addr.name || !addr.address1 || !addr.city || !addr.postcode) {
     return 'Please fill in your name, address, city and postcode.';
+  }
+  if (!addr.country || !countryByCode.has(addr.country)) {
+    return 'Please select your country.';
   }
   const addressFormat = ADDRESS_FORMATS[addr.country] || DEFAULT_ADDRESS_FORMAT;
   if (addressFormat.regionRequired && !addr.county) {
