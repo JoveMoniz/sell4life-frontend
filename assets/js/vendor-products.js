@@ -30,13 +30,10 @@ let _eurRate = null;
   } catch (_) { /* foreign-currency figures just won't show if this fails */ }
 })();
 
-// The VENDOR's own currency (dollar for a US vendor, null for GB/everyone
-// else) — distinct from usdEquiv/eurEquiv above, which key off the
-// PRODUCT's own target market instead. A US vendor sees dollar as the only
-// currency everywhere they touch money on this page, regardless of which
-// market any given product ships to (their own earnings pages work the
-// same way) — the product-market indicator only applies as a fallback for
-// a GB (or other non-US) vendor, same as before this existed.
+// The VENDOR's own ("home") currency — dollar for a US vendor, null (GBP)
+// for GB/everyone else. Used as the primary figure everywhere on this
+// page; fmtSigned/priceCell below layer the PRODUCT's own target market on
+// top of this as a secondary "abroad" figure where relevant.
 let _vendorDisplayCurrency = null;
 (async function loadVendorDisplayCurrency() {
   try {
@@ -62,30 +59,31 @@ function matchesMarket(p, code) {
 function isUsProduct(p) {
   return matchesMarket(p, 'US');
 }
-// Exclusively for American buyers — a custom scope restricted to ONLY 'US'.
-// (worldwide / uk_eu / a custom list including other countries alongside
-// US are all "also US", not "US-only" — see isUsProduct above for that.)
-function isUsExclusive(p) {
+function isGbProduct(p) {
+  return matchesMarket(p, 'GB');
+}
+// Exclusively for ONE market — a custom scope restricted to a single
+// country. (worldwide / uk_eu / a custom list including other countries
+// alongside it are all "also this market", not "exclusive to it".)
+function exclusiveMarketCountry(p) {
   return p?.shippingScope === 'custom'
     && Array.isArray(p?.shippingCountries)
     && p.shippingCountries.length === 1
-    && p.shippingCountries[0] === 'US';
+    ? p.shippingCountries[0]
+    : null;
+}
+// Resolves an ISO country code to its currency info, using whatever live
+// rate we already have — null if we don't have a rate for it (the home/
+// abroad logic below then just skips showing that currency rather than
+// showing a wrong/stale one).
+function currencyForCountryCode(code) {
+  if (code === 'GB') return { currency: 'GBP', symbol: '£', rate: 1 };
+  if (code === 'US') return _usdRate ? { currency: 'USD', symbol: '$', rate: _usdRate } : null;
+  if (EU_CODES.includes(code)) return _eurRate ? { currency: 'EUR', symbol: '€', rate: _eurRate } : null;
+  return null;
 }
 function isEuProduct(p) {
   return EU_CODES.some((code) => matchesMarket(p, code));
-}
-function currencyEquiv(gbpAmount, rate, symbol, cls) {
-  const num = Number(gbpAmount || 0) * rate;
-  const sign = num < 0 ? '-' : '';
-  return ` <span class="${cls}">/ ${sign}${symbol}${Math.abs(num).toFixed(2)}</span>`;
-}
-function usdEquiv(gbpAmount, p) {
-  if (!_usdRate || !isUsProduct(p)) return '';
-  return currencyEquiv(gbpAmount, _usdRate, '$', 'vp-usd-equiv');
-}
-function eurEquiv(gbpAmount, p) {
-  if (!_eurRate || !isEuProduct(p)) return '';
-  return currencyEquiv(gbpAmount, _eurRate, '€', 'vp-usd-equiv');
 }
 // £ + $/€ formatter that keeps the sign consistent across every currency
 // shown — callers pass the real signed number (e.g. fmtSigned(-fees, p))
@@ -93,32 +91,43 @@ function eurEquiv(gbpAmount, p) {
 // which would leave the other figure(s) looking positive even when the £
 // figure is negative.
 //
-// A US vendor sees dollar ONLY, everywhere, regardless of which market a
-// given product ships to — same as their earnings pages. That takes
-// priority over the product-market indicator below, which only kicks in
-// as a fallback for a GB (or other non-US) vendor:
-// a product exclusively for American buyers (isUsExclusive) then shows
-// dollar ONLY — a UK buyer will never see that listing, so pound is
-// irrelevant noise. A product that also serves the US market alongside
-// others shows dollar first, pound second (flipped from pound-first).
+// Symmetric for any vendor's home currency (GBP for a GB vendor, USD for a
+// US vendor, etc. — see _vendorDisplayCurrency above): the vendor's own
+// currency is always shown first, and any OTHER market this specific
+// product also reaches is shown alongside it as a secondary figure — e.g.
+// a US vendor's product that also ships to the UK shows "$75.00 (£60.00)",
+// mirroring exactly what a GB vendor's product selling into the US already
+// showed ("£60.00 ($75.00)") before US vendors existed. A product scoped
+// EXCLUSIVELY to one market that ISN'T the vendor's own shows ONLY that
+// market's currency — home-market buyers can never see that listing, so
+// the vendor's own currency would be irrelevant noise there.
 function fmtSigned(n, p) {
   const num = Number(n || 0);
   const sign = num < 0 ? '-' : '';
-  const gbpText = `${sign}£${Math.abs(num).toFixed(2)}`;
-  if (_vendorDisplayCurrency) {
-    const symbol = _vendorDisplayCurrency.symbol || '$';
-    const converted = Math.abs(num) * _vendorDisplayCurrency.rate;
-    return `${sign}${symbol}${converted.toFixed(2)}`;
+  const abs = Math.abs(num);
+
+  const homeCurrency = _vendorDisplayCurrency?.currency || 'GBP';
+  const homeSymbol    = _vendorDisplayCurrency?.symbol   || '£';
+  const homeRate       = _vendorDisplayCurrency?.rate      || 1;
+  const homeText = `${sign}${homeSymbol}${(abs * homeRate).toFixed(2)}`;
+
+  const exclusiveCountry = exclusiveMarketCountry(p);
+  if (exclusiveCountry) {
+    const cur = currencyForCountryCode(exclusiveCountry);
+    if (cur && cur.currency !== homeCurrency) {
+      return `${sign}${cur.symbol}${(abs * cur.rate).toFixed(2)}`;
+    }
+    return homeText;
   }
-  if (isUsExclusive(p) && _usdRate) {
-    const usd = Math.abs(num) * _usdRate;
-    return `${sign}$${usd.toFixed(2)}`;
-  }
-  if (isUsProduct(p) && _usdRate) {
-    const usd = Math.abs(num) * _usdRate;
-    return `${sign}$${usd.toFixed(2)} <span class="vp-usd-equiv">(${gbpText})</span>${eurEquiv(num, p)}`;
-  }
-  return `${gbpText}${usdEquiv(num, p)}${eurEquiv(num, p)}`;
+
+  const abroad = [];
+  if (homeCurrency !== 'GBP' && isGbProduct(p)) abroad.push({ symbol: '£', rate: 1 });
+  if (homeCurrency !== 'USD' && isUsProduct(p) && _usdRate) abroad.push({ symbol: '$', rate: _usdRate });
+  if (homeCurrency !== 'EUR' && isEuProduct(p) && _eurRate) abroad.push({ symbol: '€', rate: _eurRate });
+  if (!abroad.length) return homeText;
+
+  const abroadText = abroad.map((c) => `${sign}${c.symbol}${(abs * c.rate).toFixed(2)}`).join(' / ');
+  return `${homeText} <span class="vp-usd-equiv">(${abroadText})</span>`;
 }
 
 // Styled confirm()/alert() (window.s4lConfirm/s4lAlert) come from the
@@ -245,28 +254,40 @@ function videoBadge(p) {
 
 // Inline-editable price, shown on both card and list views. Professional+
 // only — the /products/bulk PATCH it saves through is tier-gated server-side.
-// For a US vendor, the input itself shows and accepts a real dollar amount
+// The editable INPUT always shows/accepts the vendor's own home currency
 // (converted to/from the GBP value actually stored — see the 'change'
-// handler below, which converts back before PATCHing). For every other
-// vendor the input stays £ exactly as before, with the product-market
-// foreign-currency suffix as a secondary read-only annotation.
+// handler below) — consistent across every one of their products, rather
+// than flipping currency per-product based on that product's own market.
+// The read-only suffix shows what OTHER market(s) this specific product
+// also reaches, same symmetric home/abroad logic as fmtSigned above — a
+// product exclusively scoped to a market that ISN'T the vendor's own shows
+// ONLY that market's currency in the suffix, since home-market buyers can
+// never see that listing anyway.
 function priceCell(p, id) {
   const gbp = Number(p.price || 0);
-  if (_vendorDisplayCurrency) {
-    const symbol = _vendorDisplayCurrency.symbol || '$';
-    const shown = (gbp * _vendorDisplayCurrency.rate).toFixed(2);
-    if (!_isPro) return `<span class="price">${symbol}${shown}</span>`;
-    return `<span class="vp-price-edit-wrap" title="Click to edit price">
-      <span class="vp-price-currency">${symbol}</span><input type="number" class="vp-price-edit" data-id="${id}" data-orig="${shown}" value="${shown}" step="0.01" min="0.01" draggable="false" />
-    </span>`;
+  const homeCurrency = _vendorDisplayCurrency?.currency || 'GBP';
+  const homeSymbol    = _vendorDisplayCurrency?.symbol   || '£';
+  const homeRate       = _vendorDisplayCurrency?.rate      || 1;
+  const shown = (gbp * homeRate).toFixed(2);
+
+  let foreign = '';
+  const exclusiveCountry = exclusiveMarketCountry(p);
+  if (exclusiveCountry) {
+    const cur = currencyForCountryCode(exclusiveCountry);
+    if (cur && cur.currency !== homeCurrency) {
+      foreign = ` <span class="vp-usd-equiv">(${cur.symbol}${(gbp * cur.rate).toFixed(2)} to ${exclusiveCountry} buyers)</span>`;
+    }
+  } else {
+    const abroad = [];
+    if (homeCurrency !== 'GBP' && isGbProduct(p)) abroad.push({ symbol: '£', rate: 1 });
+    if (homeCurrency !== 'USD' && isUsProduct(p) && _usdRate) abroad.push({ symbol: '$', rate: _usdRate });
+    if (homeCurrency !== 'EUR' && isEuProduct(p) && _eurRate) abroad.push({ symbol: '€', rate: _eurRate });
+    foreign = abroad.map((c) => ` <span class="vp-usd-equiv">/ ${c.symbol}${(gbp * c.rate).toFixed(2)}</span>`).join('');
   }
-  const val = gbp.toFixed(2);
-  const foreign = isUsExclusive(p) && _usdRate
-    ? ` <span class="vp-usd-equiv">(${'$' + (Number(val) * _usdRate).toFixed(2)} to US buyers)</span>`
-    : `${usdEquiv(val, p)}${eurEquiv(val, p)}`;
-  if (!_isPro) return `<span class="price">£${val}</span>${foreign}`;
+
+  if (!_isPro) return `<span class="price">${homeSymbol}${shown}</span>${foreign}`;
   return `<span class="vp-price-edit-wrap" title="Click to edit price">
-    <span class="vp-price-currency">£</span><input type="number" class="vp-price-edit" data-id="${id}" data-orig="${val}" value="${val}" step="0.01" min="0.01" draggable="false" />
+    <span class="vp-price-currency">${homeSymbol}</span><input type="number" class="vp-price-edit" data-id="${id}" data-orig="${shown}" value="${shown}" step="0.01" min="0.01" draggable="false" />
   </span>${foreign}`;
 }
 
