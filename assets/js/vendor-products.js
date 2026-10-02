@@ -42,14 +42,17 @@ let _vendorDisplayCurrency = null;
     if (res.ok) _vendorDisplayCurrency = (await res.json()).displayCurrency || null;
   } catch (_) { /* falls back to GBP + product-market indicator */ }
 
-  // Two static bulk-edit-panel labels ("→ £" / "Adjust by £") aren't
-  // covered by relabelVendorMoneyFields (no "(£)" pattern to match) —
-  // swap them directly once the vendor's currency is known.
+  // Static labels that aren't covered by relabelVendorMoneyFields (no
+  // "(£)" pattern to match) — swap them directly once the vendor's
+  // currency is known: the two bulk-edit-panel labels ("→ £" / "Adjust by
+  // £") and the "Filter by total cost £" toolbar filter.
   if (_vendorDisplayCurrency) {
     const symbol = _vendorDisplayCurrency.symbol || '$';
     document.querySelectorAll('.vp-bulk-markup-lbl').forEach((el) => {
       if (el.textContent.includes('£')) el.textContent = el.textContent.replace(/£/g, symbol);
     });
+    const costFilterSym = document.getElementById('vp-cost-filter-currency');
+    if (costFilterSym) costFilterSym.textContent = symbol;
   }
 })();
 function matchesMarket(p, code) {
@@ -635,10 +638,12 @@ function bindToolbar() {
 
   const costMin = document.getElementById('vp-cost-min');
   const costMax = document.getElementById('vp-cost-max');
+  // Typed in the vendor's own currency — converted to GBP, since _costMin/
+  // _costMax are compared against p.costPrice/p.shippingCost (always GBP).
   if (costMin) {
     costMin.addEventListener('input', e => {
       const v = parseFloat(e.target.value);
-      _costMin = Number.isFinite(v) ? v : null;
+      _costMin = Number.isFinite(v) ? vendorAmountToGbp(v, _vendorDisplayCurrency) : null;
       updateClearFiltersBtn();
       renderProducts();
     });
@@ -646,7 +651,7 @@ function bindToolbar() {
   if (costMax) {
     costMax.addEventListener('input', e => {
       const v = parseFloat(e.target.value);
-      _costMax = Number.isFinite(v) ? v : null;
+      _costMax = Number.isFinite(v) ? vendorAmountToGbp(v, _vendorDisplayCurrency) : null;
       updateClearFiltersBtn();
       renderProducts();
     });
