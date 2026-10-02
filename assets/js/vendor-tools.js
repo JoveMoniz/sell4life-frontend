@@ -7,6 +7,50 @@ const HEIC_CDN = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.
 let _fmt     = 'image/jpeg';
 let _quality = 0.85;
 
+// The vendor's own currency (dollar for a US vendor, null for GB/everyone
+// else) — most suppliers (CJ included) price in USD, so a US vendor
+// re-converting that USD cost to GBP and then back to USD for their own
+// display was two unnecessary, independently-drifting conversions. This
+// lets the CSV tool work in the vendor's own currency throughout the
+// preview (True Cost, Adjust by, price bands) and default the source-
+// currency picker to USD for them — the actual generated CSV still writes
+// real GBP numbers either way, since that's what Product.price requires
+// regardless of vendor country.
+let _vendorDisplayCurrency = null;
+(async function loadVendorDisplayCurrency() {
+  try {
+    const token = localStorage.getItem('s4l_token');
+    const res = await fetch(`${window.API_BASE}/vendor/me`, { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) _vendorDisplayCurrency = (await res.json()).displayCurrency || null;
+  } catch (_) { /* falls back to GBP-only behavior */ }
+
+  if (_vendorDisplayCurrency && _vendorDisplayCurrency.currency === 'USD') {
+    const sel = document.getElementById('csv-currency');
+    const usdOpt = sel?.querySelector('option[value="0.79"]');
+    if (usdOpt) {
+      // Live raw rate instead of the old static approximation — the SAME
+      // rate source the vendor's own pages use, so what they see here
+      // matches what they'll see later on My Products/Dashboard/etc.
+      usdOpt.value = String(_vendorDisplayCurrency.rate);
+      usdOpt.textContent = `USD → GBP (× ${_vendorDisplayCurrency.rate.toFixed(4)}, live)`;
+      if (sel) sel.value = usdOpt.value;
+    }
+    // "Adjust by £:" has no "(£)" pattern for relabelVendorMoneyFields to
+    // match — swap its text directly.
+    document.querySelectorAll('.csv-calc-row label').forEach((el) => {
+      if (el.textContent.includes('£')) el.textContent = el.textContent.replace(/£/g, _vendorDisplayCurrency.symbol);
+    });
+  }
+})();
+
+// Resolves the {cur} placeholder in S4L_FIELDS labels (e.g. "Retail Price
+// ({cur})") to the vendor's own currency symbol, '£' otherwise. Called at
+// render time, not baked into the constant, since the currency fetch
+// above is async.
+function fieldLabel(label) {
+  return label.replace('{cur}', _vendorDisplayCurrency ? _vendorDisplayCurrency.symbol : '£');
+}
+
 /* ── HEIC loader (lazy) ────────────────────────────── */
 
 async function loadHeic2Any() {
@@ -214,7 +258,7 @@ const S4L_FIELDS = [
   { key: 'attr2value',         label: 'Variant Attribute 2 — Column', required: false, isAttr: true, attrNameKey: 'attr2name', attrDefault: 'Size' },
   { key: 'attr3value',         label: 'Variant Attribute 3 — Column', required: false, isAttr: true, attrNameKey: 'attr3name', attrDefault: 'Model' },
   { key: 'costPrice',          label: 'Cost Price',           required: false },
-  { key: 'price',              label: 'Retail Price (£)',     required: false },
+  { key: 'price',              label: 'Retail Price ({cur})', required: false },
   { key: 'comparePrice',       label: 'Compare Price',        required: false },
   { key: 'shippingCost',       label: 'Shipping Cost',        required: false },
   { key: 'shippingFrom',       label: 'Shipping From (warehouse)', required: false },
@@ -319,6 +363,33 @@ function autoDetect(headers) {
   return map;
 }
 
+// The attribute NAME (what to call it — "Colour", "Model", "Size") is
+// separate from which column holds its values, and used to always default
+// to a hardcoded Colour/Size/Model regardless of the actual source data —
+// so a genuine "Model" column got mislabelled "Size" on every import.
+// Use the source file's own header text for whichever column got mapped
+// to each attribute slot, since that's usually the real attribute name
+// (e.g. a column literally called "Model" or "Style"). Only fall back to
+// the generic default when the source header itself is too vague to be a
+// real label (common supplier-export placeholders like "Variant" or
+// "Specification" that don't say what the attribute actually is).
+const GENERIC_ATTR_HEADERS = new Set([
+  'variant', 'variants', 'variation', 'variations', 'option', 'options',
+  'attribute', 'attributes', 'specification', 'spec', 'value', 'values',
+]);
+function detectAttrName(sourceHeader, fallback) {
+  const h = String(sourceHeader || '').trim();
+  if (!h || GENERIC_ATTR_HEADERS.has(h.toLowerCase())) return fallback;
+  return h.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+function autoDetectAttrNames(mapping) {
+  return {
+    attr1name: detectAttrName(mapping.attr1value, 'Colour'),
+    attr2name: detectAttrName(mapping.attr2value, 'Size'),
+    attr3name: detectAttrName(mapping.attr3value, 'Model'),
+  };
+}
+
 /* ── Price / True Cost calculator ───────────────── */
 
 function getCurrencyRate() {
@@ -334,10 +405,12 @@ function getMarkup() {
   return parseFloat(document.getElementById('csv-markup')?.value) || 0;
 }
 
-// Flat £ delta and/or round-to-.99, applied after markup/currency — same
-// relationship as the ± Adjust bulk tool on the My Products page.
+// Flat delta (typed in the vendor's own currency, converted to GBP here
+// since `price` is always GBP) and/or round-to-.99, applied after markup/
+// currency — same relationship as the ± Adjust bulk tool on My Products.
 function applyPriceAdjustment(price) {
-  const amount  = parseFloat(document.getElementById('csv-adjust-amount')?.value) || 0;
+  const typedAmount = parseFloat(document.getElementById('csv-adjust-amount')?.value) || 0;
+  const amount = _vendorDisplayCurrency ? vendorAmountToGbp(typedAmount, _vendorDisplayCurrency) : typedAmount;
   const round99 = document.getElementById('csv-round99')?.checked;
   let p = price + amount;
   if (p < 0.01) p = 0.01;
@@ -390,7 +463,7 @@ function renderBandRows() {
   if (!wrap) return;
   wrap.innerHTML = _priceBands.map((b, i) => `
     <div class="csv-band-row" data-idx="${i}" style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:0.85rem">
-      <span>&pound;</span>
+      <span>${_vendorDisplayCurrency ? _vendorDisplayCurrency.symbol : '£'}</span>
       <input type="number" class="csv-band-min" min="0" step="0.01" placeholder="0" value="${b.min ?? ''}" style="width:64px" />
       <span>&ndash;</span>
       <input type="number" class="csv-band-max" min="0" step="0.01" placeholder="and up" value="${b.max ?? ''}" style="width:72px" />
@@ -423,9 +496,14 @@ function renderBandRows() {
 }
 
 function applyPriceBands() {
+  // Band min/max are typed (and shown) in the vendor's own currency, but
+  // trueCostForRow() below always returns GBP — convert the boundaries to
+  // GBP here, at the comparison point, rather than changing what's stored/
+  // displayed in _priceBands itself.
+  const toGbp = (v) => (v != null && _vendorDisplayCurrency) ? vendorAmountToGbp(v, _vendorDisplayCurrency) : v;
   const bands = _priceBands
     .filter((b) => b.markup != null && !isNaN(b.markup))
-    .map((b) => ({ min: b.min ?? -Infinity, max: b.max ?? Infinity, markup: b.markup }));
+    .map((b) => ({ min: toGbp(b.min) ?? -Infinity, max: toGbp(b.max) ?? Infinity, markup: b.markup }));
   const msg = document.getElementById('csv-band-msg');
   if (!bands.length) {
     if (msg) msg.textContent = 'Add at least one band with a markup % first.';
@@ -457,18 +535,23 @@ function updateCalcExample() {
   const markup = getMarkup();
   const ship   = getRowShipping(0);
   const result = applyPriceCalc(sample, ship);
+  // result/trueCost are computed in GBP (rate converts source → GBP) —
+  // shown in the vendor's own currency; raw/ship stay as typed in the
+  // source spreadsheet's own currency, unconverted.
+  const sym = _vendorDisplayCurrency ? _vendorDisplayCurrency.symbol : '£';
+  const toDisp = (v) => _vendorDisplayCurrency ? vendorAmountFromGbp(Number(v), _vendorDisplayCurrency).toFixed(2) : Number(v).toFixed(2);
   if (useTrueCost) {
-    const trueCost = ((raw + ship) * rate).toFixed(2);
+    const trueCost = toDisp((raw + ship) * rate);
     el.innerHTML = `e.g. cost <span class="csv-calc-from">${raw}</span>`
       + (ship ? ` + ship <span class="csv-calc-from">${ship.toFixed(2)}</span>` : '')
-      + ` × ${rate} = <span class="csv-calc-from">£${trueCost}</span>`
+      + ` × ${rate} = <span class="csv-calc-from">${sym}${trueCost}</span>`
       + (markup ? ` × ${(1 + markup / 100).toFixed(2)}` : '')
-      + ` → <span class="csv-calc-to">£${result}</span>`;
+      + ` → <span class="csv-calc-to">${sym}${toDisp(result)}</span>`;
   } else {
     const parts = [];
     if (rate !== 1) parts.push(`× ${rate} (rate)`);
     if (markup)     parts.push(`× ${(1 + markup / 100).toFixed(2)} (markup)`);
-    el.innerHTML = `e.g. <span class="csv-calc-from">${raw}</span> → <span class="csv-calc-to">£${result}</span>${parts.length ? ` <span class="csv-calc-steps">(${parts.join(' ')})</span>` : ''}`;
+    el.innerHTML = `e.g. <span class="csv-calc-from">${raw}</span> → <span class="csv-calc-to">${sym}${toDisp(result)}</span>${parts.length ? ` <span class="csv-calc-steps">(${parts.join(' ')})</span>` : ''}`;
   }
 }
 
@@ -659,6 +742,7 @@ function loadSheet(sheetName) {
   _priceBands    = [{ min: null, max: null, markup: null }];
   _selectedRows  = new Set(_rows.map((_, i) => i));
   _mapping = autoDetect(_headers);
+  _attrNames = autoDetectAttrNames(_mapping);
   renderMapper();
   renderPreview();
   renderBandRows();
@@ -750,7 +834,7 @@ function renderMapper() {
       </div>`;
     }
     return `${sep}<div class="csv-map-row">
-      <label class="csv-map-label">${label}${required ? '<span class="csv-required-mark"> *</span>' : ''}</label>
+      <label class="csv-map-label">${fieldLabel(label)}${required ? '<span class="csv-required-mark"> *</span>' : ''}</label>
       <select class="csv-map-select" data-key="${key}">${opts}</select>
       <span class="csv-map-preview" id="csv-mp-${key}"></span>
     </div>`;
@@ -767,6 +851,15 @@ function renderMapper() {
         _shippingCosts = {};
         updateAutofetchVisibility();
         if (_autoFetch) fetchShippingCosts();
+      }
+      // Picking a different source column for an attribute slot should
+      // re-guess its name too, same as the initial auto-detect — otherwise
+      // switching from an unmapped attr2 to a genuine "Model" column keeps
+      // showing the unrelated name left over from before.
+      const attrField = S4L_FIELDS.find(f => f.key === key && f.isAttr);
+      if (attrField) {
+        _attrNames[attrField.attrNameKey] = detectAttrName(sel.value, attrField.attrDefault);
+        renderMapper();
       }
       renderPreview();
     });
@@ -815,7 +908,7 @@ function renderPreview() {
   const allChecked = _rows.every((_, i) => _selectedRows.has(i));
   let headerHtml = `<th style="width:32px"><input type="checkbox" id="csv-select-all" ${allChecked ? 'checked' : ''} title="Select / deselect all" /></th>`;
   headerHtml += displayFields.map(f =>
-    `<th>${f.isAttr && _attrNames[f.attrNameKey] ? _attrNames[f.attrNameKey] : f.label}</th>`
+    `<th>${f.isAttr && _attrNames[f.attrNameKey] ? _attrNames[f.attrNameKey] : fieldLabel(f.label)}</th>`
   ).join('');
   if (useTrueCost) {
     headerHtml += '<th>Item Cost</th><th>Shipping</th><th>True Cost</th><th style="min-width:80px">Markup %</th>';
@@ -850,10 +943,14 @@ function renderPreview() {
       const costRaw  = parseFloat(String(row[_mapping['costPrice']] ?? '').replace(/[^0-9.-]/g, '')) || 0;
       const shipUSD  = getRowShipping(i);
       const hasShip  = shipUSD > 0;
-      const trueCost = ((costRaw + shipUSD) * rate).toFixed(2);
-      cells += `<td>£${(costRaw * rate).toFixed(2)}</td>`
-             + `<td>${hasShip ? `£${(shipUSD * rate).toFixed(2)}` : '<span style="color:#9ca3af">—</span>'}</td>`
-             + `<td>£${trueCost}</td>`
+      // All three are computed in GBP (rate converts source → GBP) — shown
+      // in the vendor's own currency.
+      const sym = _vendorDisplayCurrency ? _vendorDisplayCurrency.symbol : '£';
+      const toDisp = (v) => (_vendorDisplayCurrency ? vendorAmountFromGbp(v, _vendorDisplayCurrency) : v).toFixed(2);
+      const trueCost = toDisp((costRaw + shipUSD) * rate);
+      cells += `<td>${sym}${toDisp(costRaw * rate)}</td>`
+             + `<td>${hasShip ? `${sym}${toDisp(shipUSD * rate)}` : '<span style="color:#9ca3af">—</span>'}</td>`
+             + `<td>${sym}${trueCost}</td>`
              + `<td><input type="number" class="csv-row-markup" data-row="${i}" min="0" max="999" value="${markup}" /></td>`;
     }
 
@@ -1085,7 +1182,7 @@ function generateCSV() {
 
 function validateFields() {
   const required = S4L_FIELDS.filter(f => f.required && !_mapping[f.key]);
-  if (required.length) return `Map required fields first: ${required.map(f => f.label).join(', ')}`;
+  if (required.length) return `Map required fields first: ${required.map(f => fieldLabel(f.label)).join(', ')}`;
   if (!_mapping['price'] && !_mapping['costPrice']) {
     return 'Map either "Retail Price" or "Cost Price" — at least one is needed to set a price';
   }
