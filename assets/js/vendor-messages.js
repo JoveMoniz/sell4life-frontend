@@ -6,6 +6,14 @@
   const params        = new URLSearchParams(window.location.search);
   let   activeConvoId = params.get('id') || null;
 
+  // US vendor sees/types dollar offer amounts, same as everywhere else on
+  // their own pages — converted to/from the GBP value actually stored.
+  let displayCurrency = null;
+  try {
+    const meRes = await fetch(`${API}/vendor/me`, { headers: { Authorization: `Bearer ${tok}` } });
+    if (meRes.ok) displayCurrency = (await meRes.json()).displayCurrency || null;
+  } catch { /* falls back to GBP */ }
+
   function fmt(iso) {
     if (!iso) return '';
     const d = new Date(iso);
@@ -55,12 +63,12 @@
           <button type="button" class="msg-offer-btn counter" data-action="counter-open">Counter</button>
         </div>
         <div class="msg-offer-counter-row" id="counter-row-${m._id}" style="display:none">
-          <input type="number" class="msg-offer-counter-input" id="counter-input-${m._id}" min="0.01" step="0.01" placeholder="Your counter (£)" />
+          <input type="number" class="msg-offer-counter-input" id="counter-input-${m._id}" min="0.01" step="0.01" placeholder="Your counter (${displayCurrency ? displayCurrency.symbol : '£'})" />
           <button type="button" class="msg-offer-btn counter" data-action="counter-send">Send</button>
         </div>`;
     }
     return `<div class="msg-offer-card ${mine ? 'mine' : 'theirs'}" data-offer-msg-id="${m._id}">
-      <div class="msg-offer-amount">£${m.offerAmount.toFixed(2)}</div>
+      <div class="msg-offer-amount">${fmtVendorMoney(m.offerAmount, displayCurrency)}</div>
       <div class="msg-offer-status status-${m.offerStatus}">${label}</div>
       ${actions}
       <div class="msg-bubble-time">${fmt(m.createdAt)}</div>
@@ -182,8 +190,11 @@
       let payload = { action };
       if (action === 'counter-send') {
         const input = document.getElementById(`counter-input-${msgId}`);
-        const amount = Number(input?.value);
-        if (!Number.isFinite(amount) || amount <= 0) { window.showToast?.('Enter a valid counter amount', 'error'); return; }
+        const typedAmount = Number(input?.value);
+        if (!Number.isFinite(typedAmount) || typedAmount <= 0) { window.showToast?.('Enter a valid counter amount', 'error'); return; }
+        // Vendor typed this in their own currency — convert to GBP before
+        // sending, since every offer amount is stored in GBP platform-wide.
+        const amount = vendorAmountToGbp(typedAmount, displayCurrency);
         payload = { action: 'counter', amount };
       }
 

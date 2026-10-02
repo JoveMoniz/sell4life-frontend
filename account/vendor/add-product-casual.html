@@ -395,6 +395,7 @@
     <script src="/assets/js/config-global.js"></script>
     <script src="/assets/js/icons.js"></script>
     <script src="/assets/js/client-info.js"></script>
+    <script src="/assets/js/vendor-currency-display.js?v=20261002a"></script>
     <script src="/assets/js/countries.js"></script>
     <script>
       // Redirect non-casual vendors to the full form
@@ -402,6 +403,18 @@
       if (_tier && _tier !== 'casual') {
         window.location.replace('/account/vendor/add-product.html');
       }
+
+      // US vendor types/sees dollar prices here too — converted to GBP
+      // before saving (every price is stored in GBP platform-wide).
+      let displayCurrency = null;
+      (async function loadDisplayCurrency() {
+        try {
+          const token = localStorage.getItem('s4l_token');
+          const res = await fetch(`${window.API_BASE}/vendor/me`, { headers: { Authorization: `Bearer ${token}` } });
+          if (res.ok) displayCurrency = (await res.json()).displayCurrency || null;
+          if (displayCurrency) relabelVendorMoneyFields(document, displayCurrency);
+        } catch { /* falls back to GBP */ }
+      })();
 
       const CLD_CLOUD  = 'djpkj0s7w';
       const CLD_PRESET = 'lhhkniqv';
@@ -1173,10 +1186,14 @@
         if (pending.size) { showMsg('Please wait  photos still uploading.', 'error'); return; }
 
         const title     = document.getElementById('cl-title').value.trim();
-        const price     = parseFloat(document.getElementById('cl-price').value);
-        const comparePrice = parseFloat(document.getElementById('cl-compare-price').value) || null;
+        // Typed in the vendor's own currency (dollar for a US vendor) —
+        // convert to GBP before validating/sending, since every price is
+        // stored in GBP platform-wide.
+        const toGbp = (v) => (v != null && !Number.isNaN(v) && displayCurrency) ? vendorAmountToGbp(v, displayCurrency) : v;
+        const price     = toGbp(parseFloat(document.getElementById('cl-price').value));
+        const comparePrice = toGbp(parseFloat(document.getElementById('cl-compare-price').value) || null);
         const shippingMode = document.getElementById('cl-shipping-mode').value;
-        const shippingInputVal = parseFloat(document.getElementById('cl-shipping').value);
+        const shippingInputVal = toGbp(parseFloat(document.getElementById('cl-shipping').value));
         const shipping = shippingMode === 'charge' ? shippingInputVal : 0;
         const collectionOnly = shippingMode === 'collection';
         const shippingScope = document.getElementById('cl-shipping-scope').value;
@@ -1278,9 +1295,12 @@
           const data = await res.json();
           const prices = (data.products || []).map((p) => Number(p.price)).filter((n) => n > 0).sort((a, b) => a - b);
           if (prices.length < 3) { guidanceEl.style.display = 'none'; return; }
-          const lo = prices[Math.floor(prices.length * 0.25)];
-          const hi = prices[Math.min(prices.length - 1, Math.ceil(prices.length * 0.75))];
-          guidanceEl.textContent = `Similar items sell for around £${lo.toFixed(2)}  £${hi.toFixed(2)} (based on ${prices.length} listings)`;
+          // Prices from the API are always GBP — convert to the vendor's
+          // own currency to match what they're typing above.
+          const lo = displayCurrency ? vendorAmountFromGbp(prices[Math.floor(prices.length * 0.25)], displayCurrency) : prices[Math.floor(prices.length * 0.25)];
+          const hi = displayCurrency ? vendorAmountFromGbp(prices[Math.min(prices.length - 1, Math.ceil(prices.length * 0.75))], displayCurrency) : prices[Math.min(prices.length - 1, Math.ceil(prices.length * 0.75))];
+          const sym = displayCurrency ? displayCurrency.symbol : '£';
+          guidanceEl.textContent = `Similar items sell for around ${sym}${lo.toFixed(2)}  ${sym}${hi.toFixed(2)} (based on ${prices.length} listings)`;
           guidanceEl.style.display = 'block';
         } catch {
           guidanceEl.style.display = 'none';

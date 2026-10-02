@@ -44,6 +44,16 @@ let _vendorDisplayCurrency = null;
     const res = await fetch(`${window.API_BASE}/vendor/me`, { headers: { Authorization: `Bearer ${token}` } });
     if (res.ok) _vendorDisplayCurrency = (await res.json()).displayCurrency || null;
   } catch (_) { /* falls back to GBP + product-market indicator */ }
+
+  // Two static bulk-edit-panel labels ("→ £" / "Adjust by £") aren't
+  // covered by relabelVendorMoneyFields (no "(£)" pattern to match) —
+  // swap them directly once the vendor's currency is known.
+  if (_vendorDisplayCurrency) {
+    const symbol = _vendorDisplayCurrency.symbol || '$';
+    document.querySelectorAll('.vp-bulk-markup-lbl').forEach((el) => {
+      if (el.textContent.includes('£')) el.textContent = el.textContent.replace(/£/g, symbol);
+    });
+  }
 })();
 function matchesMarket(p, code) {
   return p?.shippingOriginCountry === code
@@ -1872,7 +1882,9 @@ function updateBulkPreview() {
     .map(p => calcRetailPrice(p.costPrice, p.shippingCost, markupPct, inclShip?.checked))
     .filter(x => x !== null);
   if (!prices.length) { priceInput.value = ''; priceInput.placeholder = '0.00'; return; }
-  const min = Math.min(...prices), max = Math.max(...prices);
+  // Computed in GBP — convert to the vendor's own currency for display only.
+  const toDisplay = (v) => _vendorDisplayCurrency ? vendorAmountFromGbp(v, _vendorDisplayCurrency) : v;
+  const min = toDisplay(Math.min(...prices)), max = toDisplay(Math.max(...prices));
   if (min === max) {
     priceInput.value = min.toFixed(2);
     priceInput.placeholder = '0.00';
@@ -1889,9 +1901,12 @@ function updateBulkMarkupFromPrice() {
   const priceInput  = document.getElementById('vp-bulk-price');
   const markupInput = document.getElementById('vp-bulk-markup');
   const inclShip    = document.getElementById('vp-bulk-incl-ship');
-  const price = parseFloat(priceInput?.value);
+  const typedPrice = parseFloat(priceInput?.value);
   if (!markupInput) return;
-  if (isNaN(price) || price <= 0) { markupInput.value = ''; markupInput.placeholder = ''; return; }
+  if (isNaN(typedPrice) || typedPrice <= 0) { markupInput.value = ''; markupInput.placeholder = ''; return; }
+  // Typed in the vendor's own currency — convert to GBP, since costPrice/
+  // shippingCost (used below) are always GBP.
+  const price = _vendorDisplayCurrency ? vendorAmountToGbp(typedPrice, _vendorDisplayCurrency) : typedPrice;
 
   const selectedProducts = [..._selected]
     .map(id => _allProducts.find(x => (x._id || x.id) === id))
@@ -1934,7 +1949,10 @@ function updateAdjustPreview() {
   const amountInput = document.getElementById('vp-bulk-adjust-amount');
   const round99     = document.getElementById('vp-bulk-round99')?.checked;
   if (!preview) return;
-  const amount = parseFloat(amountInput?.value) || 0;
+  // The vendor typed this in their own currency (dollar for a US vendor) —
+  // convert to GBP before applying, since p.price is always GBP.
+  const typedAmount = parseFloat(amountInput?.value) || 0;
+  const amount = _vendorDisplayCurrency ? vendorAmountToGbp(typedAmount, _vendorDisplayCurrency) : typedAmount;
   if (amount === 0 && !round99) { preview.textContent = ''; return; }
 
   const selectedProducts = [..._selected]
@@ -1944,7 +1962,9 @@ function updateAdjustPreview() {
 
   const prices = selectedProducts.map(p => applyPriceAdjust(p.price, amount, round99));
   const min = Math.min(...prices), max = Math.max(...prices);
-  preview.textContent = min === max ? `→ £${min.toFixed(2)}` : `→ £${min.toFixed(2)}–£${max.toFixed(2)}`;
+  preview.textContent = min === max
+    ? `→ ${fmtVendorMoney(min, _vendorDisplayCurrency)}`
+    : `→ ${fmtVendorMoney(min, _vendorDisplayCurrency)}–${fmtVendorMoney(max, _vendorDisplayCurrency)}`;
 }
 
 document.getElementById('vp-bulk-adjust-amount')?.addEventListener('input', updateAdjustPreview);
@@ -1984,7 +2004,10 @@ document.getElementById('btn-bulk-edit-apply')?.addEventListener('click', async 
   if (mode === 'adjust') {
     const amountInput = document.getElementById('vp-bulk-adjust-amount');
     const round99      = document.getElementById('vp-bulk-round99')?.checked;
-    const amount = parseFloat(amountInput?.value) || 0;
+    // Typed in the vendor's own currency — convert to GBP before applying,
+    // since every product's price is stored in GBP platform-wide.
+    const typedAmount = parseFloat(amountInput?.value) || 0;
+    const amount = _vendorDisplayCurrency ? vendorAmountToGbp(typedAmount, _vendorDisplayCurrency) : typedAmount;
 
     if (amount === 0 && !round99) {
       window.showToast?.('Enter an amount or enable Round to .99', 'error');
@@ -1999,7 +2022,7 @@ document.getElementById('btn-bulk-edit-apply')?.addEventListener('click', async 
       return { id, price, markupPct };
     }).filter(Boolean);
 
-    const amountLabel = amount !== 0 ? `${amount > 0 ? '+' : ''}£${amount.toFixed(2)}` : '';
+    const amountLabel = typedAmount !== 0 ? `${typedAmount > 0 ? '+' : ''}${fmtVendorMoney(typedAmount, _vendorDisplayCurrency)}` : '';
     const actionLabel = [amountLabel, round99 ? 'round to .99' : ''].filter(Boolean).join(' and ');
     const msg = `Apply ${actionLabel} to ${updates.length} product${updates.length !== 1 ? 's' : ''}?`;
     const confirmed = await window.confirmAction?.(msg);
@@ -2042,12 +2065,15 @@ document.getElementById('btn-bulk-edit-apply')?.addEventListener('click', async 
   if (mode === 'markup' && _bulkLastEdited === 'price') {
     const priceInput = document.getElementById('vp-bulk-price');
     const inclShip    = document.getElementById('vp-bulk-incl-ship');
-    const flatPrice   = parseFloat(priceInput?.value);
+    const typedPrice  = parseFloat(priceInput?.value);
 
-    if (isNaN(flatPrice) || flatPrice <= 0) {
+    if (isNaN(typedPrice) || typedPrice <= 0) {
       window.showToast?.('Enter a valid price', 'error');
       return;
     }
+    // Typed in the vendor's own currency — convert to GBP for storage,
+    // since every product's price is stored in GBP platform-wide.
+    const flatPrice = _vendorDisplayCurrency ? vendorAmountToGbp(typedPrice, _vendorDisplayCurrency) : typedPrice;
 
     // Same flat price for every selected product; markup% is derived per
     // product from its own cost (for record-keeping) and simply omitted
@@ -2059,7 +2085,7 @@ document.getElementById('btn-bulk-edit-apply')?.addEventListener('click', async 
       return { id, price: flatPrice, markupPct };
     }).filter(Boolean);
 
-    const msg = `Set price to £${flatPrice.toFixed(2)} for ${updates.length} product${updates.length !== 1 ? 's' : ''}?`;
+    const msg = `Set price to ${fmtVendorMoney(flatPrice, _vendorDisplayCurrency)} for ${updates.length} product${updates.length !== 1 ? 's' : ''}?`;
     const confirmed = await window.confirmAction?.(msg);
     if (!confirmed) return;
 
@@ -2125,7 +2151,9 @@ document.getElementById('btn-bulk-edit-apply')?.addEventListener('click', async 
     const shipLabel = inclShip?.checked ? ' + shipping' : '';
     const prices = updates.map(u => u.price);
     const minP = Math.min(...prices), maxP = Math.max(...prices);
-    const priceStr = minP === maxP ? `£${minP.toFixed(2)}` : `£${minP.toFixed(2)}–£${maxP.toFixed(2)}`;
+    const priceStr = minP === maxP
+      ? fmtVendorMoney(minP, _vendorDisplayCurrency)
+      : `${fmtVendorMoney(minP, _vendorDisplayCurrency)}–${fmtVendorMoney(maxP, _vendorDisplayCurrency)}`;
     const msg = `Apply ${markupPct}%${shipLabel} markup to ${updates.length} product${updates.length !== 1 ? 's' : ''} → ${priceStr}${skipped ? ` (${skipped} skipped — no cost price)` : ''}?`;
     const confirmed = await window.confirmAction?.(msg);
     if (!confirmed) return;
