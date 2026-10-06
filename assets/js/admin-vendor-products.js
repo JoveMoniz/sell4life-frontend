@@ -80,10 +80,10 @@ function renderInfoBar(v) {
         ? 'background:#fee2e2;color:#991b1b'
         : 'background:#fef9c3;color:#854d0e';
   bar.innerHTML = `
-    <strong>${v.storeName}</strong>
-    ${v.storeSlug ? `<span style="color:#9ca3af;font-size:11px">@${v.storeSlug}</span>` : ''}
-    <span style="${statusStyle};padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;text-transform:capitalize">${v.status}</span>
-    <span style="font-size:11px;color:#9ca3af">${v.email}</span>
+    <strong>${escHtml(v.storeName)}</strong>
+    ${v.storeSlug ? `<span style="color:#9ca3af;font-size:11px">@${escHtml(v.storeSlug)}</span>` : ''}
+    <span style="${statusStyle};padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;text-transform:capitalize">${escHtml(v.status)}</span>
+    <span style="font-size:11px;color:#9ca3af">${escHtml(v.email)}</span>
   `;
   bar.style.display = 'flex';
   document.getElementById('page-title').textContent = `${v.storeName} – Products`;
@@ -112,7 +112,7 @@ function renderGrid(products) {
     .map((p) => {
       const img =
         p.images && p.images[0]
-          ? `<img class="vp-card-img" src="${p.images[0]}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+          ? `<img class="vp-card-img" src="${p.images[0]}" alt="${escHtml(p.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
           : '';
       const placeholder = `<div class="vp-card-img-placeholder" ${img ? 'style="display:none"' : ''}><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M3 8v9l9 4 9-4V8"/><path d="M12 12v9"/></svg></div>`;
       const price = p.price != null ? `£${Number(p.price).toFixed(2)}` : '—';
@@ -126,7 +126,7 @@ function renderGrid(products) {
       const archivedTag = p.archived ? '<span class="vp-archived-tag">archived</span>' : '';
       const suspendedTag = p.adminSuspended ? '<span class="vp-suspended-tag">admin suspended</span>' : '';
       const suspendReason = p.adminSuspended && p.adminSuspendedReason
-        ? `<div class="vp-card-suspend-reason">Reason: ${p.adminSuspendedReason}</div>` : '';
+        ? `<div class="vp-card-suspend-reason">Reason: ${escHtml(p.adminSuspendedReason)}</div>` : '';
       const suspendBtn = p.adminSuspended
         ? `<button type="button" class="vp-suspend-btn vp-reinstate-btn" data-id="${p._id}">Reinstate listing</button>`
         : `<button type="button" class="vp-suspend-btn" data-id="${p._id}">Suspend listing</button>`;
@@ -134,7 +134,7 @@ function renderGrid(products) {
       return `<div class="vp-card">
       ${img}${placeholder}
       <div class="vp-card-body">
-        <div class="vp-card-name">${p.name}${archivedTag}${suspendedTag}</div>
+        <div class="vp-card-name">${escHtml(p.name)}${archivedTag}${suspendedTag}</div>
         <div class="vp-card-price">${price}</div>
         <div class="vp-card-meta">${[stock, category, created].filter(Boolean).join(' · ')}</div>
         ${suspendReason}
@@ -146,14 +146,14 @@ function renderGrid(products) {
 }
 
 async function suspendProduct(id) {
-  const reason = window.prompt('Reason for suspending this listing (shown to you only, not the vendor):');
+  const reason = await window.s4lPrompt('Reason for suspending this listing (shown to you only, not the vendor):');
   if (reason === null) return;
   const res = await authFetch(`${API}/products/${id}/suspend`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ reason }),
   });
-  if (!res.ok) { alert('Failed to suspend listing.'); return; }
+  if (!res.ok) { await window.s4lAlert('Failed to suspend listing.'); return; }
   const updated = await res.json();
   const idx = allProducts.findIndex((p) => p._id === id);
   if (idx !== -1) allProducts[idx] = updated.product;
@@ -161,9 +161,9 @@ async function suspendProduct(id) {
 }
 
 async function reinstateProduct(id) {
-  if (!window.confirm('Reinstate this listing? It will become visible in the shop again.')) return;
+  if (!(await window.s4lConfirm('Reinstate this listing? It will become visible in the shop again.'))) return;
   const res = await authFetch(`${API}/products/${id}/reinstate`, { method: 'PATCH' });
-  if (!res.ok) { alert('Failed to reinstate listing.'); return; }
+  if (!res.ok) { await window.s4lAlert('Failed to reinstate listing.'); return; }
   const updated = await res.json();
   const idx = allProducts.findIndex((p) => p._id === id);
   if (idx !== -1) allProducts[idx] = updated.product;

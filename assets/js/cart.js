@@ -76,7 +76,11 @@ function fmt(n) {
         }
       }
 
-      saveCart();
+      // NOT saveCart(): that dispatches 'cartUpdated', which refreshAll()
+      // below is itself listening for — calling it here would fire an
+      // infinite sync loop (this function called on every 'cartUpdated',
+      // re-triggering the same event on every completion).
+      localStorage.setItem('cart', JSON.stringify(cart));
     } catch (err) {
       console.error('Cart sync failed:', err);
     }
@@ -141,10 +145,10 @@ function fmt(n) {
       total += sub;
 
       const variantLabel = item.variant?.attributes
-        ? Object.entries(item.variant.attributes).map(([k, v]) => `${k}: ${v}`).join(' / ')
+        ? Object.entries(item.variant.attributes).map(([k, v]) => `${escHtml(k)}: ${escHtml(v)}`).join(' / ')
         : '';
       const addOnLabel = item.addOns?.length
-        ? item.addOns.map((ao) => ao.name).join(', ')
+        ? item.addOns.map((ao) => escHtml(ao.name)).join(', ')
         : '';
 
       const li = document.createElement('li');
@@ -155,7 +159,7 @@ function fmt(n) {
                         <button class="mini-cart-remove" data-index="${i}" title="Remove item">&times;</button>
                     </div>
                     <div class="mini-cart-info">
-                        <div class="mini-cart-name">${item.name}${variantLabel ? `<span class="mini-cart-variant"> — ${variantLabel}</span>` : ''}</div>
+                        <div class="mini-cart-name">${escHtml(item.name)}${variantLabel ? `<span class="mini-cart-variant"> — ${variantLabel}</span>` : ''}</div>
                         ${addOnLabel ? `<div class="mini-cart-variant">+ ${addOnLabel}</div>` : ''}
                         <div class="mini-cart-meta">${fmt(price)} × ${qty}</div>
                     </div>
@@ -235,10 +239,10 @@ function fmt(n) {
       row.classList.add('cart-row');
 
       const cartVariantLabel = item.variant?.attributes
-        ? Object.entries(item.variant.attributes).map(([k, v]) => `${k}: ${v}`).join(' / ')
+        ? Object.entries(item.variant.attributes).map(([k, v]) => `${escHtml(k)}: ${escHtml(v)}`).join(' / ')
         : '';
       const cartAddOnLabel = item.addOns?.length
-        ? item.addOns.map((ao) => `${ao.name} (+${fmt(ao.price)})`).join(', ')
+        ? item.addOns.map((ao) => `${escHtml(ao.name)} (+${fmt(ao.price)})`).join(', ')
         : '';
 
       row.innerHTML = `
@@ -247,8 +251,8 @@ function fmt(n) {
       <div class="cart-product-text">
         <a class="cart-product-link"
            href="/product/product.html?id=${item.id || item.productId}"
-           title="${item.name}">
-          <span>${item.name}</span>
+           title="${escHtml(item.name)}">
+          <span>${escHtml(item.name)}</span>
         </a>
         ${cartVariantLabel ? `<div class="cart-variant-label">${cartVariantLabel}</div>` : ''}
         ${cartAddOnLabel ? `<div class="cart-variant-label">+ ${cartAddOnLabel}</div>` : ''}
@@ -645,6 +649,23 @@ function fmt(n) {
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('#btn-buy');
   if (!btn) return;
+
+  // Cart items carry a `stock` snapshot refreshed against the server on
+  // page load (see the live-refresh pass above) — an item that sold out
+  // after being added still shows correctly here, so re-check it right
+  // before checkout rather than letting the buyer discover it only after
+  // filling in payment details.
+  let cart = [];
+  try { cart = JSON.parse(localStorage.getItem('cart') || '[]'); } catch {}
+  const oosItem = cart.find((item) => {
+    const hasRealStock = item.stock !== undefined && item.stock !== null && item.stock !== '' && !Number.isNaN(Number(item.stock));
+    return hasRealStock && Number(item.stock) <= 0;
+  });
+  if (oosItem) {
+    window.showToast?.(`${oosItem.name} is out of stock — remove it to continue`);
+    return;
+  }
+
   window.setButtonLoading?.(btn, true, 'Redirecting…');
   window.location.href = '/cart/checkout.html';
 });

@@ -105,7 +105,7 @@ async function loadLog() {
 
 /* ── Backfill ── */
 $('btn-backfill').addEventListener('click', async () => {
-  if (!confirm('This sends real welcome + seller-invite emails immediately to every pending user matching the country filter. Continue?')) return;
+  if (!(await window.s4lConfirm('This sends real welcome + seller-invite emails immediately to every pending user matching the country filter. Continue?'))) return;
 
   const btn = $('btn-backfill');
   btn.disabled = true;
@@ -168,10 +168,10 @@ async function runSendSearch(q) {
       (a.name || a.username || a.email).localeCompare(b.name || b.username || b.email, undefined, { sensitivity: 'base' })
     );
     resultsEl.innerHTML = sorted.slice(0, 8).map(u => {
-      const sub = u.vendor ? `${u.accountType} · ${u.vendor.storeName}` : u.accountType;
-      return `<div class="send-search-row" data-email="${u.email}" style="padding:8px 10px;font-size:13px;cursor:pointer;border-bottom:1px solid #f3f4f6;overflow-wrap:break-word">
-        <div style="font-weight:600">${titleCase(u.name) || u.username || '(no name)'}</div>
-        <div style="color:#6b7280">${u.email} — ${sub}</div>
+      const sub = u.vendor ? `${escHtml(u.accountType)} · ${escHtml(u.vendor.storeName)}` : escHtml(u.accountType);
+      return `<div class="send-search-row" data-email="${escHtml(u.email)}" style="padding:8px 10px;font-size:13px;cursor:pointer;border-bottom:1px solid #f3f4f6;overflow-wrap:break-word">
+        <div style="font-weight:600">${escHtml(titleCase(u.name) || u.username || '(no name)')}</div>
+        <div style="color:#6b7280">${escHtml(u.email)} — ${sub}</div>
       </div>`;
     }).join('');
     resultsEl.hidden = false;
@@ -238,7 +238,7 @@ $('btn-send-custom').addEventListener('click', async () => {
     body.tier = tier;
     confirmMsg = `Send the ${templateLabel} email to every ${tier} vendor? This cannot be undone.`;
   }
-  if (!confirm(confirmMsg)) return;
+  if (!(await window.s4lConfirm(confirmMsg))) return;
 
   const btn = $('btn-send-custom');
   btn.disabled = true;

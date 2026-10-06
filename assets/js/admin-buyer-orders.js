@@ -123,9 +123,9 @@ function renderInfoBar(u) {
   const statusLabel = u.banned ? 'Banned' : u.active === false ? 'Inactive' : 'Active';
 
   bar.innerHTML = `
-    <strong>${u.email}</strong>
-    ${u.name ? `<span style="color:#6b7280">${u.name}</span>` : ''}
-    ${u.username ? `<span style="color:#9ca3af;font-size:11px">@${u.username}</span>` : ''}
+    <strong>${escHtml(u.email)}</strong>
+    ${u.name ? `<span style="color:#6b7280">${escHtml(u.name)}</span>` : ''}
+    ${u.username ? `<span style="color:#9ca3af;font-size:11px">@${escHtml(u.username)}</span>` : ''}
     <span style="${statusStyle};padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600">${statusLabel}</span>
     <span style="font-size:11px;color:#9ca3af;margin-left:auto">Joined ${new Date(u.createdAt).toLocaleDateString('en-GB')}</span>
   `;
@@ -194,8 +194,8 @@ function renderOrders(orders) {
           const refundNote =
             item.status === 'Cancelled' ? ' <span class="bo-refund-tag">cancelled</span>' : '';
           return `<tr>
-        <td>${item.name}${refundNote}</td>
-        <td style="color:#6b7280;font-size:11px">${item.vendorName}</td>
+        <td>${escHtml(item.name)}${refundNote}</td>
+        <td style="color:#6b7280;font-size:11px">${escHtml(item.vendorName)}</td>
         <td class="bo-num">${fmt(item.price)}</td>
         <td class="bo-num">${item.quantity}</td>
         <td class="bo-num">${fmt(item.price * item.quantity)}</td>
@@ -208,9 +208,9 @@ function renderOrders(orders) {
       const addrHtml =
         addr && addr.address1
           ? `<div class="bo-addr">
-           ${addr.name ? `<div><strong>${addr.name}</strong></div>` : ''}
-           <div>${addr.address1}${addr.address2 ? ', ' + addr.address2 : ''}</div>
-           <div>${[addr.city, addr.county, addr.postcode, addr.country].filter(Boolean).join(', ')}</div>
+           ${addr.name ? `<div><strong>${escHtml(addr.name)}</strong></div>` : ''}
+           <div>${escHtml(addr.address1)}${addr.address2 ? ', ' + escHtml(addr.address2) : ''}</div>
+           <div>${escHtml([addr.city, addr.county, addr.postcode, addr.country].filter(Boolean).join(', '))}</div>
          </div>`
           : '<div class="bo-addr" style="color:#9ca3af">No address</div>';
 

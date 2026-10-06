@@ -176,8 +176,8 @@ function renderVendors(vendors) {
       : `${fmt(v.effectiveRate)} <span class="rate-source ${source}">${sourceLabel}</span>`;
 
     return `<tr data-id="${v._id}">
-      <td>${v.storeName || v.storeSlug || '—'}</td>
-      <td><span class="tier-badge ${v.type || 'casual'}">${v.type || 'casual'}</span></td>
+      <td>${escHtml(v.storeName || v.storeSlug || '—')}</td>
+      <td><span class="tier-badge ${v.type || 'casual'}">${escHtml(v.type || 'casual')}</span></td>
       <td>${rateCell}</td>
       <td>
         ${fs

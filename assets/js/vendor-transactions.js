@@ -559,7 +559,7 @@ async function loadPayouts() {
           const statusClass = p.status === 'paid' ? 'payout-status-paid'
             : p.status === 'rejected' ? 'payout-status-rejected'
             : 'payout-status-pending';
-          const ref = p.reference || (p.note ? `<em>${p.note}</em>` : '—');
+          const ref = p.reference ? escHtml(p.reference) : (p.note ? `<em>${escHtml(p.note)}</em>` : '—');
           // A 'paid' payout has its REAL transferred currency/amount stored.
           const amountDisplay = p.status === 'paid' && p.payoutCurrency && p.payoutCurrency !== 'GBP'
             ? fmtVendorMoney(p.amount, { currency: p.payoutCurrency, rate: p.payoutAmount / p.amount })

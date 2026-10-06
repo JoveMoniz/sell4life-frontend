@@ -31,9 +31,7 @@ window.s4lProductCardHTML = function (p, opts = {}) {
     img = p.image;
   }
 
-  const href = p.slug
-    ? `/product/product.html?slug=${encodeURIComponent(p.slug)}`
-    : `/product/product.html?id=${id}`;
+  const href = window.s4lProductUrl(p);
 
   const rv = opts.reviewsConfig || {};
   const starsRow = rv.reviewsEnabled && (p.reviewCount || 0) >= (rv.reviewsMinCount || 0) && p.avgRating
@@ -96,13 +94,13 @@ window.s4lProductCardHTML = function (p, opts = {}) {
     <div class="sp-card-wrap">
       <a href="${href}" class="sp-card${p.comingSoon ? ' sp-card-coming-soon' : ''}${!p.comingSoon && isOutOfStock ? ' sp-card-oos' : ''}">
         <div class="sp-img-wrap">
-          <img src="${img}" alt="${p.name}" loading="lazy"
+          <img src="${img}" alt="${escHtml(p.name)}" loading="lazy"
             onerror="this.src='/assets/images/products/sell4life-placeholder.png'" />
           ${p.comingSoon ? '<div class="sp-coming-soon-badge"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg> Coming Soon</div>' : ''}
           ${!p.comingSoon && isOutOfStock ? '<div class="sp-oos-badge">Out of Stock</div>' : ''}
         </div>
         <div class="sp-info">
-          <p class="sp-name">${p.name}</p>
+          <p class="sp-name">${escHtml(p.name)}</p>
           ${starsRow}
         </div>
       </a>

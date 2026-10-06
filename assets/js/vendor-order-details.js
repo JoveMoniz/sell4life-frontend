@@ -325,7 +325,7 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
         </button>
         <ul class="s4l-collapse-body" style="padding-left:16px;font-size:0.75rem;color:#374151">
           ${item.returnHistory.slice().sort((a, b) => new Date(a.at) - new Date(b.at)).map(h =>
-            `<li>${new Date(h.at).toLocaleString()} — ${h.note || h.type}${h.quantity > 0 ? ` ×${h.quantity}` : ''}</li>`
+            `<li>${new Date(h.at).toLocaleString()} — ${escHtml(h.note || h.type)}${h.quantity > 0 ? ` ×${h.quantity}` : ''}</li>`
           ).join('')}
         </ul>
       </div>`
@@ -345,7 +345,7 @@ function buildItemHTML(item, itemActions, id, paymentStatus) {
       <img src="${img}" width="60" height="60"
         onerror="this.src='/assets/images/products/sell4life-placeholder.png'" />
       <div style="flex:1">
-        <div>${item.name || 'Unnamed product'}</div>
+        <div>${escHtml(item.name || 'Unnamed product')}</div>
         ${window.s4lVariantLabel && window.s4lVariantLabel(item.attributes)
           ? `<div style="font-size:0.8rem;color:#0b6b6a;font-weight:600;margin-top:2px">${window.s4lVariantLabel(item.attributes)}</div>`
           : ''}
@@ -517,7 +517,7 @@ async function loadOrder() {
           </button>
           <ul class="s4l-collapse-body" style="padding-left:16px;font-size:0.75rem;color:#374151">
             ${order.statusHistory.slice().sort((a, b) => new Date(a.date) - new Date(b.date)).map(h =>
-              `<li>${new Date(h.date).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} — ${h.status}${h.note ? ` (${h.note})` : ''}</li>`
+              `<li>${new Date(h.date).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} — ${escHtml(h.status)}${h.note ? ` (${escHtml(h.note)})` : ''}</li>`
             ).join('')}
           </ul>
         </div>`
@@ -526,12 +526,12 @@ async function loadOrder() {
     const addr = order.shippingAddress;
     const shippingAddressHTML = addr ? `
       <div class="shipping-address-block" style="margin-bottom:14px;padding:10px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;font-size:0.85rem;line-height:1.5">
-        <div style="font-weight:700;margin-bottom:2px">${addr.name || ''}</div>
-        ${addr.address1 ? `<div>${addr.address1}</div>` : ''}
-        ${addr.address2 ? `<div>${addr.address2}</div>` : ''}
-        <div>${[addr.city, addr.county, addr.postcode].filter(Boolean).join(', ')}</div>
-        ${addr.country ? `<div>${addr.country}</div>` : ''}
-        ${addr.phone ? `<div style="margin-top:4px;color:#6b7280"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 4h3.5l1.5 4-2 1.5c1 2.2 2.8 4 5 5l1.5-2 4 1.5V17a1.5 1.5 0 01-1.6 1.5A15 15 0 015 5.6 1.5 1.5 0 015 4z"/></svg> ${addr.phone}</div>` : ''}
+        <div style="font-weight:700;margin-bottom:2px">${escHtml(addr.name || '')}</div>
+        ${addr.address1 ? `<div>${escHtml(addr.address1)}</div>` : ''}
+        ${addr.address2 ? `<div>${escHtml(addr.address2)}</div>` : ''}
+        <div>${escHtml([addr.city, addr.county, addr.postcode].filter(Boolean).join(', '))}</div>
+        ${addr.country ? `<div>${escHtml(addr.country)}</div>` : ''}
+        ${addr.phone ? `<div style="margin-top:4px;color:#6b7280"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 4h3.5l1.5 4-2 1.5c1 2.2 2.8 4 5 5l1.5-2 4 1.5V17a1.5 1.5 0 01-1.6 1.5A15 15 0 015 5.6 1.5 1.5 0 015 4z"/></svg> ${escHtml(addr.phone)}</div>` : ''}
       </div>` : '<p style="font-size:0.85rem;color:#9ca3af">No shipping address on file</p>';
 
     container.innerHTML = `

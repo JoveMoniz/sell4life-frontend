@@ -94,12 +94,12 @@ function renderInfoBar(v) {
   const _tierBg     = { casual:'#f3f4f6', refurbished:'#e0f2fe', professional:'#fff3e0', enterprise:'#ede9fe' };
   const _tier = v.type || 'casual';
   bar.innerHTML = `
-    <strong>${v.storeName}</strong>
-    ${v.storeSlug ? `<span style="color:#9ca3af;font-size:11px">@${v.storeSlug}</span>` : ''}
-    <span style="${statusCls};padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;text-transform:capitalize">${v.status}</span>
-    <span style="background:${_tierBg[_tier]||'#f3f4f6'};color:${_tierColors[_tier]||'#6b7280'};padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;text-transform:capitalize">${_tier}</span>
+    <strong>${escHtml(v.storeName)}</strong>
+    ${v.storeSlug ? `<span style="color:#9ca3af;font-size:11px">@${escHtml(v.storeSlug)}</span>` : ''}
+    <span style="${statusCls};padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;text-transform:capitalize">${escHtml(v.status)}</span>
+    <span style="background:${_tierBg[_tier]||'#f3f4f6'};color:${_tierColors[_tier]||'#6b7280'};padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;text-transform:capitalize">${escHtml(_tier)}</span>
     ${v.vatRegistered ? '<span style="background:#dbeafe;color:#1d4ed8;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700">VAT</span>' : ''}
-    ${v.country && v.country !== 'GB' ? `<span style="background:#eff6ff;color:#1d4ed8;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700">${v.country}</span>` : ''}
+    ${v.country && v.country !== 'GB' ? `<span style="background:#eff6ff;color:#1d4ed8;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700">${escHtml(v.country)}</span>` : ''}
     <span class="vl-email">${v.email}</span>
   `;
   bar.style.display = 'flex';

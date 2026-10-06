@@ -74,9 +74,9 @@ async function loadUsers(query = '', page = 1) {
 
     const shortUId = '...' + String(user._id || '').slice(-6).toUpperCase();
     tr.innerHTML = `
-      <td>${titleCase(user.name) || user.username || '—'}</td>
+      <td>${escHtml(titleCase(user.name) || user.username || '—')}</td>
       <td>
-        ${user.email || '—'}
+        ${escHtml(user.email || '—')}
         <strong style="font-family:monospace;font-size:0.72rem;color:#6b7280;margin-left:4px">${shortUId}</strong>
       </td>
       <td>
@@ -126,10 +126,10 @@ function buildUserPanel(user) {
 
   const addr = user.defaultShippingAddress;
   const addrHtml = addr && addr.address1
-    ? `<div>${addr.name || ''}</div>
-       <div>${addr.address1}${addr.address2 ? ', ' + addr.address2 : ''}</div>
-       <div>${[addr.city, addr.county, addr.postcode].filter(Boolean).join(', ')}</div>
-       <div>${addr.country || ''}</div>`
+    ? `<div>${escHtml(addr.name || '')}</div>
+       <div>${escHtml(addr.address1)}${addr.address2 ? ', ' + escHtml(addr.address2) : ''}</div>
+       <div>${escHtml([addr.city, addr.county, addr.postcode].filter(Boolean).join(', '))}</div>
+       <div>${escHtml(addr.country || '')}</div>`
     // Buyer never (or hasn't yet) ticked "Save as my default shipping address"
     // at checkout, so the User record itself has nothing — check their most
     // recent order for the address they actually typed in instead of just
@@ -138,12 +138,12 @@ function buildUserPanel(user) {
 
   const vendorHtml = user.vendor
     ? `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
-         <strong>${user.vendor.storeName}</strong>
-         <span class="status status-${user.vendor.status}" style="font-size:0.75rem">${user.vendor.status}</span>
+         <strong>${escHtml(user.vendor.storeName)}</strong>
+         <span class="status status-${user.vendor.status}" style="font-size:0.75rem">${escHtml(user.vendor.status)}</span>
          ${user.vendor.verified ? '<span style="background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:10px;font-size:0.72rem">Verified</span>' : ''}
          ${user.vendor.featured ? '<span style="background:#fef9c3;color:#92400e;padding:1px 6px;border-radius:10px;font-size:0.72rem">Featured</span>' : ''}
        </div>
-       <div style="font-size:0.82rem;color:#6b7280">Type: ${user.vendor.type || '—'} · Slug: ${user.vendor.storeSlug || '—'}</div>`
+       <div style="font-size:0.82rem;color:#6b7280">Type: ${escHtml(user.vendor.type || '—')} · Slug: ${escHtml(user.vendor.storeSlug || '—')}</div>`
     : '<span style="color:#9ca3af">No store</span>';
 
   const banBtn = user.banned
@@ -161,7 +161,7 @@ function buildUserPanel(user) {
   return `
     <div style="padding:16px 0">
       <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:14px">
-        <strong style="font-size:0.95rem">${user.email || '—'}</strong>
+        <strong style="font-size:0.95rem">${escHtml(user.email || '—')}</strong>
         <strong style="font-family:monospace;font-size:0.78rem;color:#6b7280">${shortUId}</strong>
         ${roleBadge} ${statusBadge}
       </div>
@@ -170,10 +170,10 @@ function buildUserPanel(user) {
 
         <div>
           <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:#6b7280;margin-bottom:6px">Profile</div>
-          <div><strong>Name:</strong> ${user.name || '—'}</div>
-          <div><strong>Username:</strong> ${user.username ? '@' + user.username : '—'}</div>
-          <div><strong>Phone:</strong> ${user.phone || '—'}</div>
-          <div><strong>Country:</strong> ${user.country || '—'}</div>
+          <div><strong>Name:</strong> ${escHtml(user.name || '—')}</div>
+          <div><strong>Username:</strong> ${user.username ? '@' + escHtml(user.username) : '—'}</div>
+          <div><strong>Phone:</strong> ${escHtml(user.phone || '—')}</div>
+          <div><strong>Country:</strong> ${escHtml(user.country || '—')}</div>
           <div><strong>Email:</strong> ${emailVerified}</div>
           <div><strong>Joined:</strong> ${created}</div>
         </div>

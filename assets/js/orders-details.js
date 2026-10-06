@@ -101,7 +101,7 @@ function buildItemHTML(item) {
 
   const contactSellerBtn = item.productId ? `
     <button class="btn-contact-seller" data-product-id="${item.productId}"
-      data-product-name="${(item.name || 'this product').replace(/"/g, '&quot;')}">
+      data-product-name="${escHtml(item.name || 'this product')}">
       <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M4 5h16v11H8l-4 4V5z"/></svg> Contact Seller
     </button>` : '';
 
@@ -172,11 +172,11 @@ function buildItemHTML(item) {
     <div class="order-item" data-item-id="${item._id}">
       <img class="order-thumb"
         src="${img}"
-        alt="${item.name || 'Product'}"
+        alt="${escHtml(item.name || 'Product')}"
         onerror="this.src='/assets/images/products/sell4life-placeholder.png'">
 
       <div class="order-info" style="flex:1">
-        <div class="order-name">${item.name || 'Unnamed product'}</div>
+        <div class="order-name">${escHtml(item.name || 'Unnamed product')}</div>
         ${window.s4lVariantLabel && window.s4lVariantLabel(item.attributes)
           ? `<div style="font-size:0.8rem;color:#0b6b6a;font-weight:600;margin-top:2px">${window.s4lVariantLabel(item.attributes)}</div>`
           : ''}
@@ -185,7 +185,7 @@ function buildItemHTML(item) {
         ${quantityDetail ? `<div style="font-size:0.75rem;color:#6b7280;margin-top:6px">${quantityDetail}</div>` : ''}
         ${item.trackingNumber
           ? `<div style="font-size:0.8rem;color:#374151;margin-top:10px">
-               Tracking: <strong>${item.trackingNumber}</strong>${item.carrier ? ` via ${item.carrier}` : ''}
+               Tracking: <strong>${escHtml(item.trackingNumber)}</strong>${item.carrier ? ` via ${escHtml(item.carrier)}` : ''}
              </div>`
           : ''}
         ${itemActions}
@@ -202,14 +202,14 @@ function buildItemHTML(item) {
 function buildVendorGroup(vo, groupItems) {
   const tracking = vo.trackingNumber
     ? `<span style="font-size:0.8rem;color:#374151;margin-left:auto">
-         Tracking: <strong>${vo.trackingNumber}</strong>${vo.carrier ? ` via ${vo.carrier}` : ''}
+         Tracking: <strong>${escHtml(vo.trackingNumber)}</strong>${vo.carrier ? ` via ${escHtml(vo.carrier)}` : ''}
        </span>`
     : '';
 
   return `
     <div style="border:1px solid #e5e7eb;border-radius:8px;margin-bottom:16px;overflow:hidden">
       <div style="background:#f9fafb;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid #e5e7eb">
-        <strong style="font-size:0.88rem">${vo.vendorStoreName || 'Seller'}</strong>
+        <strong style="font-size:0.88rem">${escHtml(vo.vendorStoreName || 'Seller')}</strong>
         ${window.s4lStatusBadge ? window.s4lStatusBadge(vo.status) : (vo.status || '')}
         ${tracking}
       </div>

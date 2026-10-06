@@ -165,11 +165,11 @@ function renderVendorTable(vendors) {
           : `<span style="color:#9ca3af">${fmt(0)}</span>`;
       return `<tr>
       <td>
-        <strong>${v.storeName}</strong>${vatBadge}${tierBadge}
-        ${v.storeSlug ? `<div style="font-size:11px;color:#9ca3af">@${v.storeSlug}</div>` : ''}
+        <strong>${escHtml(v.storeName)}</strong>${vatBadge}${tierBadge}
+        ${v.storeSlug ? `<div style="font-size:11px;color:#9ca3af">@${escHtml(v.storeSlug)}</div>` : ''}
       </td>
-      <td style="color:#6b7280;font-size:12px">${v.email}</td>
-      <td><span class="fin-status ${statusCls}">${v.status}</span></td>
+      <td style="color:#6b7280;font-size:12px">${escHtml(v.email)}</td>
+      <td><span class="fin-status ${statusCls}">${escHtml(v.status)}</span></td>
       <td class="fin-num">${v.orderCount}</td>
       <td class="fin-num">${fmt(v.gross)}</td>
       <td class="fin-num" style="color:#b91c1c">${fmt(v.refunds)}</td>

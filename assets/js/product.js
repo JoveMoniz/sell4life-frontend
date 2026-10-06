@@ -7,9 +7,25 @@ console.log('product.js loaded');
   const IMAGE_BASE = '/assets/images/products/';
 
   // ── Get product ID / slug ──────────────────────────────────
+  // Three URL forms now resolve here: the clean /product/<slug> path
+  // (an .htaccess rewrite serves this file for it, URL bar unchanged),
+  // and the older ?slug=/?id= query-string forms (kept working so
+  // existing bookmarks/shared links/search-engine-indexed URLs don't
+  // break) — below, an old-style link gets soft-upgraded in the address
+  // bar once the product's real slug is known.
   const params = new URLSearchParams(window.location.search);
-  const productId = params.get('id');
-  const productSlug = params.get('slug');
+  let productId = params.get('id');
+  let productSlug = params.get('slug');
+  let usedCleanPath = false;
+
+  if (!productId && !productSlug) {
+    const pathMatch = window.location.pathname.match(/^\/product\/([^/]+)$/);
+    if (pathMatch && pathMatch[1] !== 'product.html') {
+      productSlug = decodeURIComponent(pathMatch[1]);
+      usedCleanPath = true;
+    }
+  }
+
   if (!productId && !productSlug) { console.warn('No ?id=... or ?slug=... in URL'); return; }
 
   // ── Load product ───────────────────────────────────────────
@@ -52,6 +68,26 @@ console.log('product.js loaded');
   const fmtPrice = window.s4lFormatPrice || ((n) => `£${Number(n || 0).toFixed(2)}`);
 
   const pid = product._id || product.id;
+
+  // ── Canonical URL + soft-upgrade old-style links ───────────
+  // A canonical tag tells search engines all three URL forms (clean
+  // path, ?slug=, ?id=) are the same page, so indexing signals
+  // consolidate onto one URL instead of splitting across three. Visitors
+  // arriving via an old-style link also get the address bar itself
+  // quietly upgraded to the clean path (no reload, no redirect — just
+  // what's shown) once the product's real slug is known, so a link
+  // copied/shared from this point on is already the clean form.
+  const canonicalUrl = product.slug
+    ? `${window.location.origin}/product/${encodeURIComponent(product.slug)}`
+    : window.location.href;
+  const canonicalEl = document.createElement('link');
+  canonicalEl.rel = 'canonical';
+  canonicalEl.href = canonicalUrl;
+  document.head.appendChild(canonicalEl);
+
+  if (!usedCleanPath && product.slug) {
+    history.replaceState(null, '', canonicalUrl);
+  }
 
   // Track recently viewed (for shop browse rows)
   try {
@@ -266,10 +302,10 @@ console.log('product.js loaded');
     const lines = text.split(/\n/).map(l => l.trim()).filter(Boolean);
     if (lines.length > 1) {
       return '<ul class="pd-bullets">' +
-        lines.map(l => `<li>${l.replace(/^[•\-\*✓]\s*/, '')}</li>`).join('') +
+        lines.map(l => `<li>${escHtml(l.replace(/^[•\-\*✓]\s*/, ''))}</li>`).join('') +
         '</ul>';
     }
-    return `<p class="pd-gallery-short">${text}</p>`;
+    return `<p class="pd-gallery-short">${escHtml(text)}</p>`;
   }
 
   // ── Gallery info: bullets under slider (desktop) ──────────
@@ -284,7 +320,7 @@ console.log('product.js loaded');
     const lines = bulletPoints.split(/\n/).map(l => l.trim()).filter(Boolean);
     if (lines.length) {
       bulletsEl.innerHTML = '<ul class="pd-bullets">' +
-        lines.map(l => `<li>${l.replace(/^[•\-\*✓]\s*/, '')}</li>`).join('') +
+        lines.map(l => `<li>${escHtml(l.replace(/^[•\-\*✓]\s*/, ''))}</li>`).join('') +
         '</ul>';
     }
   }
@@ -656,10 +692,10 @@ console.log('product.js loaded');
       ${product.addOns.map((ao, i) => `
         <label class="pd-addon-item" data-index="${i}">
           <input type="checkbox" class="pd-addon-check" data-index="${i}" data-price="${ao.price}" />
-          ${ao.image ? `<img src="${ao.image}" class="pd-addon-thumb" alt="${ao.name}" />` : ''}
+          ${ao.image ? `<img src="${ao.image}" class="pd-addon-thumb" alt="${escHtml(ao.name)}" />` : ''}
           <div class="pd-addon-info">
-            <div class="pd-addon-name">${ao.name}</div>
-            ${ao.description ? `<div class="pd-addon-desc">${ao.description}</div>` : ''}
+            <div class="pd-addon-name">${escHtml(ao.name)}</div>
+            ${ao.description ? `<div class="pd-addon-desc">${escHtml(ao.description)}</div>` : ''}
           </div>
           <div class="pd-addon-price">+${fmtPrice(ao.price)}</div>
         </label>

@@ -36,14 +36,14 @@
   // ── Avatar initials or logo (small round badge) ─────────────
   function avatarHTML(store) {
     if (store.storeLogo) {
-      return `<img src="${store.storeLogo}" alt="${store.storeName}" loading="lazy" />`;
+      return `<img src="${store.storeLogo}" alt="${escHtml(store.storeName)}" loading="lazy" />`;
     }
-    return store.storeName
+    return escHtml(store.storeName
       .split(/\s+/)
       .slice(0, 2)
       .map((w) => w[0])
       .join('')
-      .toUpperCase();
+      .toUpperCase());
   }
 
   // ── Wide banner strip (falls back to plain colour) ──────────
@@ -70,9 +70,9 @@
       <div class="store-card" data-id="${s._id}">
         <div class="store-card-avatar">${bannerHTML(s)}<div class="store-card-logo">${avatarHTML(s)}</div></div>
         <div class="store-card-body">
-          <div class="store-card-name">${s.storeName}</div>
-          <div class="store-card-slug">@${s.storeSlug}</div>
-          ${s.storeDescription ? `<div class="store-card-desc">${s.storeDescription}</div>` : ''}
+          <div class="store-card-name">${escHtml(s.storeName)}</div>
+          <div class="store-card-slug">@${escHtml(s.storeSlug)}</div>
+          ${s.storeDescription ? `<div class="store-card-desc">${escHtml(s.storeDescription)}</div>` : ''}
           <div class="store-card-meta">${s.productCount} product${s.productCount === 1 ? '' : 's'}</div>
         </div>
         <a class="store-card-btn" href="/stores/store.html?slug=${encodeURIComponent(s.storeSlug)}">Visit Store →</a>

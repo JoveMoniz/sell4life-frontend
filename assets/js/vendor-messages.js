@@ -37,8 +37,8 @@
       return `<li class="msg-list-item${unread ? ' unread' : ''}${c._id === activeConvoId ? ' active' : ''}" data-id="${c._id}">
         <div class="msg-list-avatar">${initial(c.buyerName)}</div>
         <div class="msg-list-body">
-          <div class="msg-list-product">${c.productName || 'Product'}</div>
-          <div class="msg-list-meta">${c.buyerName || 'Buyer'} · ${fmt(c.lastMessageAt)}</div>
+          <div class="msg-list-product">${escHtml(c.productName || 'Product')}</div>
+          <div class="msg-list-meta">${escHtml(c.buyerName || 'Buyer')} · ${fmt(c.lastMessageAt)}</div>
         </div>
         ${unread ? '<div class="msg-unread-dot"></div>' : ''}
       </li>`;
@@ -82,17 +82,17 @@
         return `<div class="msg-bubble-wrap ${mine ? 'mine' : 'theirs'}">${renderOfferCard(m, mine)}</div>`;
       }
       return `<div class="msg-bubble-wrap ${mine ? 'mine' : 'theirs'}">
-        <div class="msg-bubble">${m.body.replace(/</g, '&lt;')}</div>
-        <div class="msg-bubble-time">${m.senderRole === 'buyer' ? (convo.buyerName || 'Buyer') : 'You'} · ${fmt(m.createdAt)}</div>
+        <div class="msg-bubble">${escHtml(m.body)}</div>
+        <div class="msg-bubble-time">${m.senderRole === 'buyer' ? escHtml(convo.buyerName || 'Buyer') : 'You'} · ${fmt(m.createdAt)}</div>
       </div>`;
     }).join('');
 
     return `<div class="msg-thread">
       <div class="msg-thread-header">
         <div>
-          <div class="msg-thread-title">${convo.productName || 'Product'}</div>
-          <div class="msg-thread-subtitle">From: ${convo.buyerName || 'Buyer'} &nbsp;·&nbsp;
-            <a href="/product/?slug=${convo.productSlug || ''}" style="color:#0b6b6a;font-size:12px">View product →</a>
+          <div class="msg-thread-title">${escHtml(convo.productName || 'Product')}</div>
+          <div class="msg-thread-subtitle">From: ${escHtml(convo.buyerName || 'Buyer')} &nbsp;·&nbsp;
+            ${convo.productSlug ? `<a href="/product/${encodeURIComponent(convo.productSlug)}" style="color:#0b6b6a;font-size:12px">View product →</a>` : ''}
           </div>
         </div>
         <button class="msg-thread-back" id="vmsg-back">← Back</button>

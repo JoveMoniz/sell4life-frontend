@@ -34,8 +34,8 @@
         <div class="msg-list-item${unread ? ' unread' : ''}${c._id === activeConvoId ? ' active' : ''}" data-id="${c._id}">
           <div class="msg-list-avatar">${initial(c.vendorName)}</div>
           <div class="msg-list-body">
-            <div class="msg-list-product">${c.productName || 'Product'}</div>
-            <div class="msg-list-meta">${c.vendorName || 'Seller'} · ${fmt(c.lastMessageAt)}</div>
+            <div class="msg-list-product">${escHtml(c.productName || 'Product')}</div>
+            <div class="msg-list-meta">${escHtml(c.vendorName || 'Seller')} · ${fmt(c.lastMessageAt)}</div>
           </div>
           ${unread ? '<div class="msg-unread-dot"></div>' : ''}
           <div class="msg-list-chevron">&#9662;</div>
@@ -85,7 +85,7 @@
         return `<div class="msg-bubble-wrap ${mine ? 'mine' : 'theirs'}">${renderOfferCard(m, mine)}</div>`;
       }
       return `<div class="msg-bubble-wrap ${mine ? 'mine' : 'theirs'}">
-        <div class="msg-bubble">${m.body.replace(/</g, '&lt;')}</div>
+        <div class="msg-bubble">${escHtml(m.body)}</div>
         <div class="msg-bubble-time">${fmt(m.createdAt)}</div>
       </div>`;
     }).join('');
@@ -93,9 +93,9 @@
     return `<div class="msg-thread">
       <div class="msg-thread-header">
         <div>
-          <div class="msg-thread-title">${convo.productName || 'Product'}</div>
-          <div class="msg-thread-subtitle">Seller: ${convo.vendorName || 'Seller'} &nbsp;·&nbsp;
-            <a href="/product/?slug=${convo.productSlug || ''}" style="color:#0b6b6a;font-size:12px">View product →</a>
+          <div class="msg-thread-title">${escHtml(convo.productName || 'Product')}</div>
+          <div class="msg-thread-subtitle">Seller: ${escHtml(convo.vendorName || 'Seller')} &nbsp;·&nbsp;
+            ${convo.productSlug ? `<a href="/product/${encodeURIComponent(convo.productSlug)}" style="color:#0b6b6a;font-size:12px">View product →</a>` : ''}
           </div>
         </div>
         <button class="msg-thread-back" id="msg-back-${convo._id}">Close <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M6 6l12 12M18 6L6 18"/></svg></button>

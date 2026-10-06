@@ -354,7 +354,7 @@ function renderItems() {
         <img
           class="checkout-thumb"
           src="${item.image || '/assets/images/products/sell4life-placeholder.png'}"
-          alt="${item.name}"
+          alt="${escHtml(item.name)}"
           width="60"
           height="60"
           onerror="this.onerror=null;this.src='/assets/images/products/sell4life-placeholder.png';"
@@ -362,7 +362,7 @@ function renderItems() {
 
         <div class="checkout-details">
           <div class="checkout-title-wrap">
-            <span class="checkout-title">${item.name}</span>
+            <span class="checkout-title">${escHtml(item.name)}</span>
           </div>
           <span class="checkout-qty">Quantity: ${qty}</span>
         </div>

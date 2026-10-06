@@ -80,10 +80,10 @@ function renderVendorsTable(vendors) {
         .toUpperCase();
     tr.innerHTML = `
       <td>
-        ${v.storeName || 'No Name'}
+        ${escHtml(v.storeName || 'No Name')}
         <strong style="font-family:monospace;font-size:0.72rem;color:#6b7280;margin-left:4px">${shortVId}</strong>
       </td>
-      <td>${v.userId?.email || 'No email'}</td>
+      <td>${escHtml(v.userId?.email || 'No email')}</td>
       <td><span class="status status-${v.status}">${v.status}</span></td>
       <td>${v.orders || 0}</td>
       <td>£${(v.grossRevenue || 0).toFixed(2)}</td>
@@ -145,15 +145,15 @@ function buildVendorPanel(v) {
        </button>
        <span class="reset-stripe-msg" data-id="${v._id}" style="font-size:0.72rem;color:#15803d;margin-left:6px"></span>`
     : `<div style="color:#9ca3af">No Stripe account connected</div>
-       <div><strong>Country:</strong> ${v.country || '<span style="color:#9ca3af">not set</span>'}</div>`;
+       <div><strong>Country:</strong> ${v.country ? escHtml(v.country) : '<span style="color:#9ca3af">not set</span>'}</div>`;
 
   return `
     <div style="padding:16px 0">
       <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:14px">
-        <strong style="font-size:1rem">${v.storeName || '—'}</strong>
+        <strong style="font-size:1rem">${escHtml(v.storeName || '—')}</strong>
         <strong style="font-family:monospace;font-size:0.78rem;color:#6b7280">${shortVId}</strong>
-        <span class="status status-${v.status}" style="font-size:0.78rem">${v.status}</span>
-        ${v.type ? `<span style="background:#f3f4f6;color:#374151;padding:1px 7px;border-radius:10px;font-size:0.72rem;text-transform:capitalize">${v.type}</span>` : ''}
+        <span class="status status-${v.status}" style="font-size:0.78rem">${escHtml(v.status)}</span>
+        ${v.type ? `<span style="background:#f3f4f6;color:#374151;padding:1px 7px;border-radius:10px;font-size:0.72rem;text-transform:capitalize">${escHtml(v.type)}</span>` : ''}
         ${verifiedBadge} ${featuredBadge}
       </div>
 
@@ -161,9 +161,9 @@ function buildVendorPanel(v) {
 
         <div>
           <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:#6b7280;margin-bottom:6px">Store</div>
-          <div><strong>Slug:</strong> ${v.storeSlug || '—'}</div>
-          <div><strong>Type:</strong> ${v.type || '—'}</div>
-          ${v.storeDescription ? `<div style="margin-top:4px;color:#374151;font-size:0.85rem">${v.storeDescription}</div>` : ''}
+          <div><strong>Slug:</strong> ${escHtml(v.storeSlug || '—')}</div>
+          <div><strong>Type:</strong> ${escHtml(v.type || '—')}</div>
+          ${v.storeDescription ? `<div style="margin-top:4px;color:#374151;font-size:0.85rem">${escHtml(v.storeDescription)}</div>` : ''}
         </div>
 
         <div>
@@ -184,7 +184,7 @@ function buildVendorPanel(v) {
 
         <div>
           <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:#6b7280;margin-bottom:6px">Account</div>
-          <div><strong>Email:</strong> <a href="mailto:${email}" style="color:#1d4ed8">${email}</a></div>
+          <div><strong>Email:</strong> <a href="mailto:${escHtml(email)}" style="color:#1d4ed8">${escHtml(email)}</a></div>
           <div><strong>Created:</strong> ${created}</div>
           ${approved !== '—' ? `<div><strong>Approved:</strong> ${approved}</div>` : ''}
           ${suspended ? `<div><strong>Suspended:</strong> ${suspended}</div>` : ''}
@@ -499,13 +499,13 @@ async function loadPayoutRequests() {
           ? '<div style="margin-top:3px"><span style="background:#f0fdf4;color:#15803d;padding:1px 7px;border-radius:10px;font-size:0.7rem;font-weight:600"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M13 3L4 14h6l-1 7 9-11h-6l1-7z"/></svg> Auto via Stripe</span></div>'
           : '<div style="margin-top:3px"><span style="color:#9ca3af;font-size:0.72rem">No Stripe account — pay manually</span></div>';
         const countryBadge = vendor.country && vendor.country !== 'GB'
-          ? `<div style="margin-top:3px"><span style="background:#eff6ff;color:#1d4ed8;padding:1px 7px;border-radius:10px;font-size:0.7rem;font-weight:600">${vendor.country}</span></div>`
+          ? `<div style="margin-top:3px"><span style="background:#eff6ff;color:#1d4ed8;padding:1px 7px;border-radius:10px;font-size:0.7rem;font-weight:600">${escHtml(vendor.country)}</span></div>`
           : '';
         const estimate = p.payoutEstimate
-          ? ` <span style="color:#6b7280;font-weight:500;font-size:0.85em">(≈ ${p.payoutEstimate.symbol || '$'}${Number(p.payoutEstimate.amount || 0).toFixed(2)})</span>`
+          ? ` <span style="color:#6b7280;font-weight:500;font-size:0.85em">(≈ ${escHtml(p.payoutEstimate.symbol || '$')}${Number(p.payoutEstimate.amount || 0).toFixed(2)})</span>`
           : '';
         return `<tr data-payout-id="${p._id}">
-  <td><strong>${storeName}</strong><br><small style="color:#6b7280">${email}</small>${transferBadge}${countryBadge}</td>
+  <td><strong>${escHtml(storeName)}</strong><br><small style="color:#6b7280">${escHtml(email)}</small>${transferBadge}${countryBadge}</td>
   <td><strong>£${Number(p.amount).toFixed(2)}</strong>${estimate}</td>
   <td>${date}</td>
   <td>

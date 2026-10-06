@@ -84,14 +84,14 @@
         <div class="rv-card-header">
           <div class="rv-avatar">${initial(r.buyerName)}</div>
           <div class="rv-meta">
-            <span class="rv-author">${r.buyerName || 'Buyer'}</span>
+            <span class="rv-author">${escHtml(r.buyerName || 'Buyer')}</span>
             <span class="rv-date">${timeAgo(r.createdAt)}</span>
           </div>
           ${r.verified ? '<span class="rv-verified-badge"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg> Verified Purchase</span>' : ''}
           ${starsHTML(r.rating, 14)}
         </div>
-        ${r.title ? `<p class="rv-title">${r.title}</p>` : ''}
-        ${r.body  ? `<p class="rv-body">${r.body}</p>`   : ''}
+        ${r.title ? `<p class="rv-title">${escHtml(r.title)}</p>` : ''}
+        ${r.body  ? `<p class="rv-body">${escHtml(r.body)}</p>`   : ''}
       </div>`;
   }
 
@@ -106,8 +106,8 @@
       <div class="rv-star-pick" id="rv-star-pick">
         ${[1,2,3,4,5].map(n => `<button type="button" data-star="${n}" title="${n} star${n>1?'s':''}">★</button>`).join('')}
       </div>
-      <input type="text" id="rv-title-inp" placeholder="Review title (optional)" maxlength="120" value="${existing?.title || ''}" />
-      <textarea id="rv-body-inp" placeholder="Share your experience…" maxlength="2000">${existing?.body || ''}</textarea>
+      <input type="text" id="rv-title-inp" placeholder="Review title (optional)" maxlength="120" value="${escHtml(existing?.title || '')}" />
+      <textarea id="rv-body-inp" placeholder="Share your experience…" maxlength="2000">${escHtml(existing?.body || '')}</textarea>
       <div class="rv-form-actions">
         <button class="rv-submit-btn" id="rv-submit" ${isEdit ? '' : 'disabled'}>${isEdit ? 'Save Changes' : 'Submit Review'}</button>
         <button class="rv-cancel-btn" id="rv-cancel">Cancel</button>
@@ -190,8 +190,8 @@
         <span class="arv-status-pill ${review.status}">${statusLabel[review.status] || review.status}</span>
       </div>
       <div class="rv-my-review-stars">${starsHTML(review.rating, 16)}</div>
-      ${review.title ? `<p class="rv-title">${review.title}</p>` : ''}
-      ${review.body  ? `<p class="rv-body">${review.body}</p>`   : ''}`;
+      ${review.title ? `<p class="rv-title">${escHtml(review.title)}</p>` : ''}
+      ${review.body  ? `<p class="rv-body">${escHtml(review.body)}</p>`   : ''}`;
 
     const editBtn = document.createElement('button');
     editBtn.className = 'rv-write-btn';

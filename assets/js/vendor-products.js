@@ -334,7 +334,7 @@ function renderCard(p) {
 
       <div class="vendor-product-actions">
         <a href="/account/vendor/edit-product.html?id=${id}" class="btn-edit" draggable="false">Edit</a>
-        <a href="/product/product.html?id=${id}" class="btn-view-store" target="_blank" rel="noopener" draggable="false">View</a>
+        <a href="${window.s4lProductUrl(p)}" class="btn-view-store" target="_blank" rel="noopener" draggable="false">View</a>
         ${_isPro ? `<button class="btn-duplicate" data-id="${id}" title="Duplicate as draft">Copy</button>` : ''}
         ${p.archived
           ? `<button class="btn-unarchive" data-id="${id}">Unarchive</button>`
@@ -385,7 +385,7 @@ function renderListRow(p) {
 
       <div class="vp-list-actions">
         <a href="/account/vendor/edit-product.html?id=${id}" class="btn-edit" draggable="false">Edit</a>
-        <a href="/product/product.html?id=${id}" class="btn-view-store" target="_blank" rel="noopener" draggable="false">View</a>
+        <a href="${window.s4lProductUrl(p)}" class="btn-view-store" target="_blank" rel="noopener" draggable="false">View</a>
         ${_isPro ? `<button class="btn-duplicate" data-id="${id}" title="Duplicate as draft">Copy</button>` : ''}
         ${p.archived
           ? `<button class="btn-unarchive" data-id="${id}">Unarchive</button>`

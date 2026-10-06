@@ -1,5 +1,14 @@
 ErrorDocument 404 /404.html
 
+# Clean product URLs: /product/<slug> serves product.html internally —
+# the browser's address bar keeps showing the clean path, nothing
+# redirects. Guarded with !-f/!-d so this never intercepts a request for
+# a real file (product.html itself, any future asset under /product/).
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^product/([^/]+)$ /product/product.html [L]
+
 <FilesMatch "\.(js|css)$">
   Header set Cache-Control "no-store, no-cache, must-revalidate"
   Header unset ETag

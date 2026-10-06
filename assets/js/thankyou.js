@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           return `
             <div class="ty-item">
               <div class="ty-item-left">
-                <div class="ty-name-wrap"><span>${item.name}</span></div>
+                <div class="ty-name-wrap"><span>${escHtml(item.name)}</span></div>
                 <span class="ty-item-qty">×${qty}</span>
               </div>
               <span class="ty-item-subtotal">

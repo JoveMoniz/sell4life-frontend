@@ -112,13 +112,11 @@ function heroFilmItemHTML(p) {
   if (Array.isArray(p.images) && p.images[0]) {
     img = p.images[0].startsWith('http') ? p.images[0] : `/assets/images/products/${p.images[0]}`;
   }
-  const href = p.slug
-    ? `/product/product.html?slug=${encodeURIComponent(p.slug)}`
-    : `/product/product.html?id=${id}`;
+  const href = window.s4lProductUrl(p);
   const fmtPrice = window.s4lFormatPrice || ((n) => `£${Number(n || 0).toFixed(0)}`);
   return `
     <a href="${href}" class="hero-film-item">
-      <img src="${img}" alt="${p.name}" loading="lazy"
+      <img src="${img}" alt="${escHtml(p.name)}" loading="lazy"
         onerror="this.src='/assets/images/products/sell4life-placeholder.png'" />
       <span class="hero-film-price">${fmtPrice(p.price || 0)}</span>
     </a>`;

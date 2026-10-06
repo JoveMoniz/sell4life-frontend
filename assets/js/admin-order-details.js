@@ -229,13 +229,13 @@ function renderSellers(vendorOrders) {
         ? `<span style="background:${acct.bg};color:${acct.color};padding:1px 7px;border-radius:10px;font-size:0.72rem;font-weight:600">${acct.label}</span>`
         : '';
       const emailLink = vo.email
-        ? `<a href="mailto:${vo.email}" style="font-size:0.82rem;color:#1d4ed8">${vo.email}</a>`
+        ? `<a href="mailto:${escHtml(vo.email)}" style="font-size:0.82rem;color:#1d4ed8">${escHtml(vo.email)}</a>`
         : '<span style="font-size:0.82rem;color:#9ca3af">No email</span>';
 
       return `
         <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #e5e7eb">
           <div style="min-width:160px;flex:1">
-            ${storeName ? `<div style="font-weight:600;font-size:0.9rem">${storeName}</div>` : ''}
+            ${storeName ? `<div style="font-weight:600;font-size:0.9rem">${escHtml(storeName)}</div>` : ''}
             <div style="margin-top:${storeName ? 2 : 0}px"><strong style="font-family:monospace;font-size:0.78rem;color:#6b7280">${shortVId}</strong></div>
             <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:3px">
               ${acctBadge} ${verified} ${typeLabel}
@@ -427,12 +427,12 @@ async function loadOrder() {
     if (shippingInfoEl) {
       const addr = order.shippingAddress;
       shippingInfoEl.innerHTML = addr ? `
-        <div style="font-weight:700;margin-bottom:2px">${addr.name || ''}</div>
-        ${addr.address1 ? `<div>${addr.address1}</div>` : ''}
-        ${addr.address2 ? `<div>${addr.address2}</div>` : ''}
-        <div>${[addr.city, addr.county, addr.postcode].filter(Boolean).join(', ')}</div>
-        ${addr.country ? `<div>${addr.country}</div>` : ''}
-        ${addr.phone ? `<div style="margin-top:4px;color:#6b7280"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 4h3.5l1.5 4-2 1.5c1 2.2 2.8 4 5 5l1.5-2 4 1.5V17a1.5 1.5 0 01-1.6 1.5A15 15 0 015 5.6 1.5 1.5 0 015 4z"/></svg> ${addr.phone}</div>` : ''}
+        <div style="font-weight:700;margin-bottom:2px">${escHtml(addr.name || '')}</div>
+        ${addr.address1 ? `<div>${escHtml(addr.address1)}</div>` : ''}
+        ${addr.address2 ? `<div>${escHtml(addr.address2)}</div>` : ''}
+        <div>${escHtml([addr.city, addr.county, addr.postcode].filter(Boolean).join(', '))}</div>
+        ${addr.country ? `<div>${escHtml(addr.country)}</div>` : ''}
+        ${addr.phone ? `<div style="margin-top:4px;color:#6b7280"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 4h3.5l1.5 4-2 1.5c1 2.2 2.8 4 5 5l1.5-2 4 1.5V17a1.5 1.5 0 01-1.6 1.5A15 15 0 015 5.6 1.5 1.5 0 015 4z"/></svg> ${escHtml(addr.phone)}</div>` : ''}
       ` : 'No shipping address on file';
     }
 
@@ -710,11 +710,11 @@ async function loadOrder() {
 
         const itemHistory = Array.isArray(item.returnHistory) && item.returnHistory.length
           ? item.returnHistory.slice().sort((a, b) => new Date(a.at) - new Date(b.at))
-              .map(h => `${new Date(h.at).toLocaleString()} — ${h.note || h.type}${h.quantity > 0 ? ` ×${h.quantity}` : ''}`)
+              .map(h => `${new Date(h.at).toLocaleString()} — ${escHtml(h.note || h.type)}${h.quantity > 0 ? ` ×${h.quantity}` : ''}`)
               .join('<br>')
           : '';
 
-        const titleHtml = `<div class="admin-title-wrap"><span class="admin-title">${item.name}</span></div>`;
+        const titleHtml = `<div class="admin-title-wrap"><span class="admin-title">${escHtml(item.name)}</span></div>`;
         const nameCell = itemHistory
           ? `${titleHtml}<div style="margin-top:4px">
               <button type="button" class="s4l-collapse-toggle" style="font-size:0.75rem;color:#6b7280">
