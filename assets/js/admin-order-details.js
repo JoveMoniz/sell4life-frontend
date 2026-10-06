@@ -38,31 +38,48 @@ const orderStatusEl  = document.getElementById('orderStatus');
    STATE
 ================================ */
 let currentOrder = null;
+
+// Every £ figure on admin pages for a converted order gets the same
+// hover-only charge-currency equivalent, rather than a permanently visible
+// parenthetical — keeps the page GBP-first (matches vendor payouts/HMRC)
+// while still letting an admin reconcile against Stripe. Reads currentOrder
+// so both loadOrder's own rendering and renderSellers (called from it) share
+// one conversion, rather than each computing chargeRate/symbol separately.
+function gbp(value) {
+  const gbpAmount = Number(value) || 0;
+  const text = '£' + gbpAmount.toFixed(2);
+  const isInternational = currentOrder?.chargeCurrency && currentOrder.chargeCurrency !== 'GBP';
+  if (!isInternational) return text;
+  const chargeRate   = Number(currentOrder.chargeToGbpRate) || 1;
+  const chargeSymbol = currentOrder.displayCurrencySymbol || '$';
+  const chargeAmount = (gbpAmount * chargeRate).toFixed(2);
+  return `<span title="Charged ${chargeSymbol}${chargeAmount} ${currentOrder.chargeCurrency}" style="cursor:help;border-bottom:1px dotted #9ca3af">${text}</span>`;
+}
+
+// Plain-text counterpart for native confirm()/alert() dialogs, which can't
+// render the hover span above — spells the charge-currency amount out
+// inline instead since a hover tooltip isn't possible there.
+function gbpText(value) {
+  const gbpAmount = Number(value) || 0;
+  const text = '£' + gbpAmount.toFixed(2);
+  const isInternational = currentOrder?.chargeCurrency && currentOrder.chargeCurrency !== 'GBP';
+  if (!isInternational) return text;
+  const chargeRate   = Number(currentOrder.chargeToGbpRate) || 1;
+  const chargeSymbol = currentOrder.displayCurrencySymbol || '$';
+  const chargeAmount = (gbpAmount * chargeRate).toFixed(2);
+  return `${text} (${chargeSymbol}${chargeAmount} ${currentOrder.chargeCurrency})`;
+}
 let _refundTarget = { itemId: null, maxQty: 0, price: 0 };
 
 /* ================================
    BADGE HELPERS
 ================================ */
-const RETURN_BADGE = {
-  requested:          { label: 'Return Requested',   color: '#b45309', bg: '#fef3c7' },
-  approved:           { label: 'Return Approved',    color: '#1d4ed8', bg: '#dbeafe' },
-  rejected:           { label: 'Return Rejected',    color: '#b91c1c', bg: '#fee2e2' },
-  partially_returned: { label: 'Partially Returned', color: '#c2410c', bg: '#ffedd5' },
-  returned:           { label: 'Returned',           color: '#15803d', bg: '#dcfce7' },
-};
-
-const REFUND_BADGE = {
-  scheduled:          { label: 'Refund Scheduled',  color: '#1d4ed8', bg: '#dbeafe' },
-  processing:         { label: 'Processing',        color: '#6d28d9', bg: '#ede9fe' },
-  processed:          { label: 'Refunded ✓',        color: '#15803d', bg: '#dcfce7' },
-  partially_refunded: { label: 'Partially Refunded', color: '#c2410c', bg: '#ffedd5' },
-  failed:             { label: 'Refund Failed',     color: '#b91c1c', bg: '#fee2e2' },
-};
-
-function badge(map, status) {
-  const b = map[status];
-  if (!b) return '';
-  return `<span style="background:${b.bg};color:${b.color};padding:1px 6px;border-radius:10px;font-size:0.72rem;font-weight:600;white-space:nowrap">${b.label}</span>`;
+// Badge rendering lives in the shared order-status.js so buyer/vendor/admin
+// all show the exact same colors for the same status.
+function badge(kind, status) {
+  if (kind === 'return') return window.s4lReturnBadge ? window.s4lReturnBadge(status) : '';
+  if (kind === 'refund') return window.s4lRefundBadge ? window.s4lRefundBadge(status) : '';
+  return '';
 }
 
 /* ================================
@@ -178,7 +195,7 @@ function updateModalAmount() {
     const deduction = _refundTarget.postageDeduction || 0;
     const amt = Math.max(0, qty * _refundTarget.price - deduction).toFixed(2);
     el.textContent = qty > 0
-      ? `Refund amount: £${amt}` + (deduction > 0 ? ` (return postage of £${deduction.toFixed(2)} deducted — change of mind, no free returns)` : '')
+      ? `Refund amount: ${gbpText(amt)}` + (deduction > 0 ? ` (return postage of ${gbpText(deduction)} deducted — change of mind, no free returns)` : '')
       : '';
   }
 }
@@ -206,19 +223,19 @@ function renderSellers(vendorOrders) {
       const subStatus  = vo.status || '—';
       const total     = Number(vo.total || 0).toFixed(2);
       const acct      = VENDOR_STATUS_STYLE[vo.accountStatus] || null;
-      const verified  = vo.verified ? '<span title="Verified" style="color:#1d4ed8;font-size:0.75rem">✓ Verified</span>' : '';
+      const verified  = vo.verified ? '<span title="Verified" style="color:#1d4ed8;font-size:0.75rem"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg> Verified</span>' : '';
       const typeLabel = vo.accountType ? `<span style="font-size:0.75rem;color:#6b7280;text-transform:capitalize">${vo.accountType}</span>` : '';
       const acctBadge = acct
         ? `<span style="background:${acct.bg};color:${acct.color};padding:1px 7px;border-radius:10px;font-size:0.72rem;font-weight:600">${acct.label}</span>`
         : '';
       const emailLink = vo.email
-        ? `<a href="mailto:${vo.email}" style="font-size:0.82rem;color:#1d4ed8">${vo.email}</a>`
+        ? `<a href="mailto:${escHtml(vo.email)}" style="font-size:0.82rem;color:#1d4ed8">${escHtml(vo.email)}</a>`
         : '<span style="font-size:0.82rem;color:#9ca3af">No email</span>';
 
       return `
         <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #e5e7eb">
           <div style="min-width:160px;flex:1">
-            ${storeName ? `<div style="font-weight:600;font-size:0.9rem">${storeName}</div>` : ''}
+            ${storeName ? `<div style="font-weight:600;font-size:0.9rem">${escHtml(storeName)}</div>` : ''}
             <div style="margin-top:${storeName ? 2 : 0}px"><strong style="font-family:monospace;font-size:0.78rem;color:#6b7280">${shortVId}</strong></div>
             <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:3px">
               ${acctBadge} ${verified} ${typeLabel}
@@ -227,11 +244,11 @@ function renderSellers(vendorOrders) {
           </div>
           <div style="min-width:120px">
             <div style="font-size:0.75rem;color:#6b7280;margin-bottom:2px">Sub-order status</div>
-            <span class="status status-${subStatus.toLowerCase().replace(/\s+/g, '-')}" style="font-size:0.8rem">${subStatus}</span>
+            ${window.s4lStatusBadge ? window.s4lStatusBadge(subStatus) : subStatus}
           </div>
           <div style="min-width:80px;text-align:right">
             <div style="font-size:0.75rem;color:#6b7280;margin-bottom:2px">Subtotal</div>
-            <strong>£${total}</strong>
+            <strong>${gbp(total)}</strong>
           </div>
         </div>`;
   }).join('');
@@ -254,9 +271,13 @@ function renderStatusHistory(order) {
     label.textContent = 'Order Activity';
     wrap.appendChild(label);
 
+    // Oldest-first — matches the per-vendor item history below, and reads
+    // in cause-then-effect order (e.g. Cancelled before the Refunded it
+    // triggers), even though those two land a few ms apart so a pure
+    // newest-first sort would otherwise put Refunded above Cancelled.
     globalHistory.slice()
       .sort((a, b) => {
-        const diff = new Date(b.date) - new Date(a.date);
+        const diff = new Date(a.date) - new Date(b.date);
         if (diff !== 0) return diff;
         const rank = { Cancelled: 0, Refunded: 1, Refund: 2 };
         const ra = Object.keys(rank).find(k => String(a.status).includes(k));
@@ -335,6 +356,7 @@ async function loadOrder() {
     const res = await authFetch(`${API_BASE}/admin/orders/${orderId}`);
 
     if (res.status === 401 || res.status === 403) {
+      localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
       window.location.href = '/account/admin/signin.html';
       return;
     }
@@ -346,16 +368,33 @@ async function loadOrder() {
     const id = order.id || order._id;
 
     /* ========= SUMMARY ========= */
-    document.getElementById('orderId').textContent =
-      order.shortId || `S4L-${id.slice(0, 10).toUpperCase()}`;
+    // A converted (non-GBP-charged) order is otherwise invisible here —
+    // order.total is always GBP by design (matches vendor payouts/fees/
+    // HMRC), but that means nothing on this page would otherwise show
+    // that Stripe actually processed this one in a different currency,
+    // which matters when reconciling against Stripe or issuing a refund.
+    const isInternational = order.chargeCurrency && order.chargeCurrency !== 'GBP';
+    const chargeSymbol = order.displayCurrencySymbol || '$';
+
+    document.getElementById('orderId').innerHTML =
+      `${order.shortId || `S4L-${id.slice(0, 10).toUpperCase()}`}` +
+      (isInternational
+        ? ` <span title="Charged ${chargeSymbol}${Number(order.chargeAmount).toFixed(2)} ${order.chargeCurrency}" style="cursor:help;display:inline-block;margin-left:6px;padding:2px 8px;background:#eff6ff;border:1px solid #93c5fd;color:#1d4ed8;border-radius:12px;font-size:0.72rem;font-weight:600;vertical-align:middle">🌍 International</span>`
+        : '');
     document.getElementById('orderUser').textContent  = order.user?.email || '-';
     document.getElementById('orderDate').textContent  = new Date(order.createdAt).toLocaleString();
-    document.getElementById('orderTotal').textContent = '£' + Number(order.total).toFixed(2);
+    // The main Total line is the one figure worth surfacing without a
+    // hover — it's what an admin checks first when a buyer asks about a
+    // charge — so it gets the real charge amount visible up front, unlike
+    // every other GBP figure on this page which stays hover-only via gbp().
+    document.getElementById('orderTotal').innerHTML = isInternational
+      ? `${chargeSymbol}${Number(order.chargeAmount).toFixed(2)} ${order.chargeCurrency} <span style="color:#6b7280;font-size:0.85em">(${gbp(order.total)})</span>`
+      : gbp(order.total);
 
     /* ========= STATUS + TIMER ========= */
-    orderStatusEl.textContent = order.status;
-    if (order.paymentStatus === 'refund_scheduled') {
-      orderStatusEl.textContent += ' • refund pending';
+    orderStatusEl.innerHTML = window.s4lStatusBadge ? window.s4lStatusBadge(order.status) : order.status;
+    if (order.paymentStatus === 'refund_scheduled' && order.refundScheduledAt) {
+      orderStatusEl.innerHTML += ` <span class="refund-badge" data-time="${order.refundScheduledAt}">refund pending<span class="refund-timer"></span></span>`;
     }
 
     /* ========= PAYMENT ========= */
@@ -381,6 +420,20 @@ async function loadOrder() {
       paymentMethodEl.textContent = order.paymentIntentId
         ? `Stripe (${order.paymentIntentId.slice(0, 12)}...)`
         : 'Stripe';
+    }
+
+    /* ========= SHIPPING ADDRESS ========= */
+    const shippingInfoEl = document.getElementById('shippingInfo');
+    if (shippingInfoEl) {
+      const addr = order.shippingAddress;
+      shippingInfoEl.innerHTML = addr ? `
+        <div style="font-weight:700;margin-bottom:2px">${escHtml(addr.name || '')}</div>
+        ${addr.address1 ? `<div>${escHtml(addr.address1)}</div>` : ''}
+        ${addr.address2 ? `<div>${escHtml(addr.address2)}</div>` : ''}
+        <div>${escHtml([addr.city, addr.county, addr.postcode].filter(Boolean).join(', '))}</div>
+        ${addr.country ? `<div>${escHtml(addr.country)}</div>` : ''}
+        ${addr.phone ? `<div style="margin-top:4px;color:#6b7280"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 4h3.5l1.5 4-2 1.5c1 2.2 2.8 4 5 5l1.5-2 4 1.5V17a1.5 1.5 0 01-1.6 1.5A15 15 0 015 5.6 1.5 1.5 0 015 4z"/></svg> ${escHtml(addr.phone)}</div>` : ''}
+      ` : 'No shipping address on file';
     }
 
     /* ========= BLOCK / ENABLE ACTIONS ========= */
@@ -453,6 +506,30 @@ async function loadOrder() {
 
         const actionBtns = [];
 
+        // ── Admin per-item cancel (total override — any non-cancelled, non-delivered
+        // state; once delivered, the goods are already with the buyer, so "cancel"
+        // doesn't make sense — Goodwill Refund is the right action instead) ──
+        if (item.status !== 'Cancelled' && item.status !== 'Delivered') {
+          const outstandingQty = Math.max(0, qty - Number(item.refundedQuantity || 0));
+          const cancelPreview = Math.max(0,
+            price * outstandingQty + Number(item.shippingCost || 0) - Number(item.discountAmount || 0)
+          ).toFixed(2);
+          const isPaidForCancel = ['paid', 'partially_refunded'].includes((order.paymentStatus || '').toLowerCase());
+          const willRefundOnCancel = isPaidForCancel && outstandingQty > 0 && item.refundStatus !== 'processed';
+
+          actionBtns.push(
+            `<button class="admin-cancel-item-btn"
+              data-item-id="${item._id}"
+              data-item-name="${(item.name || '').replace(/"/g, '&quot;')}"
+              data-refund-preview="${cancelPreview}"
+              data-will-refund="${willRefundOnCancel ? '1' : '0'}"
+              data-cj-status="${item.cjOrderId ? (item.cjOrderStatus || 'unknown') : ''}"
+              style="padding:3px 8px;background:#fff;color:#b91c1c;border:1px solid #b91c1c;border-radius:4px;cursor:pointer;font-size:0.75rem;margin-right:4px;margin-top:2px">
+              Cancel Item
+            </button>`
+          );
+        }
+
         if (returnSt === 'requested' && alreadyRefunded) {
           actionBtns.push(
             `<button disabled title="Already refunded — approving/rejecting no longer applies"
@@ -509,7 +586,7 @@ async function loadOrder() {
             actionBtns.push(
               `<button disabled title="Already refunded"
                 style="padding:3px 8px;background:#e5e7eb;color:#9ca3af;border:none;border-radius:4px;cursor:not-allowed;font-size:0.75rem;margin-top:2px">
-                Refunded ✓
+                Refunded <svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg>
               </button>`
             );
           } else if (refundProcessing) {
@@ -535,15 +612,19 @@ async function loadOrder() {
         }
 
         // ── Goodwill refund (no return required) ──────────────
+        // item.shippingAmount is never populated (always 0) — the real
+        // value lives in item.shippingCost. Gate on remaining money
+        // (maxGoodwill), not refund history or cancelled status, since a
+        // cancelled item or a return with shipping withheld can still have
+        // real unrefunded value sitting on it.
         const maxGoodwill = Math.max(0,
           price * qty
-          + Number(item.shippingAmount || 0)
+          + Number(item.shippingCost || 0)
           - Number(item.discountAmount || 0)
           - Number(item.refundedAmount || 0)
         );
-        const goodwillEligible = ['paid', 'partially_refunded'].includes(order.paymentStatus)
-          && item.refundStatus === 'none'
-          && item.status !== 'Cancelled'
+        const goodwillEligible = ['paid', 'partially_refunded', 'refunded'].includes(order.paymentStatus)
+          && item.refundStatus !== 'scheduled'
           && maxGoodwill > 0;
 
         if (goodwillEligible) {
@@ -586,10 +667,38 @@ async function loadOrder() {
             </div>`);
         }
 
+        const cjCancelBtns = item.cjOrderStatus !== 'cancelled' ? `
+              <button class="btn-retry-cj-cancel" data-item-id="${item._id}"
+                style="margin-top:4px;margin-right:4px;padding:3px 8px;background:#fff;border:1px solid #92400e;color:#92400e;border-radius:4px;cursor:pointer;font-size:0.72rem">
+                Retry CJ cancel
+              </button>
+              <button class="btn-abandon-cj-cancel" data-item-id="${item._id}"
+                style="margin-top:4px;padding:3px 8px;background:#fff;border:1px solid #6b7280;color:#374151;border-radius:4px;cursor:pointer;font-size:0.72rem">
+                Keep item — stop trying to cancel
+              </button>` : '';
+
+        if (item.cjCancelDenied && item.refundStatus === 'scheduled') {
+          actionBtns.push(`
+            <div style="margin-top:4px;padding:6px;background:#fffbeb;border:1px solid #f59e0b;border-radius:6px;font-size:0.72rem;color:#92400e;min-width:200px">
+              Cancel requested, but CJ couldn't stop the shipment — it may already be on its way.
+              <div style="margin-top:2px">No refund yet — retrying CJ automatically, refund fires as soon as they confirm the cancellation</div>
+              <div style="font-size:0.68rem;color:#a16207;margin-top:2px">Next automatic retry: <strong class="goodwill-countdown" data-time="${item.refundScheduledAt}"></strong> (${new Date(item.refundScheduledAt).toLocaleString()})</div>
+              <div>${cjCancelBtns}</div>
+            </div>`);
+        }
+
+        if (item.cjCancelDenied && item.refundStatus === 'requested') {
+          actionBtns.push(`
+            <div style="margin-top:4px;padding:6px;background:#fee2e2;border:1px solid #ef4444;border-radius:6px;font-size:0.72rem;color:#991b1b;min-width:200px">
+              CJ never confirmed this cancellation (or the item was delivered before it could) — automatic retry has stopped. Needs a manual decision: refund now, or leave as-is.
+              <div>${cjCancelBtns}</div>
+            </div>`);
+        }
+
         if (item.goodwillRefund && item.refundStatus === 'scheduled') {
           actionBtns.push(`
             <div style="margin-top:4px;padding:6px;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;font-size:0.72rem;color:#92400e;min-width:200px">
-              Goodwill £${Number(item.goodwillRefundAmount || 0).toFixed(2)} (${item.goodwillPaidBy || 'vendor'}) scheduled —
+              Goodwill ${gbp(item.goodwillRefundAmount || 0)} (${item.goodwillPaidBy || 'vendor'}) scheduled —
               <strong class="goodwill-countdown" data-time="${item.refundScheduledAt}"></strong>
               <div style="font-size:0.68rem;color:#a16207;margin-top:2px">Executes ${new Date(item.refundScheduledAt).toLocaleString()}</div>
               <button class="btn-cancel-admin-goodwill" data-item-id="${item._id}"
@@ -601,24 +710,38 @@ async function loadOrder() {
 
         const itemHistory = Array.isArray(item.returnHistory) && item.returnHistory.length
           ? item.returnHistory.slice().sort((a, b) => new Date(a.at) - new Date(b.at))
-              .map(h => `${new Date(h.at).toLocaleString()} — ${h.note || h.type}${h.quantity > 0 ? ` ×${h.quantity}` : ''}`)
+              .map(h => `${new Date(h.at).toLocaleString()} — ${escHtml(h.note || h.type)}${h.quantity > 0 ? ` ×${h.quantity}` : ''}`)
               .join('<br>')
           : '';
 
-        const titleHtml = `<div class="admin-title-wrap"><span class="admin-title">${item.name}</span></div>`;
+        const titleHtml = `<div class="admin-title-wrap"><span class="admin-title">${escHtml(item.name)}</span></div>`;
         const nameCell = itemHistory
-          ? `${titleHtml}<details style="font-size:0.75rem;color:#6b7280;margin-top:4px"><summary style="cursor:pointer">History</summary>${itemHistory}</details>`
+          ? `${titleHtml}<div style="margin-top:4px">
+              <button type="button" class="s4l-collapse-toggle" style="font-size:0.75rem;color:#6b7280">
+                History <span class="s4l-collapse-caret">▾</span>
+              </button>
+              <div class="s4l-collapse-body">${itemHistory}</div>
+            </div>`
           : titleHtml;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${nameCell}</td>
           <td>${qty}</td>
-          <td>£${price.toFixed(2)}</td>
-          <td>£${(qty * price).toFixed(2)}</td>
-          <td>${badge(RETURN_BADGE, item.returnStatus)}</td>
-          <td>${badge(REFUND_BADGE, item.refundStatus)}</td>
-          <td style="white-space:nowrap">${actionBtns.join('')}</td>`;
+          <td>${gbp(price)}</td>
+          <td>${gbp(qty * price)}</td>
+          <td>${badge('return', item.returnStatus)}</td>
+          <td>${badge('refund', item.refundStatus)}</td>
+          <td style="white-space:nowrap">
+            <div class="order-actions-wrapper">
+              <button type="button" class="order-actions-toggle" data-item-id="${item._id}" style="font-size:0.8rem;padding:4px 12px">
+                Actions <span class="oat-caret">▾</span>
+              </button>
+              <div class="order-actions-menu" id="item-actions-menu-${item._id}">
+                ${actionBtns.length ? actionBtns.join('') : '<p style="margin:0;font-size:0.78rem;color:#9ca3af">No actions available</p>'}
+              </div>
+            </div>
+          </td>`;
 
         productsTable.appendChild(tr);
       });
@@ -707,6 +830,126 @@ function initGoodwillTimers() {
    CLICK HANDLER (delegated)
 ================================ */
 document.addEventListener('click', async (e) => {
+  /* --- Actions dropdown: open/close (layer 1 of the 2-layer guard —
+     an action can't even be reached without deliberately opening its menu
+     first; the confirm dialog on each action is layer 2). Same pattern as
+     the buyer-facing order-details page (orders-details.js/.order-actions-*). --- */
+  const actionsToggle = e.target.closest('.order-actions-toggle');
+  if (actionsToggle) {
+    const menu = actionsToggle.parentElement.querySelector('.order-actions-menu');
+    document.querySelectorAll('.order-actions-menu.open').forEach(m => { if (m !== menu) m.classList.remove('open'); });
+    menu?.classList.toggle('open');
+    return;
+  }
+  if (!e.target.closest('.order-actions-wrapper')) {
+    document.querySelectorAll('.order-actions-menu.open').forEach(m => m.classList.remove('open'));
+  }
+
+  /* --- Item History collapsible — was a native <details>, which can't be
+     CSS-animated; toggled the same way as the actions menu now. --- */
+  const collapseToggle = e.target.closest('.s4l-collapse-toggle');
+  if (collapseToggle) {
+    collapseToggle.classList.toggle('open');
+    collapseToggle.nextElementSibling?.classList.toggle('open');
+    return;
+  }
+
+  /* --- Admin per-item cancel (total override) --- */
+  const adminCancelBtn = e.target.closest('.admin-cancel-item-btn');
+  if (adminCancelBtn) {
+    const itemId  = adminCancelBtn.dataset.itemId;
+    const name    = adminCancelBtn.dataset.itemName;
+    const amt     = adminCancelBtn.dataset.refundPreview;
+    const willRefund = adminCancelBtn.dataset.willRefund === '1';
+    const cjStatus = adminCancelBtn.dataset.cjStatus;
+    // Surfaces the item's cached cjOrderStatus so the confirm dialog doesn't
+    // read as if CJ is being ignored — the actual cancel attempt always
+    // re-checks live with CJ regardless of what's shown here, this is just
+    // visibility into what we already know going in.
+    const cjLine = cjStatus
+      ? `\n\nLast known CJ status: ${cjStatus}. We'll confirm live with CJ before refunding — an already-dispatched item goes to manual review instead of an instant refund.`
+      : '';
+
+    const msg = willRefund
+      ? `Cancel "${name}"?\n\nThis will refund ${gbpText(amt)} to the customer and cannot be undone.${cjLine}`
+      : `Cancel "${name}"?\n\nThis cannot be undone.${cjLine}`;
+
+    const confirmed = await showConfirm(msg);
+    if (!confirmed) return;
+
+    adminCancelBtn.disabled = true;
+    adminCancelBtn.textContent = 'Cancelling...';
+    try {
+      const res = await authFetch(`${API_BASE}/admin/orders/${orderId}/items/${itemId}/cancel`, {
+        method: 'PATCH',
+      });
+      const data = await res.json();
+      if (!res.ok) { await showAlert(data.error || 'Cancel failed'); return; }
+      loadOrder();
+    } catch (err) {
+      await showAlert('Something went wrong');
+    } finally {
+      adminCancelBtn.disabled = false;
+      adminCancelBtn.textContent = 'Cancel Item';
+    }
+    return;
+  }
+
+  /* --- Retry a CJ order cancel on-demand --- */
+  const retryCjBtn = e.target.closest('.btn-retry-cj-cancel');
+  if (retryCjBtn) {
+    const itemId = retryCjBtn.dataset.itemId;
+    retryCjBtn.disabled = true;
+    retryCjBtn.textContent = 'Retrying…';
+    try {
+      const res = await authFetch(`${API_BASE}/admin/orders/${orderId}/items/${itemId}/retry-cj-cancel`, {
+        method: 'PATCH',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        await showAlert(data.error || 'CJ cancel failed');
+        retryCjBtn.disabled = false;
+        retryCjBtn.textContent = 'Retry CJ cancel';
+        return;
+      }
+      loadOrder();
+    } catch (err) {
+      await showAlert('Something went wrong');
+      retryCjBtn.disabled = false;
+      retryCjBtn.textContent = 'Retry CJ cancel';
+    }
+    return;
+  }
+
+  /* --- Give up on the cancellation and let the shipment proceed --- */
+  const abandonCjBtn = e.target.closest('.btn-abandon-cj-cancel');
+  if (abandonCjBtn) {
+    const itemId = abandonCjBtn.dataset.itemId;
+    const confirmed = await showConfirm('Keep this item?\n\nThis stops the automatic cancellation retries — no refund will be issued and the order continues as normal.');
+    if (!confirmed) return;
+
+    abandonCjBtn.disabled = true;
+    abandonCjBtn.textContent = 'Updating…';
+    try {
+      const res = await authFetch(`${API_BASE}/admin/orders/${orderId}/items/${itemId}/abandon-cj-cancel`, {
+        method: 'PATCH',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        await showAlert(data.error || 'Failed to update');
+        abandonCjBtn.disabled = false;
+        abandonCjBtn.textContent = 'Keep item — stop trying to cancel';
+        return;
+      }
+      loadOrder();
+    } catch (err) {
+      await showAlert('Something went wrong');
+      abandonCjBtn.disabled = false;
+      abandonCjBtn.textContent = 'Keep item — stop trying to cancel';
+    }
+    return;
+  }
+
   /* --- Approve return --- */
   const approveBtn = e.target.closest('.approve-return-btn');
   if (approveBtn) {
@@ -792,7 +1035,7 @@ document.addEventListener('click', async (e) => {
     const reason = form?.querySelector('.admin-goodwill-reason-inp')?.value.trim();
 
     if (!Number.isFinite(amount) || amount <= 0 || amount > max + 0.001) {
-      await showAlert(`Enter an amount between £0.01 and £${max.toFixed(2)}`);
+      await showAlert(`Enter an amount between £0.01 and ${gbpText(max)}`);
       return;
     }
     if (!reason) {
@@ -801,7 +1044,7 @@ document.addEventListener('click', async (e) => {
     }
 
     const payerLabel = paidBy === 'vendor' ? "the vendor's payout" : 'Sell4Life (the platform)';
-    const confirmed = await showConfirm(`Schedule a £${amount.toFixed(2)} goodwill refund, paid by ${payerLabel}? No item return required. Executes in 24h unless cancelled.`);
+    const confirmed = await showConfirm(`Schedule a ${gbpText(amount)} goodwill refund, paid by ${payerLabel}? No item return required. Executes in 24h unless cancelled.`);
     if (!confirmed) return;
 
     submitGoodwillBtn.disabled = true;
@@ -908,7 +1151,7 @@ document.addEventListener('click', async (e) => {
       }
 
       document.getElementById('itemRefundModal').style.display = 'none';
-      await showAlert(`Refund of £${Number(data.refundedAmount || 0).toFixed(2)} processed successfully.`);
+      await showAlert(`Refund of ${gbpText(data.refundedAmount || 0)} processed successfully.`);
       loadOrder();
     } catch (err) {
       console.error(err);
@@ -936,6 +1179,23 @@ updateBtn.addEventListener('click', async () => {
   const newStatus = statusSelect.value;
   if (!newStatus) return;
 
+  if (newStatus === 'Cancelled') {
+    // Mirrors the backend's shouldScheduleRefund gate (routes/adminOrders.js)
+    // so the preview only claims a refund will fire when one actually will.
+    const alreadyScheduled = currentOrder?.refundStatus === 'scheduled'
+      || currentOrder?.paymentStatus === 'refund_scheduled'
+      || !!currentOrder?.refundScheduledAt;
+    const alreadyRefunded = currentOrder?.paymentStatus === 'refunded' || currentOrder?.refundStatus === 'processed';
+    const willRefund = currentOrder?.paymentStatus === 'paid' && !alreadyScheduled && !alreadyRefunded;
+
+    const msg = willRefund
+      ? `Force cancel this order?\n\nThis schedules a full refund of ${gbpText(currentOrder.total || 0)} for the ENTIRE order (all items/vendors) and cannot be undone.`
+      : 'Force cancel this order?\n\nThis cannot be undone.';
+
+    const confirmed = await showConfirm(msg);
+    if (!confirmed) return;
+  }
+
   try {
     updateBtn.disabled    = true;
     updateBtn.textContent = 'Updating...';
@@ -961,6 +1221,238 @@ updateBtn.addEventListener('click', async () => {
     updateBtn.textContent = 'Update Status';
   }
 });
+
+/* ================================
+   TEMPORARY — FORCE CJ ORDER STATUS SYNC
+   Runs the cjOrderStatusSyncWorker's sync on demand for this order,
+   instead of waiting up to 2h for its next tick. Remove once the
+   worker has been confirmed working for a while.
+================================ */
+const cjSyncBtn    = document.getElementById('cjSyncNowBtn');
+const cjSyncResult = document.getElementById('cjSyncResult');
+
+if (cjSyncBtn) {
+  cjSyncBtn.addEventListener('click', async () => {
+    try {
+      cjSyncBtn.disabled    = true;
+      cjSyncBtn.textContent = 'Syncing...';
+      cjSyncResult.style.display = 'none';
+
+      const res  = await authFetch(`${API_BASE}/admin/orders/cj-status-sync-run`, { method: 'POST' });
+      const data = await res.json();
+
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = JSON.stringify(data, null, 2);
+
+      if (res.ok && data.updated > 0) loadOrder();
+    } catch (err) {
+      console.error(err);
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = 'Request failed: ' + err.message;
+    } finally {
+      cjSyncBtn.disabled    = false;
+      cjSyncBtn.textContent = 'Force CJ Sync Now';
+    }
+  });
+}
+
+/* ================================
+   TEMPORARY — ONE-OFF BACKFILLS (platform-wide, not scoped to this order)
+   Remove once run.
+================================ */
+const backfillVendorStatusBtn = document.getElementById('backfillVendorStatusBtn');
+
+if (backfillVendorStatusBtn) {
+  backfillVendorStatusBtn.addEventListener('click', async () => {
+    if (!(await window.s4lConfirm('Recompute vendorOrders[].status for every order on the platform? Safe to run more than once.'))) return;
+    try {
+      backfillVendorStatusBtn.disabled    = true;
+      backfillVendorStatusBtn.textContent = 'Running...';
+      cjSyncResult.style.display = 'none';
+
+      const res  = await authFetch(`${API_BASE}/admin/orders/backfill-vendor-status`, { method: 'POST' });
+      const data = await res.json();
+
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = JSON.stringify(data, null, 2);
+
+      if (res.ok && data.ordersUpdated > 0) loadOrder();
+    } catch (err) {
+      console.error(err);
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = 'Request failed: ' + err.message;
+    } finally {
+      backfillVendorStatusBtn.disabled    = false;
+      backfillVendorStatusBtn.textContent = 'Backfill Vendor Status (All Orders)';
+    }
+  });
+}
+
+const backfillDeliveredNotifyBtn = document.getElementById('backfillDeliveredNotifyBtn');
+
+if (backfillDeliveredNotifyBtn) {
+  backfillDeliveredNotifyBtn.addEventListener('click', async () => {
+    if (!(await window.s4lConfirm('Send the "Delivered" email + message to every buyer whose item is already Delivered but never got notified? Only run this ONCE — running it again after the live flow has since notified some buyers will re-notify them.'))) return;
+    try {
+      backfillDeliveredNotifyBtn.disabled    = true;
+      backfillDeliveredNotifyBtn.textContent = 'Sending...';
+      cjSyncResult.style.display = 'none';
+
+      const res  = await authFetch(`${API_BASE}/admin/orders/backfill-delivered-notifications`, { method: 'POST' });
+      const data = await res.json();
+
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      console.error(err);
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = 'Request failed: ' + err.message;
+    } finally {
+      backfillDeliveredNotifyBtn.disabled    = false;
+      backfillDeliveredNotifyBtn.textContent = 'Send Missed Delivered Notifications (All Orders)';
+    }
+  });
+}
+
+const cjEligibilityBtn = document.getElementById('cjEligibilityBtn');
+
+if (cjEligibilityBtn) {
+  cjEligibilityBtn.addEventListener('click', async () => {
+    try {
+      cjEligibilityBtn.disabled    = true;
+      cjEligibilityBtn.textContent = 'Checking...';
+      cjSyncResult.style.display = 'none';
+
+      const res  = await authFetch(`${API_BASE}/admin/orders/${orderId}/debug-cj-eligibility`);
+      const data = await res.json();
+
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      console.error(err);
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = 'Request failed: ' + err.message;
+    } finally {
+      cjEligibilityBtn.disabled    = false;
+      cjEligibilityBtn.textContent = 'Check CJ Eligibility';
+    }
+  });
+}
+
+const cjSyncMatchBtn = document.getElementById('cjSyncMatchBtn');
+
+if (cjSyncMatchBtn) {
+  cjSyncMatchBtn.addEventListener('click', async () => {
+    try {
+      cjSyncMatchBtn.disabled    = true;
+      cjSyncMatchBtn.textContent = 'Tracing...';
+      cjSyncResult.style.display = 'none';
+
+      const res  = await authFetch(`${API_BASE}/admin/orders/${orderId}/debug-cj-sync-match`);
+      const data = await res.json();
+
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      console.error(err);
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = 'Request failed: ' + err.message;
+    } finally {
+      cjSyncMatchBtn.disabled    = false;
+      cjSyncMatchBtn.textContent = 'Trace Sync Match';
+    }
+  });
+}
+
+const cjBackfillCarrierBtn = document.getElementById('cjBackfillCarrierBtn');
+
+if (cjBackfillCarrierBtn) {
+  cjBackfillCarrierBtn.addEventListener('click', async () => {
+    try {
+      const itemId = currentOrder?.items?.[0]?._id;
+      if (!itemId) { cjSyncResult.style.display = 'block'; cjSyncResult.textContent = 'No item loaded yet'; return; }
+
+      cjBackfillCarrierBtn.disabled    = true;
+      cjBackfillCarrierBtn.textContent = 'Backfilling...';
+      cjSyncResult.style.display = 'none';
+
+      const res  = await authFetch(`${API_BASE}/admin/orders/${orderId}/items/${itemId}/backfill-cj-carrier`, { method: 'POST' });
+      const data = await res.json();
+
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      console.error(err);
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = 'Request failed: ' + err.message;
+    } finally {
+      cjBackfillCarrierBtn.disabled    = false;
+      cjBackfillCarrierBtn.textContent = 'Backfill Carrier (first item)';
+    }
+  });
+}
+
+const cjResendNotifyBtn = document.getElementById('cjResendNotifyBtn');
+
+if (cjResendNotifyBtn) {
+  cjResendNotifyBtn.addEventListener('click', async () => {
+    try {
+      const itemId = currentOrder?.items?.[0]?._id;
+      if (!itemId) { cjSyncResult.style.display = 'block'; cjSyncResult.textContent = 'No item loaded yet'; return; }
+
+      cjResendNotifyBtn.disabled    = true;
+      cjResendNotifyBtn.textContent = 'Resending...';
+      cjSyncResult.style.display = 'none';
+
+      const res  = await authFetch(`${API_BASE}/admin/orders/${orderId}/items/${itemId}/resend-shipped-notification`, { method: 'POST' });
+      const data = await res.json();
+
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      console.error(err);
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = 'Request failed: ' + err.message;
+    } finally {
+      cjResendNotifyBtn.disabled    = false;
+      cjResendNotifyBtn.textContent = 'Resend Shipped Notification (first item)';
+    }
+  });
+}
+
+const cjTestUsShippingBtn = document.getElementById('cjTestUsShippingBtn');
+
+// Sequential, not Promise.all — concurrent calls raced on the per-vendor
+// token cache and one came back "auth-failed" even though the credential
+// was fine (see GB result during the first US-only test on 2026-08-24).
+if (cjTestUsShippingBtn) {
+  cjTestUsShippingBtn.addEventListener('click', async () => {
+    try {
+      const productId = currentOrder?.items?.[0]?.productId;
+      if (!productId) { cjSyncResult.style.display = 'block'; cjSyncResult.textContent = 'No product loaded yet'; return; }
+
+      cjTestUsShippingBtn.disabled    = true;
+      cjSyncResult.style.display = 'none';
+
+      const countries = ['PT', 'BR', 'CV', 'CH', 'GB', 'US', 'DE', 'FR', 'ES', 'IT', 'NL', 'PL', 'IE', 'SE'];
+      const out = {};
+      for (const c of countries) {
+        cjTestUsShippingBtn.textContent = `Testing ${c}...`;
+        const res  = await authFetch(`${API_BASE}/admin/vendors/check-cj-shipping/${productId}/diagnostic?country=${c}`);
+        out[c] = await res.json();
+        cjSyncResult.style.display = 'block';
+        cjSyncResult.textContent = JSON.stringify(out, null, 2);
+      }
+    } catch (err) {
+      console.error(err);
+      cjSyncResult.style.display = 'block';
+      cjSyncResult.textContent = 'Request failed: ' + err.message;
+    } finally {
+      cjTestUsShippingBtn.disabled    = false;
+      cjTestUsShippingBtn.textContent = 'Test Shipping Quote (first item, multi-country)';
+    }
+  });
+}
 
 /* ================================
    CANCEL REFUND SCHEDULE

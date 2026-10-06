@@ -1,3 +1,15 @@
+RewriteEngine On
+RewriteCond %{HTTP_HOST} ^www\.sell4life\.com$ [NC]
+RewriteRule ^(.*)$ https://sell4life.com/$1 [L,R=301]
+
+# Clean product URLs: /product/<slug> serves product.html internally —
+# the browser's address bar keeps showing the clean path, nothing
+# redirects. Guarded with !-f/!-d so this never intercepts a request for
+# a real file (product.html itself, any future asset under /product/).
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^product/([^/]+)$ /product/product.html [L]
+
 ErrorDocument 404 /404.html
 
 <FilesMatch "\.(js|css)$">

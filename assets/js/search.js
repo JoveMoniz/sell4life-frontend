@@ -25,8 +25,9 @@
   function hide(box) { if (box) box.classList.remove('show'); }
 
   function highlight(text, q) {
+    const safeText = escHtml(text);
     const esc = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return text.replace(new RegExp(`(${esc})`, 'gi'), '<strong>$1</strong>');
+    return safeText.replace(new RegExp(`(${esc})`, 'gi'), '<strong>$1</strong>');
   }
 
   function sortMatches(matches, q) {
@@ -54,11 +55,11 @@
           : `/assets/images/products/${m.images[0]}`
         : '/assets/images/products/sell4life-placeholder.png';
 
-      return `<div class="ac-item" data-id="${m._id}">
+      return `<div class="ac-item" data-id="${m._id}" data-slug="${escHtml(m.slug || '')}">
         <img src="${img}" class="ac-thumb" />
         <div class="ac-details">
           <span class="ac-name">${highlight(m.name, q)}</span>
-          <span class="ac-cat">${m.category} → ${m.subcategory}</span>
+          <span class="ac-cat">${escHtml(m.category)} → ${escHtml(m.subcategory)}</span>
         </div>
       </div>`;
     }).join('') + `<div class="ac-item ac-view-all">View all results for "${q}"</div>`;
@@ -123,7 +124,9 @@
         window.location.href = `/shop/?q=${encodeURIComponent(input.value)}`;
         return;
       }
-      window.location.href = `/product/product.html?id=${item.dataset.id}`;
+      window.location.href = item.dataset.slug
+        ? `/product/${encodeURIComponent(item.dataset.slug)}`
+        : `/product/product.html?id=${item.dataset.id}`;
     });
   }
 

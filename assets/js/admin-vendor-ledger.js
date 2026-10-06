@@ -19,6 +19,15 @@ function fmt(n) {
   return '£' + Number(n || 0).toFixed(2);
 }
 
+// Display-only estimate of a GBP figure in the vendor's real payout
+// currency — the actual Stripe transfer always moves in GBP and converts
+// on arrival, this is just a heads-up shown ahead of time.
+function fmtEstimate(est) {
+  if (!est || !est.currency || est.currency === 'GBP') return '';
+  const symbol = est.symbol || '$';
+  return ` <span style="color:#6b7280;font-weight:500;font-size:0.85em">(≈ ${symbol}${Number(est.amount || 0).toFixed(2)})</span>`;
+}
+
 /* ======================================================
    INIT — read vendor ID from URL
 ====================================================== */
@@ -49,6 +58,7 @@ async function loadLedger() {
   try {
     const res = await authFetch(url);
     if (res.status === 401 || res.status === 403) {
+      localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
       window.location.href = '/account/admin/signin.html';
       return;
     }
@@ -84,11 +94,12 @@ function renderInfoBar(v) {
   const _tierBg     = { casual:'#f3f4f6', refurbished:'#e0f2fe', professional:'#fff3e0', enterprise:'#ede9fe' };
   const _tier = v.type || 'casual';
   bar.innerHTML = `
-    <strong>${v.storeName}</strong>
-    ${v.storeSlug ? `<span style="color:#9ca3af;font-size:11px">@${v.storeSlug}</span>` : ''}
-    <span style="${statusCls};padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;text-transform:capitalize">${v.status}</span>
-    <span style="background:${_tierBg[_tier]||'#f3f4f6'};color:${_tierColors[_tier]||'#6b7280'};padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;text-transform:capitalize">${_tier}</span>
+    <strong>${escHtml(v.storeName)}</strong>
+    ${v.storeSlug ? `<span style="color:#9ca3af;font-size:11px">@${escHtml(v.storeSlug)}</span>` : ''}
+    <span style="${statusCls};padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;text-transform:capitalize">${escHtml(v.status)}</span>
+    <span style="background:${_tierBg[_tier]||'#f3f4f6'};color:${_tierColors[_tier]||'#6b7280'};padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;text-transform:capitalize">${escHtml(_tier)}</span>
     ${v.vatRegistered ? '<span style="background:#dbeafe;color:#1d4ed8;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700">VAT</span>' : ''}
+    ${v.country && v.country !== 'GB' ? `<span style="background:#eff6ff;color:#1d4ed8;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700">${escHtml(v.country)}</span>` : ''}
     <span class="vl-email">${v.email}</span>
   `;
   bar.style.display = 'flex';
@@ -113,13 +124,13 @@ function renderCards(s, v, b) {
 
   const reserveRate  = b ? Math.round((b.reserveRate || 0.10) * 100) : 10;
   const trustedLabel = b?.trustedSeller
-    ? '<span style="color:#15803d;font-size:0.72rem;font-weight:600">✓ Trusted</span>'
+    ? '<span style="color:#15803d;font-size:0.72rem;font-weight:600"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg> Trusted</span>'
     : `<span style="color:#9ca3af;font-size:0.72rem">${reserveRate}% rate</span>`;
 
   const reserveCard = b ? `
     <div class="vl-card">
       <div class="vl-card-label">Available Payout ${trustedLabel}</div>
-      <div class="vl-card-value positive">${fmt(b.pendingBalance)}</div>
+      <div class="vl-card-value positive">${fmt(b.pendingBalance)}${fmtEstimate(b.payoutEstimate)}</div>
       <div class="vl-card-sub">cleared &amp; requestable</div>
     </div>
     <div class="vl-card">
@@ -247,6 +258,23 @@ function renderTable(transactions, summary) {
           </tr>`
         : '';
 
+      // Stripe keeps its processing fee even when the item is cancelled or
+      // returned — a real platform loss on top of the lost commission, shown
+      // in the same red used for other losses so it reads as give-away, not
+      // a neutral figure.
+      const stripeFeeRow = (t.type === 'cancelled' || t.type === 'returned') && Number(t.stripeFee) > 0
+        ? `<tr style="background:#fef2f2">
+            <td></td><td></td><td></td><td></td>
+            <td style="font-size:11px;color:#b91c1c;padding-top:2px;padding-bottom:4px">
+              ↳ Stripe fee kept by Stripe${t.stripeIsEstimated ? ' (est.)' : ''}
+            </td>
+            <td class="vl-num" style="font-size:11px;color:#b91c1c;padding-top:2px;padding-bottom:4px">
+              −${fmt(t.stripeFee)}
+            </td>
+            <td></td><td></td>
+          </tr>`
+        : '';
+
       return `<tr>
       <td style="white-space:nowrap">${date}</td>
       <td><span class="vl-order-id">${t.displayId || '—'}</span></td>
@@ -256,7 +284,7 @@ function renderTable(transactions, summary) {
       <td class="vl-num">${amountFormatted}</td>
       <td class="vl-num">${commission}</td>
       <td class="vl-num">${netToVendor}</td>
-    </tr>${shippingRow}`;
+    </tr>${shippingRow}${stripeFeeRow}`;
     })
     .join('');
 }

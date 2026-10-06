@@ -33,6 +33,7 @@ async function loadFinancials(period = 'all') {
     const res = await authFetch(url);
 
     if (res.status === 401 || res.status === 403) {
+      localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
       window.location.href = '/account/admin/signin.html';
       return;
     }
@@ -94,7 +95,7 @@ function renderCards(s) {
     <div class="fin-card">
       <div class="fin-card-label">Stripe Costs</div>
       <div class="fin-card-value negative">${fmt(s.totalStripe)}</div>
-      <div class="fin-card-sub">paid to Stripe</div>
+      <div class="fin-card-sub">paid to Stripe${Number(s.totalStripeOnRefundedOrders) > 0 ? ` · ${fmt(s.totalStripeOnRefundedOrders)} on refunded/cancelled orders` : ''}</div>
     </div>
     <div class="fin-card">
       <div class="fin-card-label">Net Profit</div>
@@ -164,11 +165,11 @@ function renderVendorTable(vendors) {
           : `<span style="color:#9ca3af">${fmt(0)}</span>`;
       return `<tr>
       <td>
-        <strong>${v.storeName}</strong>${vatBadge}${tierBadge}
-        ${v.storeSlug ? `<div style="font-size:11px;color:#9ca3af">@${v.storeSlug}</div>` : ''}
+        <strong>${escHtml(v.storeName)}</strong>${vatBadge}${tierBadge}
+        ${v.storeSlug ? `<div style="font-size:11px;color:#9ca3af">@${escHtml(v.storeSlug)}</div>` : ''}
       </td>
-      <td style="color:#6b7280;font-size:12px">${v.email}</td>
-      <td><span class="fin-status ${statusCls}">${v.status}</span></td>
+      <td style="color:#6b7280;font-size:12px">${escHtml(v.email)}</td>
+      <td><span class="fin-status ${statusCls}">${escHtml(v.status)}</span></td>
       <td class="fin-num">${v.orderCount}</td>
       <td class="fin-num">${fmt(v.gross)}</td>
       <td class="fin-num" style="color:#b91c1c">${fmt(v.refunds)}</td>

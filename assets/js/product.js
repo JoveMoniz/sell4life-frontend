@@ -7,9 +7,25 @@ console.log('product.js loaded');
   const IMAGE_BASE = '/assets/images/products/';
 
   // ── Get product ID / slug ──────────────────────────────────
+  // Three URL forms now resolve here: the clean /product/<slug> path
+  // (an .htaccess rewrite serves this file for it, URL bar unchanged),
+  // and the older ?slug=/?id= query-string forms (kept working so
+  // existing bookmarks/shared links/search-engine-indexed URLs don't
+  // break) — below, an old-style link gets soft-upgraded in the address
+  // bar once the product's real slug is known.
   const params = new URLSearchParams(window.location.search);
-  const productId = params.get('id');
-  const productSlug = params.get('slug');
+  let productId = params.get('id');
+  let productSlug = params.get('slug');
+  let usedCleanPath = false;
+
+  if (!productId && !productSlug) {
+    const pathMatch = window.location.pathname.match(/^\/product\/([^/]+)$/);
+    if (pathMatch && pathMatch[1] !== 'product.html') {
+      productSlug = decodeURIComponent(pathMatch[1]);
+      usedCleanPath = true;
+    }
+  }
+
   if (!productId && !productSlug) { console.warn('No ?id=... or ?slug=... in URL'); return; }
 
   // ── Load product ───────────────────────────────────────────
@@ -22,15 +38,27 @@ console.log('product.js loaded');
     if (res.ok) product = await res.json();
   } catch (e) {}
 
-  if (!product && productId) {
-    try {
-      const res = await fetch('/data/products.json', { cache: 'no-store' });
-      const all = await res.json();
-      product = all.find((p) => p.id === productId);
-    } catch (e) {}
+  if (!product) {
+    console.error('Product not found:', productId || productSlug);
+    // No fallback to a real-looking product page here anymore — this used
+    // to fall back to /data/products.json, a leftover static demo catalog
+    // from early development (placeholder items like "Men's Classic
+    // Suit"). Any old/bad product ID (an old bookmark, a stale search-
+    // engine link, someone probing IDs) silently rendered one of those as
+    // if it were a real listing, complete with a genuine analytics
+    // "product view" event — confusing for buyers and for us.
+    const page = $('.product-page');
+    if (page) {
+      page.innerHTML = `
+        <div style="max-width:480px;margin:80px auto;text-align:center;padding:0 20px">
+          <h1 style="font-size:1.4rem;margin-bottom:8px">Product not found</h1>
+          <p style="color:#6b7280;margin-bottom:20px">This listing may have been removed or the link may be out of date.</p>
+          <a href="/shop/index.html" style="color:#0b6b6a;font-weight:600">Browse the shop →</a>
+        </div>`;
+    }
+    document.documentElement.style.visibility = 'visible';
+    return;
   }
-
-  if (!product) { console.error('Product not found:', productId || productSlug); return; }
 
   // Currency detection runs in parallel with the product fetch above (both
   // kick off as soon as their scripts load) — this just waits for whichever
@@ -40,6 +68,26 @@ console.log('product.js loaded');
   const fmtPrice = window.s4lFormatPrice || ((n) => `£${Number(n || 0).toFixed(2)}`);
 
   const pid = product._id || product.id;
+
+  // ── Canonical URL + soft-upgrade old-style links ───────────
+  // A canonical tag tells search engines all three URL forms (clean
+  // path, ?slug=, ?id=) are the same page, so indexing signals
+  // consolidate onto one URL instead of splitting across three. Visitors
+  // arriving via an old-style link also get the address bar itself
+  // quietly upgraded to the clean path (no reload, no redirect — just
+  // what's shown) once the product's real slug is known, so a link
+  // copied/shared from this point on is already the clean form.
+  const canonicalUrl = product.slug
+    ? `${window.location.origin}/product/${encodeURIComponent(product.slug)}`
+    : window.location.href;
+  const canonicalEl = document.createElement('link');
+  canonicalEl.rel = 'canonical';
+  canonicalEl.href = canonicalUrl;
+  document.head.appendChild(canonicalEl);
+
+  if (!usedCleanPath && product.slug) {
+    history.replaceState(null, '', canonicalUrl);
+  }
 
   // Track recently viewed (for shop browse rows)
   try {
@@ -160,6 +208,30 @@ console.log('product.js loaded');
     }
   }
 
+  // ── Ships from ────────────────────────────────────────────
+  // shippingOriginCountry defaults to 'CN' both for a genuine China
+  // warehouse AND for a product that was simply never synced — the field
+  // alone can't tell those apart, so 'CN' isn't shown as if it were a
+  // confirmed fact. A non-CN value only ever gets set by a real sync that
+  // found closer stock, so that case is always worth surfacing.
+  const shipsFromEl = document.getElementById('pd-ships-from');
+  if (shipsFromEl) {
+    const code = String(product.shippingOriginCountry || '').toUpperCase();
+    const country = code && code !== 'CN' && Array.isArray(window.S4L_COUNTRIES)
+      ? window.S4L_COUNTRIES.find((c) => c.code === code)
+      : null;
+    if (country) {
+      // No flag emoji here — Windows Chrome/Edge frequently fails to
+      // compose the two regional-indicator characters into an actual flag
+      // glyph and shows the raw letter fallback instead (e.g. "us"),
+      // which reads as a bug. Plain text renders correctly everywhere.
+      shipsFromEl.textContent = `Ships from ${country.name}`;
+      shipsFromEl.style.display = 'block';
+    } else {
+      shipsFromEl.style.display = 'none';
+    }
+  }
+
   // ── Returns postage note ───────────────────────────────────
   // Product-level freeReturns wins if explicitly set; otherwise inherit
   // the vendor's store-wide default.
@@ -171,7 +243,7 @@ console.log('product.js loaded');
     const freeReturns = typeof product.freeReturns === 'boolean' ? product.freeReturns : vendorFreeReturns;
     const returnCost = product.shipIncluded ? 0 : Number(product.shippingCost || 0);
     if (freeReturns) {
-      postageNoteEl.textContent = '✓ Free returns — this seller covers return postage for change-of-mind returns.';
+      postageNoteEl.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M5 13l4 4L19 7"/></svg> Free returns — this seller covers return postage for change-of-mind returns.';
     } else if (returnCost > 0) {
       postageNoteEl.textContent = `For change-of-mind returns, return postage (approx. ${fmtPrice(returnCost)}) may be paid by the buyer.`;
     } else {
@@ -230,10 +302,10 @@ console.log('product.js loaded');
     const lines = text.split(/\n/).map(l => l.trim()).filter(Boolean);
     if (lines.length > 1) {
       return '<ul class="pd-bullets">' +
-        lines.map(l => `<li>${l.replace(/^[•\-\*✓]\s*/, '')}</li>`).join('') +
+        lines.map(l => `<li>${escHtml(l.replace(/^[•\-\*✓]\s*/, ''))}</li>`).join('') +
         '</ul>';
     }
-    return `<p class="pd-gallery-short">${text}</p>`;
+    return `<p class="pd-gallery-short">${escHtml(text)}</p>`;
   }
 
   // ── Gallery info: bullets under slider (desktop) ──────────
@@ -248,7 +320,7 @@ console.log('product.js loaded');
     const lines = bulletPoints.split(/\n/).map(l => l.trim()).filter(Boolean);
     if (lines.length) {
       bulletsEl.innerHTML = '<ul class="pd-bullets">' +
-        lines.map(l => `<li>${l.replace(/^[•\-\*✓]\s*/, '')}</li>`).join('') +
+        lines.map(l => `<li>${escHtml(l.replace(/^[•\-\*✓]\s*/, ''))}</li>`).join('') +
         '</ul>';
     }
   }
@@ -324,7 +396,7 @@ console.log('product.js loaded');
     if (vObj?.refurbishedBadge && vObj?.type === 'refurbished') {
       const refurbBadge = document.createElement('span');
       refurbBadge.className = 'pd-refurb-badge';
-      refurbBadge.textContent = '🔧 Verified Refurbisher';
+      refurbBadge.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 005.4-5.4l-2.3 2.3-2-2 2.3-2.3z"/></svg> Verified Refurbisher';
       const sellerInfo = document.querySelector('.pd-seller-info');
       if (sellerInfo) sellerInfo.appendChild(refurbBadge);
     }
@@ -443,6 +515,15 @@ console.log('product.js loaded');
   const variantDivider = document.getElementById('pd-divider-variants');
   const priceEl = $('.product-price');
 
+  // Declared here (rather than down in the Stock/out-of-stock section below)
+  // because applyVariant() — called synchronously further down for products
+  // with no real variant choice to make — reads these; referencing a later
+  // `const` before its own declaration line runs throws a temporal-dead-zone
+  // ReferenceError that silently aborts the rest of this script, including
+  // the real Add to Basket click handlers.
+  const addBtns = document.querySelectorAll('.btn-add');
+  const buyBtn = $('.btn-buy');
+
   // Reassigned below once attrNames/selections exist — lets addToCart/Buy Now
   // (defined much further down) name exactly which attribute is still unpicked.
   let getMissingVariantAttrs = () => [];
@@ -484,8 +565,18 @@ console.log('product.js loaded');
         });
       });
 
+      const selections = {};
+      // An attribute with only one real value isn't a choice — pre-select it
+      // silently instead of forcing the buyer to click a single option.
+      let hasChoosableAttr = false;
+
       const html = attrNames.map((attrName, attrIdx) => {
         const values = [...new Set(product.variants.map((v) => v.attributes[attrName]).filter(Boolean))];
+        if (values.length <= 1) {
+          if (values[0]) selections[attrName] = values[0];
+          return '';
+        }
+        hasChoosableAttr = true;
         let hasSwatch = false;
         const buttons = values.map((val) => {
           const v = product.variants.find(v2 => v2.attributes[attrName] === val);
@@ -515,9 +606,8 @@ console.log('product.js loaded');
       }).join('');
 
       variantsEl.innerHTML = html;
-      if (variantDivider) variantDivider.style.display = '';
+      if (variantDivider) variantDivider.style.display = hasChoosableAttr ? '' : 'none';
 
-      const selections = {};
       getMissingVariantAttrs = () => attrNames.filter((name) => !selections[name]);
 
       function findMatchingVariant() {
@@ -540,11 +630,18 @@ console.log('product.js loaded');
         const v = findMatchingVariant();
         currentVariant = v;
         const price = (v && v.price != null) ? v.price : product.price;
-        const stockVal = (v && v.stock != null) ? v.stock : product.stock;
         if (priceEl) priceEl.textContent = fmtPrice(price);
         // Don't change buttons if product is Coming Soon
         if (!product.comingSoon) {
-          const oos = stockVal !== undefined && stockVal <= 0;
+          // Out of stock if EITHER the variant or the product itself says so
+          // — a variant's own number never overrides a product-level "out of
+          // stock" back into "available". They should normally agree; when
+          // they don't (e.g. stale/duplicate listing data), the safer,
+          // more restrictive reading wins so the site never shows
+          // contradictory stock status across pages.
+          const variantOos = v && v.stock != null && v.stock <= 0;
+          const productOos = product.stock !== undefined && product.stock <= 0;
+          const oos = variantOos || productOos;
           addBtns.forEach((btn) => {
             btn.disabled = oos;
             btn.textContent = oos ? _oosLabel : 'Add to Basket';
@@ -579,6 +676,8 @@ console.log('product.js loaded');
         selections[attr] = target.dataset.val;
         applyVariant();
       });
+
+      if (!hasChoosableAttr) applyVariant();
     }
   }
 
@@ -593,10 +692,10 @@ console.log('product.js loaded');
       ${product.addOns.map((ao, i) => `
         <label class="pd-addon-item" data-index="${i}">
           <input type="checkbox" class="pd-addon-check" data-index="${i}" data-price="${ao.price}" />
-          ${ao.image ? `<img src="${ao.image}" class="pd-addon-thumb" alt="${ao.name}" />` : ''}
+          ${ao.image ? `<img src="${ao.image}" class="pd-addon-thumb" alt="${escHtml(ao.name)}" />` : ''}
           <div class="pd-addon-info">
-            <div class="pd-addon-name">${ao.name}</div>
-            ${ao.description ? `<div class="pd-addon-desc">${ao.description}</div>` : ''}
+            <div class="pd-addon-name">${escHtml(ao.name)}</div>
+            ${ao.description ? `<div class="pd-addon-desc">${escHtml(ao.description)}</div>` : ''}
           </div>
           <div class="pd-addon-price">+${fmtPrice(ao.price)}</div>
         </label>
@@ -625,8 +724,6 @@ console.log('product.js loaded');
   }
 
   // ── Stock / out-of-stock ───────────────────────────────────
-  const addBtns = document.querySelectorAll('.btn-add');
-  const buyBtn = $('.btn-buy');
   const isOos = product.stock !== undefined && product.stock <= 0 && (!product.variants || product.variants.length === 0);
 
   if (isOos) {
@@ -645,7 +742,7 @@ console.log('product.js loaded');
     const stockBadgeEl = document.getElementById('pd-stock-badge');
     const notice = document.createElement('div');
     notice.className = 'pd-stock-badge oos';
-    notice.textContent = '🚫 This item is not shipped to your location';
+    notice.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M6.5 6.5l11 11"/></svg> This item is not shipped to your location';
     (stockBadgeEl || $('.product-title'))?.insertAdjacentElement('afterend', notice);
   }
 
@@ -660,7 +757,7 @@ console.log('product.js loaded');
     });
     if (buyBtn) {
       buyBtn.disabled = false;
-      buyBtn.textContent = '✏️ Edit product';
+      buyBtn.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M4 20l1-4.5L15.5 5 19 8.5 8.5 19 4 20z"/><path d="M13 7l3.5 3.5"/></svg> Edit product';
       buyBtn.style.cssText = 'background:#0b6b6a;color:#fff';
       buyBtn.onclick = (e) => {
         e.preventDefault();
@@ -736,8 +833,8 @@ console.log('product.js loaded');
   // ── Coming Soon ────────────────────────────────────────────
   if (product.comingSoon) {
     // Disable all buy buttons and replace text
-    addBtns.forEach((btn) => { btn.disabled = true; btn.textContent = '🕐 Coming Soon'; btn.classList.add('btn-coming-soon'); });
-    if (buyBtn) { buyBtn.disabled = true; buyBtn.textContent = '🕐 Coming Soon'; buyBtn.classList.add('btn-coming-soon'); }
+    addBtns.forEach((btn) => { btn.disabled = true; btn.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg> Coming Soon'; btn.classList.add('btn-coming-soon'); });
+    if (buyBtn) { buyBtn.disabled = true; buyBtn.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg> Coming Soon'; buyBtn.classList.add('btn-coming-soon'); }
     // Disable quantity stepper
     const qMinus = document.getElementById('pd-qty-minus');
     const qPlus  = document.getElementById('pd-qty-plus');
@@ -748,7 +845,7 @@ console.log('product.js loaded');
     if (priceBlock) {
       const banner = document.createElement('div');
       banner.className = 'pd-coming-soon-banner';
-      banner.innerHTML = '🕐 <strong>Coming Soon</strong> — This product is not yet available for purchase.';
+      banner.innerHTML = '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg> <strong>Coming Soon</strong> — This product is not yet available for purchase.';
       priceBlock.insertAdjacentElement('afterend', banner);
     }
   }
@@ -781,6 +878,16 @@ console.log('product.js loaded');
     const hasVariants = product.variants && product.variants.length > 0;
     if (hasVariants && !currentVariant) {
       promptSelectVariant();
+      return { added: false };
+    }
+
+    // Defense in depth: don't rely solely on the Add button already being
+    // disabled — check the same either-signal-wins stock rule directly
+    // before actually writing to the basket.
+    const variantOos = currentVariant && currentVariant.stock != null && currentVariant.stock <= 0;
+    const productOos = product.stock !== undefined && product.stock <= 0;
+    if (variantOos || productOos) {
+      window.showToast?.('Out of stock');
       return { added: false };
     }
 
@@ -832,6 +939,7 @@ console.log('product.js loaded');
     btn.addEventListener('click', () => {
       if (isOos) { window.showToast?.('Out of stock'); return; }
       const result = addToCart();
+      if (!result.added) return;
       const badge = document.querySelector('.basket-qty');
       if (badge) {
         const total = result.cart.reduce((s, i) => s + (i.quantity || 0), 0);
@@ -855,6 +963,12 @@ console.log('product.js loaded');
       const hasVariants = product.variants && product.variants.length > 0;
       if (hasVariants && !currentVariant) {
         promptSelectVariant();
+        return;
+      }
+      const _variantOos = currentVariant && currentVariant.stock != null && currentVariant.stock <= 0;
+      const _productOos = product.stock !== undefined && product.stock <= 0;
+      if (_variantOos || _productOos) {
+        window.showToast?.('Out of stock');
         return;
       }
       const buyAddOnTotal = selectedAddOns.reduce((s, ao) => s + ao.price, 0);

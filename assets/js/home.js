@@ -102,94 +102,6 @@ async function loadCategories() {
   }
 }
 
-// ── Promo slider ───────────────────────────────────────────
-async function initPromoSlider() {
-  const track  = document.getElementById('promo-track');
-  const dotsEl = document.getElementById('promo-dots');
-  const prev   = document.getElementById('promo-prev');
-  const next   = document.getElementById('promo-next');
-  if (!track) return;
-
-  let banners = [];
-  try {
-    const res = await fetch('/data/banners.json');
-    banners = await res.json();
-  } catch { return; }
-
-  if (!banners.length) return;
-
-  // Render slides
-  track.innerHTML = banners.map((b, i) => `
-    <div class="promo-slide${i === 0 ? ' active' : ''}" data-index="${i}">
-      <div class="promo-slide-bg" style="${
-        b.image
-          ? `background-image:url('${b.image}');`
-          : `background-color:${b.bg || '#0b6b6a'};`
-      }"></div>
-      <div class="promo-slide-overlay"></div>
-      <div class="promo-slide-content">
-        <h2>${b.headline}</h2>
-        <p>${b.subtext}</p>
-        <a href="${b.href}" class="promo-slide-cta">${b.cta}</a>
-      </div>
-    </div>
-  `).join('');
-
-  // Render dots
-  if (dotsEl) {
-    dotsEl.innerHTML = banners.map((_, i) => `
-      <button type="button" class="promo-dot${i === 0 ? ' active' : ''}" data-index="${i}" aria-label="Slide ${i + 1}"></button>
-    `).join('');
-  }
-
-  const slides = track.querySelectorAll('.promo-slide');
-  const dots   = dotsEl ? dotsEl.querySelectorAll('.promo-dot') : [];
-  let current  = 0;
-  let timer;
-
-  function goTo(n) {
-    slides[current].classList.remove('active');
-    if (dots[current]) dots[current].classList.remove('active');
-    current = (n + banners.length) % banners.length;
-    track.style.transform = `translateX(-${current * 100}%)`;
-    slides[current].classList.add('active');
-    if (dots[current]) dots[current].classList.add('active');
-  }
-
-  function startAuto() {
-    timer = setInterval(() => goTo(current + 1), 5000);
-  }
-
-  function stopAuto() {
-    clearInterval(timer);
-  }
-
-  if (prev) prev.addEventListener('click', () => { stopAuto(); goTo(current - 1); startAuto(); });
-  if (next) next.addEventListener('click', () => { stopAuto(); goTo(current + 1); startAuto(); });
-
-  dots.forEach(dot => {
-    dot.addEventListener('click', () => {
-      stopAuto();
-      goTo(parseInt(dot.dataset.index, 10));
-      startAuto();
-    });
-  });
-
-  // Touch swipe
-  let touchX = 0;
-  track.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
-  track.addEventListener('touchend', e => {
-    const dx = e.changedTouches[0].clientX - touchX;
-    if (Math.abs(dx) > 40) { stopAuto(); goTo(dx < 0 ? current + 1 : current - 1); startAuto(); }
-  }, { passive: true });
-
-  // Pause on hover
-  track.addEventListener('mouseenter', stopAuto);
-  track.addEventListener('mouseleave', startAuto);
-
-  if (banners.length > 1) startAuto();
-}
-
 // ── Featured products ──────────────────────────────────────
 let _rvCfg = { reviewsEnabled: false, reviewsMinCount: 3 };
 fetch(`${window.API_BASE}/reviews/config`).then(r => r.ok ? r.json() : null).then(d => { if (d) _rvCfg = d; }).catch(() => {});
@@ -200,21 +112,19 @@ function heroFilmItemHTML(p) {
   if (Array.isArray(p.images) && p.images[0]) {
     img = p.images[0].startsWith('http') ? p.images[0] : `/assets/images/products/${p.images[0]}`;
   }
-  const href = p.slug
-    ? `/product/product.html?slug=${encodeURIComponent(p.slug)}`
-    : `/product/product.html?id=${id}`;
+  const href = window.s4lProductUrl(p);
   const fmtPrice = window.s4lFormatPrice || ((n) => `£${Number(n || 0).toFixed(0)}`);
   return `
     <a href="${href}" class="hero-film-item">
-      <img src="${img}" alt="${p.name}" loading="lazy"
+      <img src="${img}" alt="${escHtml(p.name)}" loading="lazy"
         onerror="this.src='/assets/images/products/sell4life-placeholder.png'" />
       <span class="hero-film-price">${fmtPrice(p.price || 0)}</span>
     </a>`;
 }
 
 async function loadFeaturedProducts() {
-  const container = document.querySelector('.featured-products-grid');
-  const filmstrip  = document.getElementById('hero-filmstrip');
+  const container  = document.querySelector('.featured-products-grid');
+  const filmstrip   = document.getElementById('hero-filmstrip');
   if (!container && !filmstrip) return;
 
   let products = [];
@@ -250,7 +160,6 @@ function initHomePage() {
   loadStats();
   loadCategories();
   loadFeaturedProducts();
-  initPromoSlider();
 }
 
 initHomePage();

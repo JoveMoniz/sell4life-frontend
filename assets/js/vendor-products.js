@@ -6,6 +6,137 @@ const IMAGE_BASE = '/assets/images/products/';
 const TIER_RANK_VP = { casual: 1, refurbished: 2, professional: 3, enterprise: 4 };
 const _isPro = (TIER_RANK_VP[localStorage.getItem('s4l_vendorType')] || 1) >= 3;
 
+// Foreign-currency equivalent(s) shown alongside every £ figure — but ONLY
+// for a product actually scoped to that market (shippingOriginCountry/
+// shippingCountries), same reasoning either way: a plain UK-only product
+// has nothing to do with USD or EUR, so showing a conversion there is
+// just noise, not useful reference info. Matches utils/shippingScope.js's
+// own EU_CODES list (kept in sync manually — small, rarely changes).
+const EU_CODES = [
+  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR',
+  'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK',
+  'SI', 'ES', 'SE',
+];
+let _usdRate = null;
+let _eurRate = null;
+(async function loadForeignRates() {
+  try {
+    const [usdRes, eurRes] = await Promise.all([
+      fetch(`${window.API_BASE}/currency/rate/USD`),
+      fetch(`${window.API_BASE}/currency/rate/EUR`),
+    ]);
+    if (usdRes.ok) _usdRate = (await usdRes.json()).rate;
+    if (eurRes.ok) _eurRate = (await eurRes.json()).rate;
+  } catch (_) { /* foreign-currency figures just won't show if this fails */ }
+})();
+
+// The VENDOR's own ("home") currency — dollar for a US vendor, null (GBP)
+// for GB/everyone else. Used as the primary figure everywhere on this
+// page; fmtSigned/priceCell below layer the PRODUCT's own target market on
+// top of this as a secondary "abroad" figure where relevant.
+let _vendorDisplayCurrency = null;
+(async function loadVendorDisplayCurrency() {
+  try {
+    const token = localStorage.getItem('s4l_token');
+    const res = await fetch(`${window.API_BASE}/vendor/me`, { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) _vendorDisplayCurrency = (await res.json()).displayCurrency || null;
+  } catch (_) { /* falls back to GBP + product-market indicator */ }
+
+  // Static labels that aren't covered by relabelVendorMoneyFields (no
+  // "(£)" pattern to match) — swap them directly once the vendor's
+  // currency is known: the two bulk-edit-panel labels ("→ £" / "Adjust by
+  // £") and the "Filter by total cost £" toolbar filter.
+  if (_vendorDisplayCurrency) {
+    const symbol = _vendorDisplayCurrency.symbol || '$';
+    document.querySelectorAll('.vp-bulk-markup-lbl').forEach((el) => {
+      if (el.textContent.includes('£')) el.textContent = el.textContent.replace(/£/g, symbol);
+    });
+    const costFilterSym = document.getElementById('vp-cost-filter-currency');
+    if (costFilterSym) costFilterSym.textContent = symbol;
+  }
+})();
+function matchesMarket(p, code) {
+  return p?.shippingOriginCountry === code
+    || (Array.isArray(p?.shippingCountries) && p.shippingCountries.includes(code));
+}
+function isUsProduct(p) {
+  return matchesMarket(p, 'US');
+}
+function isGbProduct(p) {
+  return matchesMarket(p, 'GB');
+}
+// Exclusively for ONE market — a custom scope restricted to a single
+// country. (worldwide / uk_eu / a custom list including other countries
+// alongside it are all "also this market", not "exclusive to it".)
+function exclusiveMarketCountry(p) {
+  return p?.shippingScope === 'custom'
+    && Array.isArray(p?.shippingCountries)
+    && p.shippingCountries.length === 1
+    ? p.shippingCountries[0]
+    : null;
+}
+// Resolves an ISO country code to its currency info, using whatever live
+// rate we already have — null if we don't have a rate for it (the home/
+// abroad logic below then just skips showing that currency rather than
+// showing a wrong/stale one).
+function currencyForCountryCode(code) {
+  if (code === 'GB') return { currency: 'GBP', symbol: '£', rate: 1 };
+  if (code === 'US') return _usdRate ? { currency: 'USD', symbol: '$', rate: _usdRate } : null;
+  if (EU_CODES.includes(code)) return _eurRate ? { currency: 'EUR', symbol: '€', rate: _eurRate } : null;
+  return null;
+}
+function isEuProduct(p) {
+  return EU_CODES.some((code) => matchesMarket(p, code));
+}
+// £ + $/€ formatter that keeps the sign consistent across every currency
+// shown — callers pass the real signed number (e.g. fmtSigned(-fees, p))
+// rather than prepending "-" themselves only in front of the £ side,
+// which would leave the other figure(s) looking positive even when the £
+// figure is negative.
+//
+// Symmetric for any vendor's home currency (GBP for a GB vendor, USD for a
+// US vendor, etc. — see _vendorDisplayCurrency above): the vendor's own
+// currency is always shown first, and any OTHER market this specific
+// product also reaches is shown alongside it as a secondary figure — e.g.
+// a US vendor's product that also ships to the UK shows "$75.00 (£60.00)",
+// mirroring exactly what a GB vendor's product selling into the US already
+// showed ("£60.00 ($75.00)") before US vendors existed. A product scoped
+// EXCLUSIVELY to one market that ISN'T the vendor's own shows ONLY that
+// market's currency — home-market buyers can never see that listing, so
+// the vendor's own currency would be irrelevant noise there.
+function fmtSigned(n, p) {
+  const num = Number(n || 0);
+  const sign = num < 0 ? '-' : '';
+  const abs = Math.abs(num);
+
+  const homeCurrency = _vendorDisplayCurrency?.currency || 'GBP';
+  const homeSymbol    = _vendorDisplayCurrency?.symbol   || '£';
+  const homeRate       = _vendorDisplayCurrency?.rate      || 1;
+  const homeText = `${sign}${homeSymbol}${(abs * homeRate).toFixed(2)}`;
+
+  const exclusiveCountry = exclusiveMarketCountry(p);
+  if (exclusiveCountry) {
+    const cur = currencyForCountryCode(exclusiveCountry);
+    if (cur && cur.currency !== homeCurrency) {
+      return `${sign}${cur.symbol}${(abs * cur.rate).toFixed(2)}`;
+    }
+    return homeText;
+  }
+
+  const abroad = [];
+  if (homeCurrency !== 'GBP' && isGbProduct(p)) abroad.push({ symbol: '£', rate: 1 });
+  if (homeCurrency !== 'USD' && isUsProduct(p) && _usdRate) abroad.push({ symbol: '$', rate: _usdRate });
+  if (homeCurrency !== 'EUR' && isEuProduct(p) && _eurRate) abroad.push({ symbol: '€', rate: _eurRate });
+  if (!abroad.length) return homeText;
+
+  const abroadText = abroad.map((c) => `${sign}${c.symbol}${(abs * c.rate).toFixed(2)}`).join(' / ');
+  return `${homeText} <span class="vp-usd-equiv">(${abroadText})</span>`;
+}
+
+// Styled confirm()/alert() (window.s4lConfirm/s4lAlert) come from the
+// shared assets/js/s4l-dialog.js, injected on every vendor/admin page by
+// config-global.js — no per-page setup needed here.
+
 // Bulk price/stock edits require professional tier server-side (bulk
 // archive/delete/coming-soon don't — those stay available to everyone).
 // Non-pro sellers see the £ Price / ± Adjust / Stock buttons but get an
@@ -43,6 +174,10 @@ let _searchQuery = '';
 // markup% per price band in a few clicks instead of picking products by hand.
 let _costMin = null;
 let _costMax = null;
+// '' = all. A product with no shippingOriginCountry recorded (never CJ
+// synced) falls back to 'CN', matching the schema default and product.js's
+// own treatment of that field.
+let _shipFrom = '';
 const _selected = new Set();
 let _bulkShipOverride = null; // null = use DB value; true/false = user's manual choice
 let _bulkLastEdited   = 'markup'; // 'markup' | 'price' — whichever the vendor typed into most recently
@@ -83,6 +218,22 @@ function stockMeta(stock) {
   return { cls: '', label: `Stock: ${stock}` };
 }
 
+// Only shown when a vendor has restricted where a product ships — the
+// 'worldwide' default is the common case and would just be noise here.
+function scopeBadge(p) {
+  const labels = { uk: 'Ships to UK only', uk_eu: 'Ships to UK + Europe' };
+  if (p.shippingScope === 'custom') {
+    const codes = p.shippingCountries || [];
+    const names = new Map((window.S4L_COUNTRIES || []).map(c => [c.code, c.name]));
+    const text = codes.map(c => names.get(c) || c).join(', ');
+    return `<span class="vp-scope-badge">Ships to ${text || '0 countries'}</span>`;
+  }
+  if (labels[p.shippingScope]) {
+    return `<span class="vp-scope-badge">${labels[p.shippingScope]}</span>`;
+  }
+  return '';
+}
+
 function moveTargets(p) {
   if (p.archived) return [{ status: 'active', label: 'Activate' }, { status: 'draft', label: 'Draft' }];
   if (p.active === false) return [{ status: 'active', label: 'Activate' }, { status: 'archived', label: 'Archive' }];
@@ -106,12 +257,41 @@ function videoBadge(p) {
 
 // Inline-editable price, shown on both card and list views. Professional+
 // only — the /products/bulk PATCH it saves through is tier-gated server-side.
+// The editable INPUT always shows/accepts the vendor's own home currency
+// (converted to/from the GBP value actually stored — see the 'change'
+// handler below) — consistent across every one of their products, rather
+// than flipping currency per-product based on that product's own market.
+// The read-only suffix shows what OTHER market(s) this specific product
+// also reaches, same symmetric home/abroad logic as fmtSigned above — a
+// product exclusively scoped to a market that ISN'T the vendor's own shows
+// ONLY that market's currency in the suffix, since home-market buyers can
+// never see that listing anyway.
 function priceCell(p, id) {
-  const val = Number(p.price || 0).toFixed(2);
-  if (!_isPro) return `<span class="price">£${val}</span>`;
+  const gbp = Number(p.price || 0);
+  const homeCurrency = _vendorDisplayCurrency?.currency || 'GBP';
+  const homeSymbol    = _vendorDisplayCurrency?.symbol   || '£';
+  const homeRate       = _vendorDisplayCurrency?.rate      || 1;
+  const shown = (gbp * homeRate).toFixed(2);
+
+  let foreign = '';
+  const exclusiveCountry = exclusiveMarketCountry(p);
+  if (exclusiveCountry) {
+    const cur = currencyForCountryCode(exclusiveCountry);
+    if (cur && cur.currency !== homeCurrency) {
+      foreign = ` <span class="vp-usd-equiv">(${cur.symbol}${(gbp * cur.rate).toFixed(2)} to ${exclusiveCountry} buyers)</span>`;
+    }
+  } else {
+    const abroad = [];
+    if (homeCurrency !== 'GBP' && isGbProduct(p)) abroad.push({ symbol: '£', rate: 1 });
+    if (homeCurrency !== 'USD' && isUsProduct(p) && _usdRate) abroad.push({ symbol: '$', rate: _usdRate });
+    if (homeCurrency !== 'EUR' && isEuProduct(p) && _eurRate) abroad.push({ symbol: '€', rate: _eurRate });
+    foreign = abroad.map((c) => ` <span class="vp-usd-equiv">/ ${c.symbol}${(gbp * c.rate).toFixed(2)}</span>`).join('');
+  }
+
+  if (!_isPro) return `<span class="price">${homeSymbol}${shown}</span>${foreign}`;
   return `<span class="vp-price-edit-wrap" title="Click to edit price">
-    <span class="vp-price-currency">£</span><input type="number" class="vp-price-edit" data-id="${id}" data-orig="${val}" value="${val}" step="0.01" min="0.01" draggable="false" />
-  </span>`;
+    <span class="vp-price-currency">${homeSymbol}</span><input type="number" class="vp-price-edit" data-id="${id}" data-orig="${shown}" value="${shown}" step="0.01" min="0.01" draggable="false" />
+  </span>${foreign}`;
 }
 
 /* ── Render: grid card ───────────────────────────── */
@@ -149,11 +329,12 @@ function renderCard(p) {
         </div>
 
         <div class="stock ${cls}">${label}</div>
+        ${scopeBadge(p)}
       </div>
 
       <div class="vendor-product-actions">
         <a href="/account/vendor/edit-product.html?id=${id}" class="btn-edit" draggable="false">Edit</a>
-        <a href="/product/product.html?id=${id}" class="btn-view-store" target="_blank" rel="noopener" draggable="false">View</a>
+        <a href="${window.s4lProductUrl(p)}" class="btn-view-store" target="_blank" rel="noopener" draggable="false">View</a>
         ${_isPro ? `<button class="btn-duplicate" data-id="${id}" title="Duplicate as draft">Copy</button>` : ''}
         ${p.archived
           ? `<button class="btn-unarchive" data-id="${id}">Unarchive</button>`
@@ -199,11 +380,12 @@ function renderListRow(p) {
       </div>
 
       <div class="stock ${cls}">${label}</div>
+      ${scopeBadge(p)}
       ${p.shippingUnavailableUK ? `<div class="vp-shipping-warn" title="CJ currently has no shipping route to the UK for this product — check the vendor's CJ API connection or this product's CJ listing"><svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M6.5 6.5l11 11"/></svg> No UK shipping</div>` : ''}
 
       <div class="vp-list-actions">
         <a href="/account/vendor/edit-product.html?id=${id}" class="btn-edit" draggable="false">Edit</a>
-        <a href="/product/product.html?id=${id}" class="btn-view-store" target="_blank" rel="noopener" draggable="false">View</a>
+        <a href="${window.s4lProductUrl(p)}" class="btn-view-store" target="_blank" rel="noopener" draggable="false">View</a>
         ${_isPro ? `<button class="btn-duplicate" data-id="${id}" title="Duplicate as draft">Copy</button>` : ''}
         ${p.archived
           ? `<button class="btn-unarchive" data-id="${id}">Unarchive</button>`
@@ -357,6 +539,10 @@ function renderProducts() {
     });
   }
 
+  if (_shipFrom) {
+    items = items.filter(p => (p.shippingOriginCountry || 'CN') === _shipFrom);
+  }
+
   switch (_currentSort) {
     case 'name':
       items.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -397,7 +583,7 @@ function renderProducts() {
       return;
     }
 
-    const hasFilters = _searchQuery || _currentStatus !== 'all' || _costMin != null || _costMax != null;
+    const hasFilters = _searchQuery || _currentStatus !== 'all' || _costMin != null || _costMax != null || _shipFrom;
     const msg = hasFilters ? 'No products match your filters.' : 'No products yet.';
     container.innerHTML = `
       <div class="vp-empty">
@@ -422,16 +608,42 @@ function renderProducts() {
 
 function updateClearFiltersBtn() {
   const btn = document.getElementById('btn-clear-filters');
-  if (btn) btn.hidden = !(_searchQuery || _costMin != null || _costMax != null);
+  if (btn) btn.hidden = !(_searchQuery || _costMin != null || _costMax != null || _shipFrom);
+
+  // Dot on the (mobile/tablet-only) "Filters" toggle — so an active cost or
+  // shipping-origin filter is still visible even while that panel is collapsed.
+  const dot = document.getElementById('vp-filters-dot');
+  if (dot) dot.hidden = !(_costMin != null || _costMax != null || _shipFrom);
+}
+
+// Only lists countries actually present in this vendor's own catalog,
+// rather than every possible country — a fixed, mostly-empty dropdown
+// would be far less useful than one scoped to what they actually stock.
+function populateShipFilterOptions() {
+  const sel = document.getElementById('vp-ship-filter');
+  if (!sel) return;
+  const codes = new Set(
+    [..._allProducts, ..._archivedProducts].map(p => p.shippingOriginCountry || 'CN')
+  );
+  const names = new Map((window.S4L_COUNTRIES || []).map(c => [c.code, c.name]));
+  const options = [...codes].sort((a, b) => (names.get(a) || a).localeCompare(names.get(b) || b));
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All</option>' +
+    options.map(code => `<option value="${code}">${names.get(code) || code}</option>`).join('');
+  if (options.includes(current)) sel.value = current;
 }
 
 function bindToolbar() {
+  populateShipFilterOptions();
+
   const costMin = document.getElementById('vp-cost-min');
   const costMax = document.getElementById('vp-cost-max');
+  // Typed in the vendor's own currency — converted to GBP, since _costMin/
+  // _costMax are compared against p.costPrice/p.shippingCost (always GBP).
   if (costMin) {
     costMin.addEventListener('input', e => {
       const v = parseFloat(e.target.value);
-      _costMin = Number.isFinite(v) ? v : null;
+      _costMin = Number.isFinite(v) ? vendorAmountToGbp(v, _vendorDisplayCurrency) : null;
       updateClearFiltersBtn();
       renderProducts();
     });
@@ -439,7 +651,7 @@ function bindToolbar() {
   if (costMax) {
     costMax.addEventListener('input', e => {
       const v = parseFloat(e.target.value);
-      _costMax = Number.isFinite(v) ? v : null;
+      _costMax = Number.isFinite(v) ? vendorAmountToGbp(v, _vendorDisplayCurrency) : null;
       updateClearFiltersBtn();
       renderProducts();
     });
@@ -454,13 +666,33 @@ function bindToolbar() {
     });
   }
 
+  const shipFilter = document.getElementById('vp-ship-filter');
+  if (shipFilter) {
+    shipFilter.addEventListener('change', e => {
+      _shipFrom = e.target.value;
+      updateClearFiltersBtn();
+      renderProducts();
+    });
+  }
+
+  const filtersToggle = document.getElementById('vp-filters-toggle');
+  const filtersRow = document.getElementById('vp-filters-row');
+  if (filtersToggle && filtersRow) {
+    filtersToggle.addEventListener('click', () => {
+      const open = filtersRow.classList.toggle('vp-filters-open');
+      filtersToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
+
   document.getElementById('btn-clear-filters')?.addEventListener('click', () => {
     _searchQuery = '';
     _costMin = null;
     _costMax = null;
+    _shipFrom = '';
     if (search) search.value = '';
     if (costMin) costMin.value = '';
     if (costMax) costMax.value = '';
+    if (shipFilter) shipFilter.value = '';
     updateClearFiltersBtn();
     renderProducts();
   });
@@ -535,6 +767,7 @@ async function refreshMainLists() {
     const activeIds = new Set(_allProducts.map(p => p._id || p.id));
     _archivedProducts = [...merged.values()].filter(p => !activeIds.has(p._id || p.id));
     _saveArchivedCache();
+    populateShipFilterOptions();
   } catch {}
 }
 
@@ -775,6 +1008,15 @@ document.getElementById('btn-multi-select')?.addEventListener('click', () => {
     });
     _selectAnchorId = null;
   } else {
+    // Selection matches exactly what's currently visible — not a union
+    // with whatever was already selected under a different filter. Without
+    // this, items hidden by a filter change (e.g. switching Shipping From)
+    // stayed silently selected forever, so the count (and any bulk action)
+    // included products the vendor could no longer even see.
+    _selected.clear();
+    document.querySelectorAll('.vp-selected').forEach(el => el.classList.remove('vp-selected'));
+    document.querySelectorAll('.vp-select-cb:checked').forEach(cb => { cb.checked = false; });
+
     vids.forEach(id => {
       _selected.add(id);
       const card = document.querySelector(`[data-id="${id}"]`);
@@ -786,6 +1028,38 @@ document.getElementById('btn-multi-select')?.addEventListener('click', () => {
   }
   updateBulkBar();
   refillBulkPanel();
+});
+
+// Selects only products that have never had a successful AI listing
+// generation (supplierTitle only ever gets set on the first successful
+// run — see routes/vendor.js bulk-generate-listing). Lets a vendor re-run
+// generation on just the ones that failed, instead of re-running (and
+// re-paying for) the whole batch to catch a handful of failures.
+document.getElementById('btn-select-needs-ai-listing')?.addEventListener('click', () => {
+  const vids = visibleIds().filter(id => {
+    const p = _allProducts.find(p => (p._id || p.id) === id);
+    return p && !p.supplierTitle;
+  });
+
+  _selected.clear();
+  document.querySelectorAll('.vp-selected').forEach(el => el.classList.remove('vp-selected'));
+  document.querySelectorAll('.vp-select-cb:checked').forEach(cb => { cb.checked = false; });
+
+  vids.forEach(id => {
+    _selected.add(id);
+    const card = document.querySelector(`[data-id="${id}"]`);
+    card?.classList.add('vp-selected');
+    const cb = card?.querySelector('.vp-select-cb');
+    if (cb) cb.checked = true;
+  });
+  _selectAnchorId = vids[vids.length - 1] ?? null;
+
+  updateBulkBar();
+  refillBulkPanel();
+
+  if (vids.length === 0) {
+    window.showToast?.('Every visible product already has an AI-generated listing');
+  }
 });
 
 function updateBulkBar() {
@@ -832,37 +1106,33 @@ function updateBulkBar() {
   // Force Re-match Category — also requires a selection
   const rematchBtn = document.getElementById('btn-bulk-rematch-category');
   if (rematchBtn) {
-    const tagIcon = window.s4lIcon ? window.s4lIcon('tag') : '';
     rematchBtn.innerHTML = _selected.size > 0
-      ? `${tagIcon} Re-match ${_selected.size}`
-      : `${tagIcon} Re-match Category`;
+      ? `<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M3 11V5a2 2 0 012-2h6l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1.1" fill="currentColor" stroke="none"/></svg> Re-match ${_selected.size}`
+      : '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M3 11V5a2 2 0 012-2h6l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1.1" fill="currentColor" stroke="none"/></svg> Re-match Category';
     rematchBtn.disabled = _selected.size === 0;
     rematchBtn.title    = _selected.size === 0 ? 'Select products first, then re-match their category' : rematchBtn.title;
   }
   const bulkRematchBtn = document.getElementById('btn-bulk-rematch-sync');
   if (bulkRematchBtn) {
-    const tagIcon2 = window.s4lIcon ? window.s4lIcon('tag') : '';
     bulkRematchBtn.innerHTML = _selected.size > 0
-      ? `${tagIcon2} Re-match ${_selected.size}`
-      : `${tagIcon2} Re-match Category`;
+      ? `<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M3 11V5a2 2 0 012-2h6l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1.1" fill="currentColor" stroke="none"/></svg> Re-match ${_selected.size}`
+      : '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M3 11V5a2 2 0 012-2h6l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1.1" fill="currentColor" stroke="none"/></svg> Re-match Category';
   }
 
   // AI Generate Listing — also requires a selection
   const genListingBtn = document.getElementById('btn-bulk-generate-listing');
   if (genListingBtn) {
-    const sparkleIcon = window.s4lIcon ? window.s4lIcon('sparkle') : '';
     genListingBtn.innerHTML = _selected.size > 0
-      ? `${sparkleIcon} Generate ${_selected.size}`
-      : `${sparkleIcon} Generate Listing (AI)`;
+      ? `<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z"/></svg> Generate ${_selected.size}`
+      : '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z"/></svg> Generate Listing (AI)';
     genListingBtn.disabled = _selected.size === 0;
     genListingBtn.title    = _selected.size === 0 ? 'Select products first, then generate their listing with AI' : genListingBtn.title;
   }
   const bulkGenListingBtn = document.getElementById('btn-bulk-generate-listing-sync');
   if (bulkGenListingBtn) {
-    const sparkleIcon2 = window.s4lIcon ? window.s4lIcon('sparkle') : '';
     bulkGenListingBtn.innerHTML = _selected.size > 0
-      ? `${sparkleIcon2} Generate ${_selected.size}`
-      : `${sparkleIcon2} Generate Listing (AI)`;
+      ? `<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z"/></svg> Generate ${_selected.size}`
+      : '<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z"/></svg> Generate Listing (AI)';
   }
 
   // Coming Soon bulk button reflects whether the current selection is
@@ -991,13 +1261,24 @@ document.addEventListener('change', (e) => {
 });
 
 // Ctrl+A / Cmd+A — select everything currently visible/filtered, same set
-// the "Select All" button uses. Ignored while typing in a text field so the
-// browser's normal text-select-all still works there.
+// the "Select All" button uses. Skipped only for genuine free-text fields
+// (the search box, and textareas) where select-all-to-overwrite is a real
+// use case. Number inputs (the cost min/max filters) and <select> are
+// deliberately NOT skipped — for a <select>, letting the browser's native
+// Ctrl+A run instead selects the whole page's visible text, not just the
+// dropdown, which is the bug this replaces; for the cost filters, users
+// expect Ctrl+A there to bulk-select the filtered products, same as
+// anywhere else on the page.
 document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
-    if (document.activeElement?.matches('input, textarea, select')) return;
+    if (document.activeElement?.matches('input:not([type="number"]), textarea')) return;
     e.preventDefault();
     const vids = visibleIds();
+    // Same fix as the Select All button — replace the selection with
+    // exactly what's visible, don't union onto a stale selection from a
+    // different filter state.
+    _selected.forEach(id => { if (!vids.includes(id)) _syncCardSelected(id, false); });
+    _selected.clear();
     vids.forEach(id => { _selected.add(id); _syncCardSelected(id, true); });
     _selectAnchorId = vids[vids.length - 1] ?? null;
     updateBulkBar();
@@ -1189,6 +1470,11 @@ document.addEventListener('change', async (e) => {
   val = Math.round(val * 100) / 100;
   if (val === orig) { input.value = val.toFixed(2); return; }
 
+  // `val` is in the vendor's own display currency (dollar for a US vendor)
+  // — everything downstream (markup math, the PATCH body, the local cache)
+  // must be GBP, so convert once here before anything else touches it.
+  const gbpVal = _vendorDisplayCurrency ? val / _vendorDisplayCurrency.rate : val;
+
   const p     = _allProducts.find(x => (x._id || x.id) === id);
   const token = localStorage.getItem('s4l_token');
 
@@ -1199,7 +1485,7 @@ document.addEventListener('change', async (e) => {
     const ship = p.shipIncluded ? (parseFloat(p.shippingCost) || 0) : 0;
     const base = Number(p.costPrice) + ship;
     if (base > 0) {
-      const derived = Math.round((val / base - 1) * 1000) / 10;
+      const derived = Math.round((gbpVal / base - 1) * 1000) / 10;
       if (derived >= 0) markupPct = derived;
     }
   }
@@ -1209,14 +1495,14 @@ document.addEventListener('change', async (e) => {
     const res = await fetch(`${window.API_BASE}/products/bulk`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ ids: [id], price: val, ...(markupPct !== undefined ? { markupPct } : {}) }),
+      body: JSON.stringify({ ids: [id], price: gbpVal, ...(markupPct !== undefined ? { markupPct } : {}) }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error || `HTTP ${res.status}`);
     }
     if (p) {
-      p.price = val;
+      p.price = gbpVal;
       if (markupPct !== undefined) p.markupPct = markupPct;
     }
     input.dataset.orig = val.toFixed(2);
@@ -1450,6 +1736,26 @@ function refillBulkPanel() {
     maxInput.value       = maxSame ? maxs[0] : '';
     maxInput.placeholder = maxSame ? '' : (maxs.length ? 'varies' : 'max');
   }
+
+  if (mode === 'shipping-scope') {
+    const scopeSelect = document.getElementById('vp-bulk-shipping-scope-select');
+    const countriesEl = document.getElementById('vp-bulk-shipping-countries');
+    if (!scopeSelect) return;
+    const selectedProducts = [..._selected]
+      .map(id => _allProducts.find(x => (x._id || x.id) === id)).filter(Boolean);
+    const scopes = selectedProducts.map(p => p.shippingScope || 'worldwide');
+    const allSame = scopes.length > 0 && scopes.every(s => s === scopes[0]);
+    scopeSelect.value = allSame ? scopes[0] : 'worldwide';
+    if (countriesEl) {
+      countriesEl.style.display = scopeSelect.value === 'custom' ? '' : 'none';
+      if (allSame && scopes[0] === 'custom') {
+        const common = selectedProducts[0]?.shippingCountries || [];
+        Array.from(countriesEl.options).forEach(o => { o.selected = common.includes(o.value); });
+      } else {
+        Array.from(countriesEl.options).forEach(o => { o.selected = false; });
+      }
+    }
+  }
 }
 
 document.getElementById('btn-bulk-price')?.addEventListener('click', () => {
@@ -1460,12 +1766,14 @@ document.getElementById('btn-bulk-price')?.addEventListener('click', () => {
   const markupWrap = document.getElementById('vp-bulk-markup-wrap');
   const adjustWrap = document.getElementById('vp-bulk-adjust-wrap');
   const deliveryWrap = document.getElementById('vp-bulk-delivery-wrap');
+  const scopeWrap = document.getElementById('vp-bulk-scope-wrap');
   const markupInput = document.getElementById('vp-bulk-markup');
   if (label) label.style.display = 'none';
   if (flatInput) flatInput.style.display = 'none';
   if (markupWrap) markupWrap.style.display = 'flex';
   if (adjustWrap) adjustWrap.style.display = 'none';
   if (deliveryWrap) deliveryWrap.style.display = 'none';
+  if (scopeWrap) scopeWrap.style.display = 'none';
   if (panel) { panel.hidden = false; panel.dataset.mode = 'markup'; }
   _bulkLastEdited = 'markup';
   refillBulkPanel();
@@ -1481,12 +1789,14 @@ document.getElementById('btn-bulk-adjust')?.addEventListener('click', () => {
   const markupWrap  = document.getElementById('vp-bulk-markup-wrap');
   const adjustWrap  = document.getElementById('vp-bulk-adjust-wrap');
   const deliveryWrap = document.getElementById('vp-bulk-delivery-wrap');
+  const scopeWrap = document.getElementById('vp-bulk-scope-wrap');
   const amountInput = document.getElementById('vp-bulk-adjust-amount');
   if (label) label.style.display = 'none';
   if (flatInput) flatInput.style.display = 'none';
   if (markupWrap) markupWrap.style.display = 'none';
   if (adjustWrap) adjustWrap.style.display = 'flex';
   if (deliveryWrap) deliveryWrap.style.display = 'none';
+  if (scopeWrap) scopeWrap.style.display = 'none';
   if (panel) { panel.hidden = false; panel.dataset.mode = 'adjust'; }
   updateAdjustPreview();
   amountInput?.focus();
@@ -1501,10 +1811,12 @@ document.getElementById('btn-bulk-stock')?.addEventListener('click', () => {
   const markupWrap = document.getElementById('vp-bulk-markup-wrap');
   const adjustWrap = document.getElementById('vp-bulk-adjust-wrap');
   const deliveryWrap = document.getElementById('vp-bulk-delivery-wrap');
+  const scopeWrap = document.getElementById('vp-bulk-scope-wrap');
   if (label) { label.textContent = 'Set stock (qty)'; label.style.display = ''; }
   if (markupWrap) markupWrap.style.display = 'none';
   if (adjustWrap) adjustWrap.style.display = 'none';
   if (deliveryWrap) deliveryWrap.style.display = 'none';
+  if (scopeWrap) scopeWrap.style.display = 'none';
   if (flatInput) { flatInput.type = 'number'; flatInput.step = '1'; flatInput.style.display = ''; }
   if (panel) { panel.hidden = false; panel.dataset.mode = 'stock'; }
   refillBulkPanel();
@@ -1520,16 +1832,48 @@ document.getElementById('btn-bulk-delivery')?.addEventListener('click', () => {
   const markupWrap  = document.getElementById('vp-bulk-markup-wrap');
   const adjustWrap  = document.getElementById('vp-bulk-adjust-wrap');
   const deliveryWrap = document.getElementById('vp-bulk-delivery-wrap');
+  const scopeWrap = document.getElementById('vp-bulk-scope-wrap');
   const minInput    = document.getElementById('vp-bulk-delivery-min');
   if (label) label.style.display = 'none';
   if (flatInput) flatInput.style.display = 'none';
   if (markupWrap) markupWrap.style.display = 'none';
   if (adjustWrap) adjustWrap.style.display = 'none';
   if (deliveryWrap) deliveryWrap.style.display = 'flex';
+  if (scopeWrap) scopeWrap.style.display = 'none';
   if (panel) { panel.hidden = false; panel.dataset.mode = 'delivery'; }
   refillBulkPanel();
   minInput?.focus();
   minInput?.select();
+});
+
+document.getElementById('btn-bulk-shipping-scope')?.addEventListener('click', () => {
+  if (!_isPro) { showProUpsell(); return; }
+  const panel       = document.getElementById('vp-bulk-edit-panel');
+  const label       = document.getElementById('vp-bulk-edit-label');
+  const flatInput   = document.getElementById('vp-bulk-edit-value');
+  const markupWrap  = document.getElementById('vp-bulk-markup-wrap');
+  const adjustWrap  = document.getElementById('vp-bulk-adjust-wrap');
+  const deliveryWrap = document.getElementById('vp-bulk-delivery-wrap');
+  const scopeWrap = document.getElementById('vp-bulk-scope-wrap');
+  const scopeSelect = document.getElementById('vp-bulk-shipping-scope-select');
+  if (label) label.style.display = 'none';
+  if (flatInput) flatInput.style.display = 'none';
+  if (markupWrap) markupWrap.style.display = 'none';
+  if (adjustWrap) adjustWrap.style.display = 'none';
+  if (deliveryWrap) deliveryWrap.style.display = 'none';
+  if (scopeWrap) scopeWrap.style.display = 'flex';
+  if (panel) { panel.hidden = false; panel.dataset.mode = 'shipping-scope'; }
+  const countriesEl = document.getElementById('vp-bulk-shipping-countries');
+  if (countriesEl && !countriesEl.options.length && Array.isArray(window.S4L_COUNTRIES)) {
+    countriesEl.innerHTML = window.S4L_COUNTRIES.map(c => `<option value="${c.code}">${c.name}</option>`).join('');
+  }
+  refillBulkPanel();
+  scopeSelect?.focus();
+});
+
+document.getElementById('vp-bulk-shipping-scope-select')?.addEventListener('change', function () {
+  const countriesEl = document.getElementById('vp-bulk-shipping-countries');
+  if (countriesEl) countriesEl.style.display = this.value === 'custom' ? '' : 'none';
 });
 
 function calcRetailPrice(costPrice, shippingCost, markupPct, inclShip) {
@@ -1564,7 +1908,9 @@ function updateBulkPreview() {
     .map(p => calcRetailPrice(p.costPrice, p.shippingCost, markupPct, inclShip?.checked))
     .filter(x => x !== null);
   if (!prices.length) { priceInput.value = ''; priceInput.placeholder = '0.00'; return; }
-  const min = Math.min(...prices), max = Math.max(...prices);
+  // Computed in GBP — convert to the vendor's own currency for display only.
+  const toDisplay = (v) => _vendorDisplayCurrency ? vendorAmountFromGbp(v, _vendorDisplayCurrency) : v;
+  const min = toDisplay(Math.min(...prices)), max = toDisplay(Math.max(...prices));
   if (min === max) {
     priceInput.value = min.toFixed(2);
     priceInput.placeholder = '0.00';
@@ -1581,9 +1927,12 @@ function updateBulkMarkupFromPrice() {
   const priceInput  = document.getElementById('vp-bulk-price');
   const markupInput = document.getElementById('vp-bulk-markup');
   const inclShip    = document.getElementById('vp-bulk-incl-ship');
-  const price = parseFloat(priceInput?.value);
+  const typedPrice = parseFloat(priceInput?.value);
   if (!markupInput) return;
-  if (isNaN(price) || price <= 0) { markupInput.value = ''; markupInput.placeholder = ''; return; }
+  if (isNaN(typedPrice) || typedPrice <= 0) { markupInput.value = ''; markupInput.placeholder = ''; return; }
+  // Typed in the vendor's own currency — convert to GBP, since costPrice/
+  // shippingCost (used below) are always GBP.
+  const price = _vendorDisplayCurrency ? vendorAmountToGbp(typedPrice, _vendorDisplayCurrency) : typedPrice;
 
   const selectedProducts = [..._selected]
     .map(id => _allProducts.find(x => (x._id || x.id) === id))
@@ -1626,7 +1975,10 @@ function updateAdjustPreview() {
   const amountInput = document.getElementById('vp-bulk-adjust-amount');
   const round99     = document.getElementById('vp-bulk-round99')?.checked;
   if (!preview) return;
-  const amount = parseFloat(amountInput?.value) || 0;
+  // The vendor typed this in their own currency (dollar for a US vendor) —
+  // convert to GBP before applying, since p.price is always GBP.
+  const typedAmount = parseFloat(amountInput?.value) || 0;
+  const amount = _vendorDisplayCurrency ? vendorAmountToGbp(typedAmount, _vendorDisplayCurrency) : typedAmount;
   if (amount === 0 && !round99) { preview.textContent = ''; return; }
 
   const selectedProducts = [..._selected]
@@ -1636,7 +1988,9 @@ function updateAdjustPreview() {
 
   const prices = selectedProducts.map(p => applyPriceAdjust(p.price, amount, round99));
   const min = Math.min(...prices), max = Math.max(...prices);
-  preview.textContent = min === max ? `→ £${min.toFixed(2)}` : `→ £${min.toFixed(2)}–£${max.toFixed(2)}`;
+  preview.textContent = min === max
+    ? `→ ${fmtVendorMoney(min, _vendorDisplayCurrency)}`
+    : `→ ${fmtVendorMoney(min, _vendorDisplayCurrency)}–${fmtVendorMoney(max, _vendorDisplayCurrency)}`;
 }
 
 document.getElementById('vp-bulk-adjust-amount')?.addEventListener('input', updateAdjustPreview);
@@ -1649,11 +2003,13 @@ document.getElementById('btn-bulk-edit-cancel')?.addEventListener('click', () =>
   const markupWrap = document.getElementById('vp-bulk-markup-wrap');
   const adjustWrap = document.getElementById('vp-bulk-adjust-wrap');
   const deliveryWrap = document.getElementById('vp-bulk-delivery-wrap');
+  const scopeWrap = document.getElementById('vp-bulk-scope-wrap');
   if (label) label.style.display = '';
   if (flatInput) flatInput.style.display = '';
   if (markupWrap) markupWrap.style.display = 'none';
   if (adjustWrap) adjustWrap.style.display = 'none';
   if (deliveryWrap) deliveryWrap.style.display = 'none';
+  if (scopeWrap) scopeWrap.style.display = 'none';
   if (panel) { panel.hidden = true; delete panel.dataset.mode; }
 });
 
@@ -1674,7 +2030,10 @@ document.getElementById('btn-bulk-edit-apply')?.addEventListener('click', async 
   if (mode === 'adjust') {
     const amountInput = document.getElementById('vp-bulk-adjust-amount');
     const round99      = document.getElementById('vp-bulk-round99')?.checked;
-    const amount = parseFloat(amountInput?.value) || 0;
+    // Typed in the vendor's own currency — convert to GBP before applying,
+    // since every product's price is stored in GBP platform-wide.
+    const typedAmount = parseFloat(amountInput?.value) || 0;
+    const amount = _vendorDisplayCurrency ? vendorAmountToGbp(typedAmount, _vendorDisplayCurrency) : typedAmount;
 
     if (amount === 0 && !round99) {
       window.showToast?.('Enter an amount or enable Round to .99', 'error');
@@ -1689,7 +2048,7 @@ document.getElementById('btn-bulk-edit-apply')?.addEventListener('click', async 
       return { id, price, markupPct };
     }).filter(Boolean);
 
-    const amountLabel = amount !== 0 ? `${amount > 0 ? '+' : ''}£${amount.toFixed(2)}` : '';
+    const amountLabel = typedAmount !== 0 ? `${typedAmount > 0 ? '+' : ''}${fmtVendorMoney(typedAmount, _vendorDisplayCurrency)}` : '';
     const actionLabel = [amountLabel, round99 ? 'round to .99' : ''].filter(Boolean).join(' and ');
     const msg = `Apply ${actionLabel} to ${updates.length} product${updates.length !== 1 ? 's' : ''}?`;
     const confirmed = await window.confirmAction?.(msg);
@@ -1732,12 +2091,15 @@ document.getElementById('btn-bulk-edit-apply')?.addEventListener('click', async 
   if (mode === 'markup' && _bulkLastEdited === 'price') {
     const priceInput = document.getElementById('vp-bulk-price');
     const inclShip    = document.getElementById('vp-bulk-incl-ship');
-    const flatPrice   = parseFloat(priceInput?.value);
+    const typedPrice  = parseFloat(priceInput?.value);
 
-    if (isNaN(flatPrice) || flatPrice <= 0) {
+    if (isNaN(typedPrice) || typedPrice <= 0) {
       window.showToast?.('Enter a valid price', 'error');
       return;
     }
+    // Typed in the vendor's own currency — convert to GBP for storage,
+    // since every product's price is stored in GBP platform-wide.
+    const flatPrice = _vendorDisplayCurrency ? vendorAmountToGbp(typedPrice, _vendorDisplayCurrency) : typedPrice;
 
     // Same flat price for every selected product; markup% is derived per
     // product from its own cost (for record-keeping) and simply omitted
@@ -1749,7 +2111,7 @@ document.getElementById('btn-bulk-edit-apply')?.addEventListener('click', async 
       return { id, price: flatPrice, markupPct };
     }).filter(Boolean);
 
-    const msg = `Set price to £${flatPrice.toFixed(2)} for ${updates.length} product${updates.length !== 1 ? 's' : ''}?`;
+    const msg = `Set price to ${fmtVendorMoney(flatPrice, _vendorDisplayCurrency)} for ${updates.length} product${updates.length !== 1 ? 's' : ''}?`;
     const confirmed = await window.confirmAction?.(msg);
     if (!confirmed) return;
 
@@ -1815,7 +2177,9 @@ document.getElementById('btn-bulk-edit-apply')?.addEventListener('click', async 
     const shipLabel = inclShip?.checked ? ' + shipping' : '';
     const prices = updates.map(u => u.price);
     const minP = Math.min(...prices), maxP = Math.max(...prices);
-    const priceStr = minP === maxP ? `£${minP.toFixed(2)}` : `£${minP.toFixed(2)}–£${maxP.toFixed(2)}`;
+    const priceStr = minP === maxP
+      ? fmtVendorMoney(minP, _vendorDisplayCurrency)
+      : `${fmtVendorMoney(minP, _vendorDisplayCurrency)}–${fmtVendorMoney(maxP, _vendorDisplayCurrency)}`;
     const msg = `Apply ${markupPct}%${shipLabel} markup to ${updates.length} product${updates.length !== 1 ? 's' : ''} → ${priceStr}${skipped ? ` (${skipped} skipped — no cost price)` : ''}?`;
     const confirmed = await window.confirmAction?.(msg);
     if (!confirmed) return;
@@ -1909,6 +2273,63 @@ document.getElementById('btn-bulk-edit-apply')?.addEventListener('click', async 
         if (!ids.includes(pid)) return;
         if (body.estDeliveryMinDays !== undefined) p.estDeliveryMinDays = body.estDeliveryMinDays;
         if (body.estDeliveryMaxDays !== undefined) p.estDeliveryMaxDays = body.estDeliveryMaxDays;
+      });
+
+      _selected.clear();
+      renderProducts();
+      updateBulkBar();
+      if (panel) { panel.hidden = true; delete panel.dataset.mode; }
+      window.showToast?.(`Updated ${updated} product${updated !== 1 ? 's' : ''}`);
+    } catch (err) {
+      console.error(err);
+      window.showToast?.(err.message || 'Update failed', 'error');
+    } finally {
+      if (actBtn) { actBtn.disabled = false; actBtn.textContent = 'Apply to selected'; }
+    }
+    return;
+  }
+
+  // ── Shipping scope mode (Ships to) ──────────────────────────────────────
+  if (mode === 'shipping-scope') {
+    const scopeSelect = document.getElementById('vp-bulk-shipping-scope-select');
+    const countriesEl = document.getElementById('vp-bulk-shipping-countries');
+    const shippingScope = scopeSelect?.value || 'worldwide';
+    const shippingCountries = shippingScope === 'custom'
+      ? Array.from(countriesEl?.selectedOptions || []).map(o => o.value)
+      : [];
+
+    if (shippingScope === 'custom' && !shippingCountries.length) {
+      window.showToast?.('Select at least one country', 'error');
+      return;
+    }
+
+    const scopeLabels = { worldwide: 'Worldwide', uk: 'UK only', uk_eu: 'UK + Europe', custom: `${shippingCountries.length} selected countries` };
+    const msg = `Set "Ships to: ${scopeLabels[shippingScope]}" for ${n} product${n !== 1 ? 's' : ''}?`;
+    const confirmed = await window.confirmAction?.(msg);
+    if (!confirmed) return;
+
+    if (actBtn) { actBtn.disabled = true; actBtn.textContent = 'Applying…'; }
+
+    try {
+      const res = await fetch(`${window.API_BASE}/products/bulk`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ids, shippingScope, shippingCountries }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const updated = data.updated || ids.length;
+
+      _allProducts.forEach(p => {
+        const pid = p._id || p.id;
+        if (!ids.includes(pid)) return;
+        p.shippingScope = shippingScope;
+        p.shippingCountries = shippingCountries;
       });
 
       _selected.clear();
@@ -2360,7 +2781,7 @@ if (csvBtn && csvInput) {
     // option, unlike the Tools page's "Import to Products" flow. A
     // confirmation here is the only thing standing between a vendor and
     // accidentally re-flattening their pricing with this quieter path.
-    const proceed = confirm(
+    const proceed = await window.s4lConfirm(
       'This will overwrite price, stock, and shipping cost on any matching products.\n\n' +
       'If you only want to update the shipping warehouse without touching pricing, ' +
       'cancel this and use Tools → CSV Converter → "Update shipping origin only" instead.\n\n' +
@@ -2444,6 +2865,7 @@ async function runPendingCsvImport() {
 (function initBulkCjImages() {
   const btn     = document.getElementById('btn-bulk-cj-images');
   const overlay = document.getElementById('cj-bulk-overlay');
+  const title   = document.getElementById('cj-bulk-title');
   const bar     = document.getElementById('cj-bulk-bar');
   const status  = document.getElementById('cj-bulk-status');
   const counts  = document.getElementById('cj-bulk-counts');
@@ -2484,6 +2906,7 @@ async function runPendingCsvImport() {
     if (_selected.size === 0) return; // selection required — button should be disabled anyway
 
     btn.disabled = true;
+    if (title) title.textContent = 'Syncing from CJ';
     overlay.classList.add('active');
     bar.style.width = '0%';
     status.textContent = 'Starting…';
@@ -2619,6 +3042,7 @@ async function runPendingCsvImport() {
   // tier, unlike the CJ-specific bulk actions above.
   const btn     = document.getElementById('btn-bulk-rematch-category');
   const overlay = document.getElementById('cj-bulk-overlay');
+  const title   = document.getElementById('cj-bulk-title');
   const bar     = document.getElementById('cj-bulk-bar');
   const status  = document.getElementById('cj-bulk-status');
   const counts  = document.getElementById('cj-bulk-counts');
@@ -2637,9 +3061,10 @@ async function runPendingCsvImport() {
     const token = localStorage.getItem('s4l_token');
     if (!token) return;
     if (_selected.size === 0) return;
-    if (!confirm(`Re-derive category/subcategory for ${_selected.size} selected product${_selected.size !== 1 ? 's' : ''} and OVERWRITE what's set now? This cannot be undone.`)) return;
+    if (!(await window.s4lConfirm(`Re-derive category/subcategory for ${_selected.size} selected product${_selected.size !== 1 ? 's' : ''} and OVERWRITE what's set now? This cannot be undone.`))) return;
 
     btn.disabled = true;
+    if (title) title.textContent = 'Re-matching Category (AI)';
     overlay.classList.add('active');
     bar.style.width = '0%';
     status.textContent = 'Starting…';
@@ -2753,6 +3178,7 @@ async function runPendingCsvImport() {
   // credentials required.
   const btn     = document.getElementById('btn-bulk-generate-listing');
   const overlay = document.getElementById('cj-bulk-overlay');
+  const title   = document.getElementById('cj-bulk-title');
   const bar     = document.getElementById('cj-bulk-bar');
   const status  = document.getElementById('cj-bulk-status');
   const counts  = document.getElementById('cj-bulk-counts');
@@ -2775,9 +3201,10 @@ async function runPendingCsvImport() {
     const selectedIds = Array.from(_selected);
     const activeCount = _allProducts.filter(p => _selected.has(p._id || p.id) && p.active).length;
     const activeWarning = activeCount > 0 ? ` (${activeCount} of which ${activeCount === 1 ? 'is' : 'are'} already live)` : '';
-    if (!confirm(`Use AI to write title, descriptions, bullet points and category for ${selectedIds.length} selected product${selectedIds.length !== 1 ? 's' : ''}${activeWarning} and OVERWRITE what's set now? This cannot be undone.`)) return;
+    if (!(await window.s4lConfirm(`Use AI to write title, descriptions, bullet points and category for ${selectedIds.length} selected product${selectedIds.length !== 1 ? 's' : ''}${activeWarning} and OVERWRITE what's set now? This cannot be undone.`))) return;
 
     btn.disabled = true;
+    if (title) title.textContent = 'Generating Listing (AI)';
     overlay.classList.add('active');
     bar.style.width = '0%';
     status.textContent = 'Starting…';
@@ -2843,16 +3270,25 @@ async function runPendingCsvImport() {
             status.textContent = `[${msg.n}/${total}] ${label}`;
             if (msg.status === 'updated') {
               updated++;
-              changes.push(`${msg.name}`);
+              changes.push({ text: `${msg.name}`, failed: false });
             }
-            if (msg.status === 'failed')  failed++;
+            if (msg.status === 'failed') {
+              failed++;
+              // Reason only ever lived in this one progress message — without
+              // recording it here it's gone the moment the next message
+              // overwrites status.textContent, leaving the final summary
+              // saying "8 failed" with no way to see why any of them did.
+              changes.push({ text: `${msg.name} — ${msg.reason || 'unknown error'}`, failed: true });
+            }
             if (msg.status === 'skipped') skipped++;
             counts.textContent = `Updated: ${updated}  Failed: ${failed}  Skipped: ${skipped}`;
 
           } else if (msg.type === 'done') {
             bar.style.width = '100%';
             status.textContent = `Done — ${msg.updated} updated, ${msg.failed} failed, ${msg.skipped} skipped`;
-            counts.innerHTML = changes.length ? changes.map(c => c.replace(/</g, '&lt;')).join('<br>') : '';
+            counts.innerHTML = changes.length
+              ? changes.map(c => `<span style="color:${c.failed ? '#b91c1c' : 'inherit'}">${c.text.replace(/</g, '&lt;')}</span>`).join('<br>')
+              : '';
             _selected.clear();
             if (msg.updated > 0) await loadVendorProducts(); else renderProducts();
             updateBulkBar();
@@ -2963,7 +3399,7 @@ function ensureMarginPanel() {
 }
 
 function marginPanelHTML(p) {
-  const fmt = (n) => `£${Number(n || 0).toFixed(2)}`;
+  const fmt = (n) => fmtSigned(n, p);
   const price = Number(p.price) || 0;
   const cost = Number(p.costPrice) || 0;
   const ship = Number(p.shippingCost) || 0;
@@ -2999,8 +3435,8 @@ function marginPanelHTML(p) {
     <div class="vp-margin-row"><span>Buyer pays</span><b>${fmt(buyerPays)}</b></div>
     <div class="vp-margin-row"><span>${profitLabel} before fees</span><b>${fmt(profitBefore)}</b></div>
     ${rate.foundingSeller?.active
-      ? `<div class="vp-margin-row"><span>Est. fees</span><b>-${fmt(fees)} <span style="color:#fbbf24">(<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="8" r="5"/><path d="M9 12.5L7 21l5-3 5 3-2-8.5"/></svg> ${(rate.commissionRate * 100).toFixed(1)}% founding rate)</span></b></div>`
-      : `<div class="vp-margin-row"><span>Est. fees (${(rate.commissionRate * 100).toFixed(1)}%+${(rate.stripePct * 100).toFixed(1)}%+£${rate.stripeFixed.toFixed(2)})</span><b>-${fmt(fees)}</b></div>`}
+      ? `<div class="vp-margin-row"><span>Est. fees</span><b>${fmt(-fees)} <span style="color:#fbbf24">(<svg class="s4l-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;flex-shrink:0;"><circle cx="12" cy="8" r="5"/><path d="M9 12.5L7 21l5-3 5 3-2-8.5"/></svg> ${(rate.commissionRate * 100).toFixed(1)}% founding rate)</span></b></div>`
+      : `<div class="vp-margin-row"><span>Est. fees (${(rate.commissionRate * 100).toFixed(1)}%+${(rate.stripePct * 100).toFixed(1)}%+£${rate.stripeFixed.toFixed(2)})</span><b>${fmt(-fees)}</b></div>`}
     <div class="vp-margin-row vp-margin-total"><span>${profitLabel} after fees</span><b class="${profitAfter < 0 ? 'vp-margin-neg' : ''}">${fmt(profitAfter)}</b></div>
     <div class="vp-margin-row"><span>Margin</span><b class="${marginPct < 0 ? 'vp-margin-neg' : ''}">${marginPct.toFixed(1)}%</b></div>
     <div class="vp-margin-divider"></div>
