@@ -47,6 +47,19 @@ console.log('product.js loaded');
     // engine link, someone probing IDs) silently rendered one of those as
     // if it were a real listing, complete with a genuine analytics
     // "product view" event — confusing for buyers and for us.
+
+    // This response is a real HTTP 200 (it's a client-rendered page, not a
+    // server 404) — without this, Google sees a 200 status on a page that
+    // visibly says "not found" and flags it as a "soft 404" rather than
+    // cleanly excluding it from the index (confirmed via Search Console:
+    // 16 pages flagged this way). A noindex tag tells it directly not to
+    // index this response, resolving the soft-404 classification.
+    const robotsMeta = document.createElement('meta');
+    robotsMeta.name = 'robots';
+    robotsMeta.content = 'noindex';
+    document.head.appendChild(robotsMeta);
+    document.title = 'Product Not Found | Sell4Life';
+
     const page = $('.product-page');
     if (page) {
       page.innerHTML = `
