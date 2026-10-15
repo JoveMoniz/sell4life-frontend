@@ -936,6 +936,7 @@ console.log('product.js loaded');
         category: product.category,
         subcategory: product.subcategory,
         vendor: product.vendor,
+        collectionOnly: !!product.collectionOnly,
         variant: currentVariant
           ? { attributes: currentVariant.attributes, sku: currentVariant.sku, price: currentVariant.price }
           : undefined,
@@ -990,6 +991,7 @@ console.log('product.js loaded');
         productId: pid, name: product.name,
         price: buyPrice, image: productImage,
         quantity: currentQty,
+        collectionOnly: !!product.collectionOnly,
         variant: currentVariant ? { attributes: currentVariant.attributes, sku: currentVariant.sku, price: currentVariant.price } : undefined,
         addOns: selectedAddOns.length ? selectedAddOns.map((ao) => ({ name: ao.name, price: ao.price })) : undefined,
       }));
