@@ -286,6 +286,39 @@ function readCart() {
 
 let cart = readCart();
 
+// True only when EVERY item in this order is collection-only — a mixed
+// cart (one collection-only item alongside a normally-shipped one) still
+// needs the real postal address for the item that's actually being
+// posted, so this stays false and the form behaves exactly as before.
+const allCollectionOnly = cart.length > 0 && cart.every((i) => i.collectionOnly);
+
+// Swaps the postal-address fields out for a short explanatory note when
+// nothing in the order is actually being posted — asking a buyer to fill
+// in a shipping address for an item they're collecting in person was the
+// confusing step that made at least one real buyer abandon checkout here.
+// Only name + phone stay required, since that's genuinely all the seller
+// needs to arrange pickup.
+function applyCollectionOnlyMode() {
+  if (!allCollectionOnly) return;
+
+  const note = document.getElementById('checkout-collection-note');
+  const postalFields = document.getElementById('checkout-postal-fields');
+  const heading = document.getElementById('checkout-shipping-heading');
+  const saveAddressRow = document.getElementById('checkout-save-address-row');
+  const phoneLabel = document.getElementById('checkout-phone-label');
+
+  if (note) note.hidden = false;
+  if (postalFields) postalFields.style.display = 'none';
+  if (heading) heading.textContent = 'Your Details';
+  if (saveAddressRow) saveAddressRow.style.display = 'none';
+  if (phoneLabel) phoneLabel.textContent = 'Phone (required for collection)';
+
+  [shippingFields.postcode, shippingFields.address1, shippingFields.city].forEach((el) => {
+    if (el) el.required = false;
+  });
+  if (shippingFields.phone) shippingFields.phone.required = true;
+}
+
 // ======================================================
 // UI HELPERS
 // ======================================================
@@ -392,6 +425,7 @@ function renderItems() {
 }
 
 renderItems();
+applyCollectionOnlyMode();
 
 // currency.js's GeoIP fetch may still be in flight on first render —
 // re-render once it resolves so the buyer isn't left looking at GBP.
@@ -528,7 +562,24 @@ function readShippingAddress() {
 }
 
 function validateShippingAddress(addr) {
-  if (!addr.name || !addr.address1 || !addr.city || !addr.postcode) {
+  if (!addr.name) {
+    return 'Please fill in your name.';
+  }
+
+  // Collection-only orders never need a postal address — nothing's being
+  // shipped — but the seller still needs a real way to reach the buyer to
+  // arrange pickup, so phone is required here instead of address/city/postcode.
+  if (allCollectionOnly) {
+    if (!addr.phone) {
+      return 'Please add a phone number so the seller can arrange collection with you.';
+    }
+    if (!addr.country || !countryByCode.has(addr.country)) {
+      return 'Please select your country.';
+    }
+    return null;
+  }
+
+  if (!addr.address1 || !addr.city || !addr.postcode) {
     return 'Please fill in your name, address, city and postcode.';
   }
   if (!addr.country || !countryByCode.has(addr.country)) {

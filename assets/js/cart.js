@@ -53,6 +53,7 @@ function fmt(n) {
           item.stock = fresh.stock;
           item.price = fresh.price;
           item.shippingCost = fresh.shippingCost ?? 0;
+          item.collectionOnly = !!fresh.collectionOnly;
 
           if (fresh.trackInventory && item.quantity > fresh.stock) {
             item.quantity = fresh.stock;
